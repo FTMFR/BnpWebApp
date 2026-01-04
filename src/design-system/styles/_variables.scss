@@ -1,0 +1,36 @@
+// Sass Variables for Design System
+// These variables complement the CSS variables in tokens
+
+// Breakpoints (for use in Sass mixins)
+$breakpoints: (
+  'sm': 640px,
+  'md': 768px,
+  'lg': 1024px,
+  'xl': 1280px,
+  '2xl': 1536px,
+);
+
+// Z-index scale (complementing CSS variables)
+$z-index: (
+  'dropdown': 1000,
+  'sticky': 1020,
+  'fixed': 1030,
+  'modal-backdrop': 1040,
+  'modal': 1050,
+  'popover': 1060,
+  'tooltip': 1070,
+);
+
+// Animation durations
+$transition-duration: (
+  'fast': 150ms,
+  'normal': 200ms,
+  'slow': 300ms,
+);
+
+// Easing functions
+$easing: (
+  'ease-in': cubic-bezier(0.4, 0, 1, 1),
+  'ease-out': cubic-bezier(0, 0, 0.2, 1),
+  'ease-in-out': cubic-bezier(0.4, 0, 0.2, 1),
+);

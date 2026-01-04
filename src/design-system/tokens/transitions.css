@@ -1,0 +1,29 @@
+/* Transition Tokens */
+
+:root {
+  /* Duration */
+  --transition-duration-fast: 150ms;
+  --transition-duration-normal: 200ms;
+  --transition-duration-slow: 300ms;
+  --transition-duration-slower: 500ms;
+
+  /* Easing functions */
+  --transition-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --transition-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --transition-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* Common transitions */
+  --transition-colors:
+    color var(--transition-duration-normal) var(--transition-ease-out),
+    background-color var(--transition-duration-normal) var(--transition-ease-out),
+    border-color var(--transition-duration-normal) var(--transition-ease-out);
+
+  --transition-opacity: opacity var(--transition-duration-normal) var(--transition-ease-out);
+
+  --transition-transform: transform var(--transition-duration-normal) var(--transition-ease-out);
+
+  --transition-all: all var(--transition-duration-normal) var(--transition-ease-out);
+
+  --transition-shadow: box-shadow var(--transition-duration-normal) var(--transition-ease-out);
+}

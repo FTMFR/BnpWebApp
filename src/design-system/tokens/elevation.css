@@ -1,0 +1,128 @@
+/* Elevation System - Surface Levels and Shadows */
+
+:root {
+  /* Surface Level 0 - Background */
+  --surface-0: #E5E7EB;
+
+  /* Surface Level 1 - Primary Cards */
+  --surface-1: var(--background-secondary);
+  --surface-1-border: #D1D5DB;
+  --surface-1-border-width: 1px;
+  --surface-1-shadow: var(--shadow-sm);
+
+  /* Surface Level 2 - Elevated Cards */
+  --surface-2: var(--background-secondary);
+  --surface-2-border: #9CA3AF;
+  --surface-2-border-width: 1px;
+  --surface-2-shadow: var(--shadow-md);
+
+  /* Surface Level 3 - Highest Elevation */
+  --surface-3: var(--background-secondary);
+  --surface-3-border: #6B7280;
+  --surface-3-border-width: 1px;
+  --surface-3-shadow: var(--shadow-lg);
+
+  /* Hover States */
+  --surface-hover-shadow: var(--shadow-md);
+  --surface-hover-transform: translateY(-1px);
+
+  /* Header */
+  --surface-header: var(--background-secondary);
+  --surface-header-border: var(--border-default);
+  --surface-header-border-width: 1px;
+  --surface-header-shadow: var(--shadow-xs);
+
+  /* Sidebar */
+  --surface-sidebar: var(--sidebar-background);
+  --surface-sidebar-border: var(--sidebar-border);
+  --surface-sidebar-border-width: 1px;
+  --surface-sidebar-shadow: var(--shadow-sm);
+
+  /* Footer */
+  --surface-footer: var(--background-secondary);
+  --surface-footer-border: var(--border-default);
+  --surface-footer-border-width: 1px;
+  --surface-footer-shadow: var(--shadow-xs);
+}
+
+.dark {
+  /* Dark mode surface adjustments */
+  --surface-1-border: #475569;
+  --surface-2-border: #64748b;
+  --surface-3-border: #94a3b8;
+  --surface-hover-shadow: var(--shadow-lg);
+}
+
+/* Surface Level 1 - Primary Cards (Stats, Widgets, Tables) */
+.elevation-1 {
+  background: var(--surface-1);
+  border: var(--surface-1-border-width) solid var(--surface-1-border);
+  box-shadow: var(--surface-1-shadow);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.elevation-1:hover {
+  box-shadow: var(--surface-hover-shadow);
+  border-color: var(--surface-2-border);
+}
+
+/* Surface Level 2 - Elevated Cards (Modals, Nested Content) */
+.elevation-2 {
+  background: var(--surface-2);
+  box-shadow: var(--surface-2-shadow);
+}
+
+/* Surface Level 3 - Highest Elevation (Dropdowns, Tooltips, Popovers) */
+.elevation-3 {
+  background: var(--surface-3);
+  border: var(--surface-3-border-width) solid var(--surface-3-border);
+  box-shadow: var(--surface-3-shadow);
+}
+
+/* Interactive Elevation - For clickable cards */
+.elevation-interactive {
+  background: var(--surface-1);
+  border: var(--surface-1-border-width) solid var(--surface-1-border);
+  box-shadow: var(--surface-1-shadow);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.elevation-interactive:hover {
+  box-shadow: var(--surface-hover-shadow);
+  border-color: var(--surface-2-border);
+  transform: var(--surface-hover-transform);
+}
+
+.elevation-interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--surface-1-shadow);
+}
+
+/* Flat Surface - No elevation (for nested content inside cards) */
+.elevation-flat {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+}
+
+/* Header - Soft elegant shadow */
+.elevation-header {
+  background: var(--surface-header);
+  border-bottom: var(--surface-header-border-width) solid var(--surface-header-border);
+  box-shadow: var(--surface-header-shadow);
+}
+
+/* Sidebar - Soft subtle shadow */
+.elevation-sidebar {
+  background: var(--surface-sidebar);
+  border-left: var(--surface-sidebar-border-width) solid var(--surface-sidebar-border);
+  box-shadow: var(--surface-sidebar-shadow);
+}
+
+/* Footer - Soft elegant shadow from top */
+.elevation-footer {
+  background: var(--surface-footer);
+  border-top: var(--surface-footer-border-width) solid var(--surface-footer-border);
+  box-shadow: var(--surface-footer-shadow);
+}
+

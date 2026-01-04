@@ -1,0 +1,65 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - button "Toggle Dark Mode" [ref=e4] [cursor=pointer]:
+      - img [ref=e5]
+    - generic [ref=e7]:
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - link "ورود" [ref=e12] [cursor=pointer]:
+            - /url: /login
+          - link "ثبت‌نام" [ref=e13] [cursor=pointer]:
+            - /url: /register
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - img [ref=e16]
+            - heading "خوش آمدید!" [level=1] [ref=e18]
+          - paragraph [ref=e19]: به امنیت دسترسی داشته باشید و مدیریت مالی خود را آغاز کنید
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]: نام کاربری
+            - generic [ref=e23]:
+              - img
+              - textbox "نام کاربری" [ref=e24]:
+                - /placeholder: "14521841"
+                - text: wronguser
+          - generic [ref=e25]:
+            - generic [ref=e26]: رمز عبور
+            - generic [ref=e27]:
+              - img
+              - textbox "رمز عبور" [ref=e28]:
+                - /placeholder: ••••••••
+                - text: wrongpass
+              - button "نمایش" [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+          - link "فراموشی رمز عبور؟" [ref=e34] [cursor=pointer]:
+            - /url: /forgot-password
+          - button "در حال پردازش ورود به سیستم" [disabled] [ref=e35]:
+            - generic [ref=e37]: در حال پردازش.
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - img [ref=e52]
+          - generic [ref=e54]:
+            - heading "سیستم مالی" [level=2] [ref=e55]
+            - paragraph [ref=e56]: پلتفرم مدیریت هوشمند دارایی
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - heading "امنیت SSL" [level=3] [ref=e59]
+            - paragraph [ref=e60]: گواهی امنیتی
+          - img [ref=e65]
+          - generic [ref=e67]:
+            - button [ref=e68] [cursor=pointer]
+            - button [ref=e69] [cursor=pointer]
+            - button [ref=e70] [cursor=pointer]
+            - button [ref=e71] [cursor=pointer]
+        - paragraph [ref=e73]:
+          - text: © ۱۴۰۳ سیستم مالی. تمامی حقوق محفوظ است.
+          - text: طراحی شده برای بهترین تجربه کاربری شما
+  - generic [ref=e74]:
+    - generic "Toggle devtools panel" [ref=e75] [cursor=pointer]:
+      - img [ref=e76]
+    - generic "Toggle Component Inspector" [ref=e81] [cursor=pointer]:
+      - img [ref=e82]
+```
