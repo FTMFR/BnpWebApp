@@ -1,33 +1,25 @@
 # Stage 1: Build the application
-FROM node:lts AS builder
+FROM node:20 AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Stage 2: Serve with nginx
-FROM nginx:latest
+# Stage 2: Serve with serve
+FROM node:20-alpine
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# نصب serve
+RUN npm install -g serve
 
-# Expose port 80
-EXPOSE 80
+# کپی فایل‌های build شده
+COPY --from=builder /app/dist ./dist
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 3000
 
+CMD ["serve", "-s", "dist", "-l", "3000"]
