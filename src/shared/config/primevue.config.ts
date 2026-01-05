@@ -1,6 +1,6 @@
 /**
  * PrimeVue Configuration
- * 
+ *
  * تنظیمات PrimeVue برای استفاده در پروژه
  * - RTL support
  * - Tree-shaking: فقط کامپوننت‌های موردنیاز import می‌شوند
@@ -8,7 +8,7 @@
 
 // تنظیمات PrimeVue
 export const primevueConfig = {
-  ripple: true,
+  ripple: false,
   inputStyle: 'outlined',
   locale: {
     startsWith: 'شروع با',
