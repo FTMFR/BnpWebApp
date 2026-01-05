@@ -9,17 +9,16 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve with serve
+# Stage 2: Serve with Vite Preview
 FROM node:20-alpine
 
 WORKDIR /app
 
-# نصب serve
-RUN npm install -g serve
-
-# کپی فایل‌های build شده
+# فقط dist و node_modules برای vite preview نیاز است
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 
-EXPOSE 3000
+EXPOSE 4173
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "4173"]
