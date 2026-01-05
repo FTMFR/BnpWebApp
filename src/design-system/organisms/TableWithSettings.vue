@@ -354,7 +354,7 @@ const renderCellContent = (column: TableColumn<T>, row: T, rowIndex: number): VN
                 v-if="column.sortable"
                 @click="handleSort(column.id)"
                 class="flex items-center justify-center gap-2 w-full hover:text-primary-900 transition-colors"
-              >
+                    >
                 {{ column.title }}
                 <BaseIcon
                   v-if="sortConfig?.key === column.id"
@@ -368,7 +368,7 @@ const renderCellContent = (column: TableColumn<T>, row: T, rowIndex: number): VN
                   :size="16"
                   class="opacity-40"
                 />
-              </button>
+                    </button>
               <span v-else>{{ column.title }}</span>
             </th>
           </tr>
@@ -415,32 +415,32 @@ const renderCellContent = (column: TableColumn<T>, row: T, rowIndex: number): VN
             <td
               :colspan="visibleColumns.length"
               class="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base"
-            >
-              هیچ داده‌ای یافت نشد
+                >
+                  هیچ داده‌ای یافت نشد
             </td>
           </tr>
 
           <!-- Desktop Rows: All columns -->
           <template v-for="(row, rowIndex) in sortedData" :key="rowIndex">
-            <tr
+          <tr
               class="hidden md:table-row hover:bg-primary-50/50 transition-colors border-b border-border"
+                >
+            <td
+              v-for="(column, colIndex) in visibleColumns"
+              :key="column.id"
+              :class="[
+                'text-center py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap border-r border-border',
+                colIndex === visibleColumns.length - 1 ? 'border-r-0' : ''
+              ]"
             >
-              <td
-                v-for="(column, colIndex) in visibleColumns"
-                :key="column.id"
-                :class="[
-                  'text-center py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap border-r border-border',
-                  colIndex === visibleColumns.length - 1 ? 'border-r-0' : ''
-                ]"
-              >
-                <template v-if="column.render">
-                  <RenderCell
-                    :render-fn="() => renderCellContent(column, row, rowIndex)"
-                  />
-                </template>
-                <span v-else>{{ (row as Record<string, unknown>)[column.id] }}</span>
-              </td>
-            </tr>
+              <template v-if="column.render">
+                <RenderCell
+                  :render-fn="() => renderCellContent(column, row, rowIndex)"
+                />
+              </template>
+              <span v-else>{{ (row as Record<string, unknown>)[column.id] }}</span>
+            </td>
+          </tr>
 
             <!-- Mobile Rows: Expandable -->
             <tr

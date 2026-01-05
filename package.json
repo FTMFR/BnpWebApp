@@ -18,7 +18,7 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
-    "postinstall": "playwright install --with-deps chromium"
+    "postinstall": "npx playwright install --with-deps chromium"
   },
   "dependencies": {
     "@sentry/vue": "^8.40.0",
