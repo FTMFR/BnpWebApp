@@ -35,11 +35,12 @@ export function useAuth() {
       const response = await apiClient.post<LoginResponse>(endpoints.auth.login, credentials)
       return response.data
     },
-    onSuccess: async (loginData) => {
+    onSuccess: async (loginData: LoginResponse) => {
       if (loginData.RequiresMfa) {
         console.log('MFA required:', loginData)
         return
       }
+      authStore.setAuth(loginData.Token, loginData.PublicId)
 
       try {
         const userResponse = await apiClient.get<AuthUser>(endpoints.users.byId(loginData.PublicId))
@@ -48,6 +49,11 @@ export function useAuth() {
         console.error('Failed to fetch user profile:', error)
       }
     },
+    onError: (error: unknown) => {
+      console.error('Login error:', error)
+    },
+    // onSettled: () => {
+    // },
   })
 
   const userQuery = useQuery({
@@ -55,12 +61,12 @@ export function useAuth() {
     queryFn: async (): Promise<AuthUser> => {
       if (!authStore.publicId) throw new Error('PublicId not available')
       const response = await apiClient.get<AuthUser>(endpoints.users.byId(authStore.publicId))
-      if (authStore.token) {
-        authStore.setAuth(authStore.token, authStore.publicId, response.data)
+      if (authStore.Token) {
+        authStore.setAuth(authStore.Token, authStore.publicId, response.data)
       }
       return response.data
     },
-    enabled: computed(() => !!authStore.publicId && !!authStore.token && !authStore.user),
+    enabled: computed(() => !!authStore.publicId && !!authStore.Token && !authStore.user),
   })
 
   const logout = async () => {
@@ -77,12 +83,13 @@ export function useAuth() {
   return {
     user: computed(() => authStore.user),
     publicId: computed(() => authStore.publicId),
-    token: computed(() => authStore.token),
+    token: computed(() => authStore.Token),
     isAuthenticated: computed(() => authStore.isAuthenticated),
 
     login: loginMutation.mutate,
     loginAsync: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
+    resetLogin: loginMutation.reset,
 
     logout,
 

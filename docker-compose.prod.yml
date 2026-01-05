@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bnp-webapp-prod
+    ports:
+      - '80:80'
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - bnp-network
+    labels:
+      - 'traefik.enable=false'
+
+networks:
+  bnp-network:
+    driver: bridge

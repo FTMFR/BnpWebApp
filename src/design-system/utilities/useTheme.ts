@@ -2,7 +2,16 @@ import { ref, readonly, onMounted } from 'vue';
 
 export type ThemeMode = 'light' | 'dark';
 
-const theme = ref<ThemeMode>('light');
+
+const getInitialTheme = (): ThemeMode => {
+  // Check if dark class is already set by inline script
+  if (document.documentElement.classList.contains('dark')) {
+    return 'dark';
+  }
+  return 'light';
+};
+
+const theme = ref<ThemeMode>(getInitialTheme());
 
 export function useTheme() {
   const setTheme = (mode: ThemeMode) => {
@@ -16,7 +25,7 @@ export function useTheme() {
     }
 
     // Save to localStorage
-    localStorage.setItem('theme', mode);
+     localStorage.setItem('theme', mode);
   };
 
   const toggleTheme = () => {
@@ -42,10 +51,20 @@ export function useTheme() {
 
   // Watch for system theme changes
   onMounted(() => {
-    initTheme();
+    // Only init if no theme is saved (let inline script handle first render)
+    if (!localStorage.getItem('theme')) {
+      initTheme();
+    } else {
+      // Sync with localStorage
+      const savedTheme = localStorage.getItem('theme') as ThemeMode | null;
+      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+        setTheme(savedTheme);
+      }
+    }
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
+      // Only follow system if user hasn't set a preference
       if (!localStorage.getItem('theme')) {
         setTheme(e.matches ? 'dark' : 'light');
       }

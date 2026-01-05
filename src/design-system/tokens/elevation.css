@@ -57,46 +57,54 @@
 .elevation-1 {
   background: var(--surface-1);
   border: var(--surface-1-border-width) solid var(--surface-1-border);
-  box-shadow: var(--surface-1-shadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .elevation-1:hover {
-  box-shadow: var(--surface-hover-shadow);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.14);
   border-color: var(--surface-2-border);
 }
 
 /* Surface Level 2 - Elevated Cards (Modals, Nested Content) */
 .elevation-2 {
   background: var(--surface-2);
-  box-shadow: var(--surface-2-shadow);
+  border: var(--surface-2-border-width) solid var(--surface-2-border);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.14);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.elevation-2:hover {
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.16);
+  border-color: var(--surface-3-border);
 }
 
 /* Surface Level 3 - Highest Elevation (Dropdowns, Tooltips, Popovers) */
 .elevation-3 {
   background: var(--surface-3);
   border: var(--surface-3-border-width) solid var(--surface-3-border);
-  box-shadow: var(--surface-3-shadow);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.16);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 /* Interactive Elevation - For clickable cards */
 .elevation-interactive {
   background: var(--surface-1);
   border: var(--surface-1-border-width) solid var(--surface-1-border);
-  box-shadow: var(--surface-1-shadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .elevation-interactive:hover {
-  box-shadow: var(--surface-hover-shadow);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.14);
   border-color: var(--surface-2-border);
-  transform: var(--surface-hover-transform);
+  transform: translateY(-2px);
 }
 
 .elevation-interactive:active {
   transform: translateY(0);
-  box-shadow: var(--surface-1-shadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Flat Surface - No elevation (for nested content inside cards) */

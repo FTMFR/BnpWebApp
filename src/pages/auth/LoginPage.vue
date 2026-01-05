@@ -143,7 +143,7 @@ import type { AxiosError } from 'axios'
 
 const route = useRoute()
 const router = useRouter()
-const { loginAsync, isLoggingIn, fetchUser } = useAuth()
+const { loginAsync, isLoggingIn, fetchUser, resetLogin } = useAuth()
 
 const userName = ref('')
 const password = ref('')
@@ -223,6 +223,10 @@ async function handleSubmit() {
     router.push(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/')
   } catch (error) {
     errorMessage.value = getErrorMessage(error)
+  } finally {
+    if (isLoggingIn.value) {
+      resetLogin()
+    }
   }
 }
 </script>

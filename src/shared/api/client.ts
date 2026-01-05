@@ -9,7 +9,6 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
-  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -36,8 +35,8 @@ apiClient.interceptors.request.use(
   (config) => {
     // Add auth token from store
     const authStore = useAuthStore();
-    if (authStore.token) {
-      config.headers.Authorization = `Bearer ${authStore.token}`;
+    if (authStore.Token) {
+      config.headers.Authorization = `Bearer ${authStore.Token}`;
     }
 
     config.headers['X-Requested-With'] = 'XMLHttpRequest';
@@ -61,7 +60,6 @@ apiClient.interceptors.response.use(
 
       // اگر درخواست refresh خودش 401 گرفت، logout و redirect
       if (status === 401 && originalRequest && originalRequest.url?.includes('/Auth/refresh')) {
-        console.log('Refresh token expired (401), logging out...');
         const authStore = useAuthStore();
         try {
           await apiClient.post(endpoints.auth.logout);

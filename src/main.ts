@@ -10,6 +10,7 @@ import App from './App.vue'
 import router from './router'
 import { queryClient } from './shared/query/setup'
 import { useAuthStore } from './stores/auth'
+import { useTheme } from './design-system/utilities/useTheme'
 // import { initSentry } from './shared/monitoring/sentry.config'
 
 const app = createApp(App)
@@ -22,6 +23,10 @@ app.use(pinia)
 // Initialize auth store (restores token and user from sessionStorage)
 const authStore = useAuthStore()
 authStore.initialize()
+
+const { initTheme } = useTheme()
+initTheme()
+
 
 app.use(router)
 

@@ -20,23 +20,23 @@ export interface AuthUser {
 }
 
 const STORAGE_KEYS = {
-  token: 'auth_token',
+  Token: 'auth_token',
   publicId: 'auth_public_id',
 } as const
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(null)
+  const Token = ref<string | null>(null)
   const publicId = ref<string | null>(null)
   const user = ref<AuthUser | null>(null)
 
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => !!Token.value)
 
   function initialize() {
     try {
-      const savedToken = sessionStorage.getItem(STORAGE_KEYS.token)
+      const savedToken = sessionStorage.getItem(STORAGE_KEYS.Token)
       const savedPublicId = sessionStorage.getItem(STORAGE_KEYS.publicId)
 
-      if (savedToken) token.value = savedToken
+      if (savedToken) Token.value = savedToken
       if (savedPublicId) publicId.value = savedPublicId
     } catch (error) {
       console.error('Failed to restore auth from sessionStorage:', error)
@@ -45,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setAuth(authToken: string, userPublicId: string, userData?: AuthUser) {
-    token.value = authToken
+    Token.value = authToken
     publicId.value = userPublicId
 
     if (userData) {
@@ -53,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     try {
-      sessionStorage.setItem(STORAGE_KEYS.token, authToken)
+      sessionStorage.setItem(STORAGE_KEYS.Token, authToken)
       sessionStorage.setItem(STORAGE_KEYS.publicId, userPublicId)
 
     } catch (error) {
@@ -62,12 +62,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clear() {
-    token.value = null
+    Token.value = null
     publicId.value = null
     user.value = null
 
     try {
-      sessionStorage.removeItem(STORAGE_KEYS.token)
+      sessionStorage.removeItem(STORAGE_KEYS.Token)
       sessionStorage.removeItem(STORAGE_KEYS.publicId)
     } catch (error) {
       console.error('Failed to clear sessionStorage:', error)
@@ -75,7 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    token,
+    Token,
     publicId,
     user,
     isAuthenticated,
