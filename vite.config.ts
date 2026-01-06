@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    cors: true, // Enable CORS for Vite dev server
+    cors: true, 
   },
 
   build: {

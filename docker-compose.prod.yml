@@ -18,18 +18,6 @@ services:
     depends_on:
       - backend
 
-  # Backend service - اگر بک‌اند شما در Docker است، این را uncomment کنید
-  # backend:
-  #   image: your-backend-image:latest
-  #   container_name: bnp-backend-prod
-  #   ports:
-  #     - '5117:5117'
-  #   restart: unless-stopped
-  #   networks:
-  #     - bnp-network
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Production
-  #     - ASPNETCORE_URLS=http://+:5117
 
 networks:
   bnp-network:
