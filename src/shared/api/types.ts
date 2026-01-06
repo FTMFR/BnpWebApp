@@ -7,6 +7,9 @@ export interface ApiResponse<T = unknown> {
 export interface ApiError {
   message: string;
   status: number;
+  error?: string;
+  denialCode?: string;
+  success?: boolean
 }
 
 export interface ApiMenuItem {

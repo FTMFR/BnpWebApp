@@ -61,10 +61,10 @@
         placeholder="14521841"
         icon="Mail"
         input-id="userName"
-        :error-message="errorMessage"
+        :error-message="userNameError"
         required
         autocomplete="username"
-        @clear-error="errorMessage = ''"
+        @clear-error="userNameError = ''"
       />
 
       <FormInput
@@ -74,10 +74,10 @@
         placeholder="••••••••"
         icon="Lock"
         input-id="password"
-        :error-message="errorMessage"
+        :error-message="passwordError"
         required
         autocomplete="current-password"
-        @clear-error="errorMessage = ''"
+        @clear-error="passwordError = ''"
       />
 
       <div class="flex items-center justify-between pt-1">
@@ -87,22 +87,6 @@
         >
           فراموشی رمز عبور؟
         </router-link>
-      </div>
-
-      <div
-        v-if="errorMessage"
-        id="login-error"
-        class="flex items-center gap-3 p-3.5 px-4 bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 dark:border-red-500/40 rounded-xl text-danger-500 dark:text-danger-400 text-sm font-medium mt-2 animate-[slideIn_0.3s_ease-out]"
-        role="alert"
-        aria-live="polite"
-      >
-        <BaseIcon
-          name="AlertCircle"
-          :size="20"
-          :stroke-width="2"
-          icon-class="flex-shrink-0 text-danger-500 dark:text-danger-400"
-        />
-        <span>{{ errorMessage }}</span>
       </div>
 
       <button
@@ -139,7 +123,6 @@ import { AuthLayout } from '@/design-system/templates'
 import { FormInput } from '@/design-system/molecules'
 import { BaseIcon } from '@/design-system/atoms'
 import { useAuth } from '@/shared/composables/useAuth'
-import type { AxiosError } from 'axios'
 
 const route = useRoute()
 const router = useRouter()
@@ -147,7 +130,8 @@ const { loginAsync, isLoggingIn, fetchUser, resetLogin } = useAuth()
 
 const userName = ref('')
 const password = ref('')
-const errorMessage = ref('')
+const userNameError = ref('') // خطاهای اعتبارسنجی فیلد نام کاربری
+const passwordError = ref('') // خطاهای اعتبارسنجی فیلد رمز عبور
 
 async function fetchUserAfterLogin() {
   try {
@@ -161,40 +145,23 @@ async function fetchUserAfterLogin() {
   }
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error && typeof error === 'object' && 'response' in error) {
-    const axiosError = error as AxiosError<{ message?: string; error?: string }>
-
-    if (axiosError.response?.data) {
-      const data = axiosError.response.data
-
-      if (typeof data === 'object') {
-        if ('message' in data && typeof data.message === 'string') {
-          return data.message
-        }
-        if ('error' in data && typeof data.error === 'string') {
-          return data.error
-        }
-      }
-    }
-
-    if (axiosError.request && !axiosError.response) {
-      return 'ارتباط با سرور برقرار نشد. لطفاً اتصال اینترنت خود را بررسی کنید.'
-    }
-  }
-
-  return error instanceof Error ? error.message : 'خطایی در ورود به سیستم رخ داده است.'
-}
-
 async function handleSubmit() {
   if (isLoggingIn.value) return
 
-  if (!userName.value || !password.value) {
-    errorMessage.value = 'لطفاً نام کاربری و رمز عبور را وارد کنید.'
+  // پاک کردن تمام خطاها
+  userNameError.value = ''
+  passwordError.value = ''
+
+  // اعتبارسنجی فیلدها
+  if (!userName.value) {
+    userNameError.value = 'لطفاً نام کاربری را وارد کنید.'
     return
   }
 
-  errorMessage.value = ''
+  if (!password.value) {
+    passwordError.value = 'لطفاً رمز عبور را وارد کنید.'
+    return
+  }
 
   try {
     const loginResponse = await loginAsync({
@@ -222,7 +189,9 @@ async function handleSubmit() {
     const redirectPath = route.query.redirect as string | undefined
     router.push(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/')
   } catch (error) {
-    errorMessage.value = getErrorMessage(error)
+    // خطاهای API از interceptor به صورت toast نمایش داده می‌شوند
+    // نیازی به تنظیم errorMessage نیست
+    console.error('Login error:', error)
   } finally {
     if (isLoggingIn.value) {
       resetLogin()

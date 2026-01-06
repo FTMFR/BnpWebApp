@@ -2,6 +2,7 @@ import axios, { AxiosError, type AxiosInstance, type AxiosResponse, type Interna
 import type { ApiResponse, ApiError } from './types';
 import { endpoints } from './endpoints';
 import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? '/api' : '/api');
@@ -33,7 +34,6 @@ const processQueue = (error: unknown | null) => {
 
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token from store
     const authStore = useAuthStore();
     if (authStore.Token) {
       config.headers.Authorization = `Bearer ${authStore.Token}`;
@@ -55,10 +55,19 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig &
     { _retry?: boolean };
 
+    if (!error.response && error.request) {
+      console.error('CORS Error or Network Error:', error.message);
+      const toastStore = useToastStore();
+      toastStore.showToast('ارتباط با سرور برقرار نشد. لطفاً اتصال اینترنت خود را بررسی کنید.', 'error', 5000);
+      return Promise.reject(error);
+    }
+
     if (error.response) {
       const { status, data } = error.response;
+      const toastStore = useToastStore();
+      let shouldShowToast = false;
+      let toastMessage = '';
 
-      // اگر درخواست refresh خودش 401 گرفت، logout و redirect
       if (status === 401 && originalRequest && originalRequest.url?.includes('/Auth/refresh')) {
         const authStore = useAuthStore();
         try {
@@ -74,78 +83,113 @@ apiClient.interceptors.response.use(
       }
 
       if (status === 401 && originalRequest && !originalRequest._retry) {
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then(() => {
-              return apiClient.request(originalRequest);
+        const isLoginRequest = originalRequest.url?.includes('/Auth/login');
+
+        if (isLoginRequest) {
+          const loginErrorMessage = data?.message || data?.error || 'خطایی در ورود به سیستم رخ داده است';
+          toastStore.showToast(loginErrorMessage, 'error', 5000);
+          return Promise.reject(error);
+        } else {
+          if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
             })
-            .catch((err) => {
-              return Promise.reject(err);
-            });
-        }
+              .then(() => {
+                return apiClient.request(originalRequest);
+              })
+              .catch((err) => {
+                return Promise.reject(err);
+              });
+          }
 
-        originalRequest._retry = true;
-        isRefreshing = true;
+          originalRequest._retry = true;
+          isRefreshing = true;
 
-        try {
-          await apiClient.post(endpoints.auth.refresh);
-          processQueue(null);
-          return apiClient.request(originalRequest);
-        } catch (refreshError) {
-          processQueue(refreshError);
-          const authStore = useAuthStore();
+          try {
+            await apiClient.post(endpoints.auth.refresh);
+            processQueue(null);
+            return apiClient.request(originalRequest);
+          } catch (refreshErr: unknown) {
+            const refreshError = refreshErr as AxiosError;
+            processQueue(refreshError);
+            const authStore = useAuthStore();
 
-          // اگر refresh token هم 401 گرفت، clear و redirect به login
-          // (logout قبلاً در interceptor انجام شده)
-          if (refreshError instanceof AxiosError && refreshError.response?.status === 401) {
-            await apiClient.post(endpoints.auth.logout);
+            if (refreshError instanceof AxiosError && refreshError.response?.status === 401) {
+              await apiClient.post(endpoints.auth.logout);
+              authStore.clear();
+              if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+              }
+              return Promise.reject(refreshError);
+            }
+
             authStore.clear();
             if (window.location.pathname !== '/login') {
               window.location.href = '/login';
             }
-            return Promise.reject(refreshError);
-          }
 
+            return Promise.reject(refreshError);
+          } finally {
+            isRefreshing = false;
+          }
+        }
+      }
+
+      if (status === 403) {
+        if (data?.denialCode === 'TooManySessions') {
+          const errorMessage = data?.message || 'تعداد نشست‌های همزمان به حداکثر رسیده است';
+          toastStore.showToast(errorMessage, 'error', 7000);
+          return Promise.reject(error);
+        }
+
+        const isUserRequest = originalRequest?.url?.includes('/Users/');
+        const currentPath = window.location.pathname;
+        const authPages = ['/login', '/register', '/forgot-password'];
+        const isAuthPage = authPages.some(page => currentPath.startsWith(page));
+
+        if (isUserRequest) {
+          const authStore = useAuthStore();
+          try {
+            await apiClient.post(endpoints.auth.logout);
+          } catch (logoutError) {
+            console.error('Logout API error:', logoutError);
+          }
+          authStore.clear();
+          toastStore.showToast(data?.message || data?.error || 'دسترسی غیرمجاز', 'error', 5000);
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          return Promise.reject(error);
+        }
+
+        if (!isAuthPage) {
+          const authStore = useAuthStore();
+          try {
+            await apiClient.post(endpoints.auth.logout);
+          } catch (logoutError) {
+            console.error('Logout API error:', logoutError);
+          }
           authStore.clear();
           if (window.location.pathname !== '/login') {
             window.location.href = '/login';
           }
+          return Promise.reject(error);
+        } else {
+          shouldShowToast = true;
+          toastMessage = data?.message || data?.error || 'دسترسی غیرمجاز';
+        }
+      } else {
+        const isRefreshTokenError = status === 401 && originalRequest?.url?.includes('/Auth/refresh');
+        const isLoginRequest = status === 401 && originalRequest?.url?.includes('/Auth/login');
 
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
+        if (!isRefreshTokenError && !isLoginRequest && (data?.message || data?.error)) {
+          shouldShowToast = true;
+          toastMessage = data?.message || data?.error || 'خطایی رخ داده است';
         }
       }
 
-      // شرط 403 جنرال (به جز متد refresh) - کامنت شده برای بعد
-      // if (status === 403 && originalRequest && !originalRequest.url?.includes('/Auth/refresh')) {
-      //   const authStore = useAuthStore();
-      //   try {
-      //     await apiClient.post(endpoints.auth.logout);
-      //   } catch (logoutError) {
-      //     console.error('Logout API error:', logoutError);
-      //   }
-      //   authStore.clear();
-      //   if (window.location.pathname !== '/login') {
-      //     window.location.href = '/login';
-      //   }
-      //   return Promise.reject(error);
-      // }
-
-      if (status === 403) {
-        const authStore = useAuthStore();
-        try {
-          await apiClient.post(endpoints.auth.logout);
-        } catch (logoutError) {
-          console.error('Logout API error:', logoutError);
-        }
-        authStore.clear();
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
-        return Promise.reject(error);
+      if (shouldShowToast && toastMessage) {
+        toastStore.showToast(toastMessage, 'error', 5000);
       }
 
       if (status >= 500) {
