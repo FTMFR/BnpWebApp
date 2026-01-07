@@ -1,45 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { DashboardLayout } from '@/design-system/templates'
-import type { UserInfo } from '@/design-system/organisms'
 import { BaseSpinner } from '@/design-system/atoms'
 import { useAuth } from '@/shared/composables/useAuth'
-import type { AuthUser } from '@/stores/auth'
-import { getAvatarInitial } from '@/shared/utils/user'
 
-const { user, fetchUser, isLoadingUser } = useAuth()
+const { fetchUser, isLoadingUser } = useAuth()
 
 // Fetch user info on mount
 onMounted(() => {
   fetchUser()
 })
-
-// Convert AuthUser to UserInfo for DashboardLayout
-const userInfo = computed<UserInfo>(() => {
-  const currentUser = user.value as AuthUser | null
-  if (!currentUser) {
-    return {
-      firstName: 'کاربر',
-      lastName: 'سیستم',
-      email: '',
-      avatarName: 'ک',
-    }
-  }
-
-  const avatarInitial = getAvatarInitial(currentUser.FirstName, currentUser.LastName)
-
-  return {
-    firstName: currentUser.FirstName,
-    lastName: currentUser.LastName || '',
-    email: currentUser.Email,
-    avatarName: avatarInitial,
-  }
-})
-
-const logo = {
-  text: 'سیستم مدیریت وام',
-  subtext: 'پنل مدیریت',
-}
 
 const handleSearch = (query: string) => {
   console.log('Global search:', query)
@@ -68,8 +38,6 @@ const handleHelpClick = () => {
   </div>
   <DashboardLayout
     v-else
-    :user-info="userInfo"
-    :logo="logo"
     @search="handleSearch"
     @user-menu-click="handleUserMenuClick"
     @notification-click="handleNotificationClick"

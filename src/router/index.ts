@@ -65,6 +65,15 @@ const router = createRouter({
         layout: 'dashboard',
       },
     },
+    {
+      path: '/users/create',
+      name: 'users-create',
+      component: () => import('@/pages/users/UserCreatePage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
   ],
 })
 

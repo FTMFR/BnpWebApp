@@ -3,7 +3,9 @@
     <div class="max-w-7xl mx-auto px-6 py-12">
       <!-- Header -->
       <div class="mb-12">
-        <h1 class="mb-4 text-3xl font-bold text-foreground">نظام Elevation - Enterprise Admin Panel</h1>
+        <h1 class="mb-4 text-3xl font-bold text-foreground">
+          نظام Elevation - Enterprise Admin Panel
+        </h1>
         <p class="text-muted-foreground text-lg">
           سیستم جامع elevation با ۳ سطح مشخص برای ایجاد سلسله‌مراتب بصری قوی
         </p>
@@ -13,9 +15,7 @@
       <section class="mb-16">
         <div class="mb-8">
           <h2 class="mb-2 text-2xl font-semibold text-foreground">نمایش زنده سطوح Elevation</h2>
-          <p class="text-muted-foreground">
-            مشاهده تفاوت بصری بین سطوح مختلف
-          </p>
+          <p class="text-muted-foreground">مشاهده تفاوت بصری بین سطوح مختلف</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -82,9 +82,7 @@
       <section class="mb-16">
         <div class="mb-8">
           <h2 class="mb-2 text-2xl font-semibold text-foreground">Interactive Elevation</h2>
-          <p class="text-muted-foreground">
-            کارت‌های قابل کلیک با hover effect
-          </p>
+          <p class="text-muted-foreground">کارت‌های قابل کلیک با hover effect</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -116,9 +114,7 @@
       <section class="mb-16">
         <div class="mb-8">
           <h2 class="mb-2 text-2xl font-semibold text-foreground">CSS Design Tokens</h2>
-          <p class="text-muted-foreground">
-            توکن‌های CSS برای استفاده مستقیم
-          </p>
+          <p class="text-muted-foreground">توکن‌های CSS برای استفاده مستقیم</p>
         </div>
 
         <div class="bg-card border border-border rounded-xl p-6">
@@ -170,14 +166,14 @@
       <section class="mb-16">
         <div class="mb-8">
           <h2 class="mb-2 text-2xl font-semibold text-foreground">راهنمای استفاده</h2>
-          <p class="text-muted-foreground">
-            چه زمانی از کدام سطح استفاده کنیم
-          </p>
+          <p class="text-muted-foreground">چه زمانی از کدام سطح استفاده کنیم</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="bg-primary-50 border border-primary-200 rounded-xl p-6">
-            <div class="w-10 h-10 rounded-lg bg-primary-500 text-white flex items-center justify-center mb-4">
+            <div
+              class="w-10 h-10 rounded-lg bg-primary-500 text-white flex items-center justify-center mb-4"
+            >
               <span class="font-bold">1</span>
             </div>
             <h3 class="text-primary-700 mb-3 font-semibold">Surface Level 1</h3>
@@ -191,7 +187,9 @@
           </div>
 
           <div class="bg-warning-50 border border-warning-200 rounded-xl p-6">
-            <div class="w-10 h-10 rounded-lg bg-warning-500 text-white flex items-center justify-center mb-4">
+            <div
+              class="w-10 h-10 rounded-lg bg-warning-500 text-white flex items-center justify-center mb-4"
+            >
               <span class="font-bold">2</span>
             </div>
             <h3 class="text-warning-700 mb-3 font-semibold">Surface Level 2</h3>
@@ -205,7 +203,9 @@
           </div>
 
           <div class="bg-danger-50 border border-danger-200 rounded-xl p-6">
-            <div class="w-10 h-10 rounded-lg bg-danger-500 text-white flex items-center justify-center mb-4">
+            <div
+              class="w-10 h-10 rounded-lg bg-danger-500 text-white flex items-center justify-center mb-4"
+            >
               <span class="font-bold">3</span>
             </div>
             <h3 class="text-danger-700 mb-3 font-semibold">Surface Level 3</h3>
@@ -224,36 +224,42 @@
       <section class="mb-16">
         <div class="mb-8">
           <h2 class="mb-2 text-2xl font-semibold text-foreground">Tailwind CSS Integration</h2>
-          <p class="text-muted-foreground">
-            چگونه با Tailwind استفاده کنیم
-          </p>
+          <p class="text-muted-foreground">چگونه با Tailwind استفاده کنیم</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div class="bg-card border border-border rounded-xl p-6">
             <h3 class="mb-4 text-lg font-semibold text-foreground">کامپوننت با Elevation 1</h3>
-            <pre class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"><code>&lt;div class="elevation-1 rounded-xl p-6"&gt;
+            <pre
+              class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"
+            ><code>&lt;div class="elevation-1 rounded-xl p-6"&gt;
   &lt;!-- محتوای کارت --&gt;
 &lt;/div&gt;</code></pre>
           </div>
 
           <div class="bg-card border border-border rounded-xl p-6">
             <h3 class="mb-4 text-lg font-semibold text-foreground">کارت تعاملی</h3>
-            <pre class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"><code>&lt;div class="elevation-interactive rounded-xl p-6"&gt;
+            <pre
+              class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"
+            ><code>&lt;div class="elevation-interactive rounded-xl p-6"&gt;
   &lt;!-- کارت قابل کلیک --&gt;
 &lt;/div&gt;</code></pre>
           </div>
 
           <div class="bg-card border border-border rounded-xl p-6">
             <h3 class="mb-4 text-lg font-semibold text-foreground">Modal با Elevation 2</h3>
-            <pre class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"><code>&lt;div class="elevation-2 rounded-xl p-8 max-w-md"&gt;
+            <pre
+              class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"
+            ><code>&lt;div class="elevation-2 rounded-xl p-8 max-w-md"&gt;
   &lt;!-- محتوای modal --&gt;
 &lt;/div&gt;</code></pre>
           </div>
 
           <div class="bg-card border border-border rounded-xl p-6">
             <h3 class="mb-4 text-lg font-semibold text-foreground">Dropdown با Elevation 3</h3>
-            <pre class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"><code>&lt;div class="elevation-3 rounded-lg p-2 min-w-[200px]"&gt;
+            <pre
+              class="text-xs bg-secondary/50 p-4 rounded-lg overflow-x-auto"
+            ><code>&lt;div class="elevation-3 rounded-lg p-2 min-w-[200px]"&gt;
   &lt;!-- لیست آیتم‌ها --&gt;
 &lt;/div&gt;</code></pre>
           </div>
@@ -264,9 +270,7 @@
       <section>
         <div class="mb-8">
           <h2 class="mb-2 text-2xl font-semibold text-foreground">Do's and Don'ts</h2>
-          <p class="text-muted-foreground">
-            بهترین شیوه‌های استفاده
-          </p>
+          <p class="text-muted-foreground">بهترین شیوه‌های استفاده</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -307,4 +311,3 @@
 <style scoped>
 /* Additional styles if needed */
 </style>
-

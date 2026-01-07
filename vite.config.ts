@@ -44,7 +44,55 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    cors: true, 
+    cors: true,
+  },
+
+  preview: {
+    port: 8080,
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://46.249.102.43:5000',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        // اضافه کردن این تنظیمات برای CORS بهتر:
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            // برای OPTIONS request
+            if (req.method === 'OPTIONS') {
+              proxyReq.setHeader('Access-Control-Allow-Origin', '*');
+              proxyReq.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+              proxyReq.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+              proxyReq.setHeader('Origin', 'http://46.249.102.43:5000');
+            }
+          });
+
+          proxy.on('proxyRes', (proxyRes, req) => {
+            // تنظیمات CORS در response
+            proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+            proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
+            proxyRes.headers['Access-Control-Allow-Headers'] = 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+            proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+            proxyRes.headers['Access-Control-Expose-Headers'] = 'Content-Length,Content-Range';
+            proxyRes.headers['Access-Control-Max-Age'] = '86400';
+          });
+        },
+      },
+    },
+    cors: true,
+  },
+
+  configure: (proxy) => {
+    proxy.on('proxyReq', (proxyReq, req) => {
+      // برای OPTIONS request
+      if (req.method === 'OPTIONS') {
+        proxyReq.setHeader('Access-Control-Allow-Origin', '*');
+        proxyReq.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+        proxyReq.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      }
+    });
+    // ... بقیه کد
   },
 
   build: {

@@ -8,16 +8,10 @@ import HelpCenter from '../organisms/HelpCenter.vue'
 import NotificationsPanel from '../organisms/NotificationsPanel.vue'
 import { useMenu } from '@/shared/composables/useMenu'
 import type { MenuItem } from '../organisms/Sidebar.vue'
-import type { UserInfo } from '../organisms/HeaderLayout.vue'
 import type { CommandItem } from '../organisms/CommandPalette.vue'
 
 export interface DashboardLayoutProps {
-  userInfo: UserInfo
   activeMenuItemId?: string
-  logo?: {
-    text: string
-    subtext?: string
-  }
   commandPaletteItems?: CommandItem[]
 }
 
@@ -96,8 +90,6 @@ provide('toggleSidebarCollapse', toggleSidebarCollapse)
 <template>
   <div class="min-h-screen bg-background-primary relative">
     <Header
-      :user-info="userInfo"
-      :logo="logo"
       @search="emit('search', $event)"
       @user-menu-click="emit('user-menu-click')"
       @notification-click="handleNotificationClick"

@@ -22,3 +22,28 @@ export interface ApiMenuItem {
   ZamanInsert: string | null;
   Children: ApiMenuItem[];
 }
+
+export interface Group {
+  PublicId: string
+  Title: string
+  GrpCode: number
+  ZamanInsert: string
+  ZamanLastEdit: string | null
+}
+
+export interface CreateUserRequest {
+  userName: string
+  password: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  mobileNumber: string
+  userCode?: string
+  grpPublicId: string
+}
+
+export interface CreateUserResponse {
+  success: boolean
+  message?: string
+}

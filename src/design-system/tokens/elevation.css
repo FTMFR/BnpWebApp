@@ -2,23 +2,23 @@
 
 :root {
   /* Surface Level 0 - Background */
-  --surface-0: #E5E7EB;
+  --surface-0: #e5e7eb;
 
   /* Surface Level 1 - Primary Cards */
   --surface-1: var(--background-secondary);
-  --surface-1-border: #D1D5DB;
+  --surface-1-border: #d1d5db;
   --surface-1-border-width: 1px;
   --surface-1-shadow: var(--shadow-sm);
 
   /* Surface Level 2 - Elevated Cards */
   --surface-2: var(--background-secondary);
-  --surface-2-border: #9CA3AF;
+  --surface-2-border: #9ca3af;
   --surface-2-border-width: 1px;
   --surface-2-shadow: var(--shadow-md);
 
   /* Surface Level 3 - Highest Elevation */
   --surface-3: var(--background-secondary);
-  --surface-3-border: #6B7280;
+  --surface-3-border: #6b7280;
   --surface-3-border-width: 1px;
   --surface-3-shadow: var(--shadow-lg);
 
@@ -58,7 +58,9 @@
   background: var(--surface-1);
   border: var(--surface-1-border-width) solid var(--surface-1-border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .elevation-1:hover {
@@ -71,7 +73,9 @@
   background: var(--surface-2);
   border: var(--surface-2-border-width) solid var(--surface-2-border);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.14);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .elevation-2:hover {
@@ -84,7 +88,9 @@
   background: var(--surface-3);
   border: var(--surface-3-border-width) solid var(--surface-3-border);
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.16);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 /* Interactive Elevation - For clickable cards */
@@ -133,4 +139,3 @@
   border-top: var(--surface-footer-border-width) solid var(--surface-footer-border);
   box-shadow: var(--surface-footer-shadow);
 }
-

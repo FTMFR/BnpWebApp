@@ -18,43 +18,14 @@ type TableColumn<T = Record<string, unknown>> = {
   render?: (row: T, index?: number) => import('vue').VNode | string | number
 }
 import { useAuth } from '@/shared/composables/useAuth'
-import type { AuthUser } from '@/stores/auth'
 import type { User, UserFilters, SelectOption } from '@/features/users/types/user'
-import { getAvatarInitial } from '@/shared/utils/user'
 
-const { user, fetchUser, isLoadingUser } = useAuth()
+const { fetchUser, isLoadingUser } = useAuth()
 
 // Fetch user info on mount
 onMounted(() => {
   fetchUser()
 })
-
-// Convert AuthUser to UserInfo for DashboardLayout
-const userInfo = computed<UserInfo>(() => {
-  const currentUser = user.value as AuthUser | null
-  if (!currentUser) {
-    return {
-      firstName: 'کاربر',
-      lastName: 'سیستم',
-      email: '',
-      avatarName: 'ک',
-    }
-  }
-
-  const avatarInitial = getAvatarInitial(currentUser.FirstName, currentUser.LastName)
-
-  return {
-    firstName: currentUser.FirstName,
-    lastName: currentUser.LastName || '',
-    email: currentUser.Email,
-    avatarName: avatarInitial,
-  }
-})
-
-const logo = {
-  text: 'سیستم مدیریت وام',
-  subtext: 'پنل مدیریت',
-}
 
 const breadcrumbItems = [
   { label: 'خانه', href: '/dashboard' },
@@ -461,8 +432,6 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
   </div>
   <DashboardLayout
     v-else
-    :user-info="userInfo"
-    :logo="logo"
     @search="handleSearch"
     @user-menu-click="handleUserMenuClick"
     @notification-click="handleNotificationClick"
@@ -486,7 +455,8 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
                 لیست کاربران
               </h1>
               <!-- Create Button - Only show if user has permission -->
-              <BaseButton
+              <!-- این باتن فعلا غیر فعال میشه تا وقتی که بشه یجور دسترسی یا عدم دسترسی کاربر ب پیج مربوطه رو بررسی کرد -->
+              <!-- <BaseButton
                 variant="outline"
                 @click="handleCreate"
                 class="border-2 border-success-500 text-success-600"
@@ -494,7 +464,7 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
                 <BaseIcon name="Plus" :size="16" />
                 <span class="hidden sm:inline">ایجاد کاربر جدید</span>
                 <span class="sm:hidden">ایجاد</span>
-              </BaseButton>
+              </BaseButton> -->
             </div>
 
             <!-- Search and Actions Row (Always Visible) -->

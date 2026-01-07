@@ -6,6 +6,9 @@ import BaseBadge from '../atoms/BaseBadge.vue'
 import UserMenuDropdown from './UserMenuDropdown.vue'
 import { useTheme } from '@/design-system/utilities/useTheme'
 import { useNotifications } from '@/shared/composables/useNotifications'
+import { useAuth } from '@/shared/composables/useAuth'
+import type { AuthUser } from '@/stores/auth'
+import { getAvatarInitial } from '@/shared/utils/user'
 
 export interface UserInfo {
   firstName: string
@@ -16,15 +19,10 @@ export interface UserInfo {
 }
 
 export interface HeaderProps {
-  userInfo: UserInfo
   showSearch?: boolean
   showNotifications?: boolean
   showHelp?: boolean
   searchPlaceholder?: string
-  logo?: {
-    text: string
-    subtext?: string
-  }
 }
 
 const props = withDefaults(defineProps<HeaderProps>(), {
@@ -33,6 +31,38 @@ const props = withDefaults(defineProps<HeaderProps>(), {
   showHelp: true,
   searchPlaceholder: 'جستجو در سیستم',
 })
+
+// Use props in template
+const { showSearch, showNotifications, showHelp, searchPlaceholder } = props
+
+// Get user info from auth
+const { user } = useAuth()
+
+const userInfo = computed<UserInfo>(() => {
+  const currentUser = user.value as AuthUser | null
+  if (!currentUser) {
+    return {
+      firstName: 'کاربر',
+      lastName: 'سیستم',
+      email: '',
+      avatarName: 'ک',
+    }
+  }
+
+  const avatarInitial = getAvatarInitial(currentUser.FirstName, currentUser.LastName)
+
+  return {
+    firstName: currentUser.FirstName,
+    lastName: currentUser.LastName || '',
+    email: currentUser.Email,
+    avatarName: avatarInitial,
+  }
+})
+
+const logo = {
+  text: 'سیستم مدیریت وام',
+  subtext: 'پنل مدیریت',
+}
 
 const emit = defineEmits<{
   search: [query: string]
@@ -47,11 +77,11 @@ const showUserMenu = ref(false)
 const searchQuery = ref('')
 
 const fullName = computed(() => {
-  return `${props.userInfo.firstName} ${props.userInfo.lastName}`
+  return `${userInfo.value.firstName} ${userInfo.value.lastName}`
 })
 
 const avatarName = computed(() => {
-  return props.userInfo.avatarName || fullName.value
+  return userInfo.value.avatarName || fullName.value
 })
 
 const handleSearch = () => {

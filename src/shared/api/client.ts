@@ -13,6 +13,7 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: false,
 });
 
 let isRefreshing = false;
@@ -40,6 +41,8 @@ apiClient.interceptors.request.use(
     }
 
     config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    config.headers['Accept'] = 'application/json';
+    
     return config;
   },
   (error) => {

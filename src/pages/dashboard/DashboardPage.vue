@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { DashboardLayout, type UserInfo, CommandPalette } from '@/design-system'
+import { DashboardLayout, CommandPalette } from '@/design-system'
 import { BaseSpinner } from '@/design-system/atoms'
 import { useAuth } from '@/shared/composables/useAuth'
 import { useGlobalSearch } from '@/shared/composables/useGlobalSearch'
 import type { AuthUser } from '@/stores/auth'
-import { getAvatarInitial } from '@/shared/utils/user'
 
 const { user, fetchUser, isLoadingUser } = useAuth()
 const { searchItems } = useGlobalSearch()
@@ -33,31 +32,20 @@ onUnmounted(() => {
   }
 })
 
-const userInfo = computed<UserInfo>(() => {
+// Get user info for display in template
+const userInfo = computed(() => {
   const currentUser = user.value as AuthUser | null
   if (!currentUser) {
     return {
       firstName: 'کاربر',
       lastName: 'سیستم',
-      email: '',
-      avatarName: 'ک',
     }
   }
-
-  const avatarInitial = getAvatarInitial(currentUser.FirstName, currentUser.LastName)
-
   return {
     firstName: currentUser.FirstName,
     lastName: currentUser.LastName || '',
-    email: currentUser.Email,
-    avatarName: avatarInitial,
   }
 })
-
-const logo = {
-  text: 'سیستم مدیریت وام',
-  subtext: 'پنل مدیریت',
-}
 
 const handleSearch = (query: string) => {
   if (query.trim()) {
@@ -84,8 +72,6 @@ const handleHelpClick = () => {
   </div>
   <DashboardLayout
     v-else
-    :user-info="userInfo"
-    :logo="logo"
     @search="handleSearch"
     @user-menu-click="handleUserMenuClick"
     @notification-click="handleNotificationClick"
