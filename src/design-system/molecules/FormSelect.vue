@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
-import { BaseSpinner } from '../atoms'
+import BaseSpinner from '../atoms/BaseSpinner.vue'
 
 export interface FormSelectOption {
   value: string
@@ -10,7 +10,7 @@ export interface FormSelectOption {
 
 export interface FormSelectProps {
   label: string
-  modelValue: string
+  modelValue: string | null
   options: FormSelectOption[]
   placeholder?: string
   required?: boolean
@@ -40,9 +40,6 @@ const computedInputId = computed(() => {
 function handleChange(event: Event) {
   const target = event.target as HTMLSelectElement
   emit('update:modelValue', target.value)
-  if (props.errorMessage) {
-    emit('clear-error')
-  }
 }
 
 function handleBlur() {
@@ -61,7 +58,8 @@ function handleBlur() {
         :id="computedInputId"
         :value="modelValue"
         :disabled="disabled || isLoading"
-        :required="required"
+        @change="handleChange"
+        @blur="handleBlur"
         :class="[
           'w-full h-12 px-4 pr-10 text-base bg-input-background border rounded-xl transition-all outline-none text-foreground box-border appearance-none cursor-pointer',
           errorMessage
@@ -71,8 +69,8 @@ function handleBlur() {
             ? 'bg-secondary/50 cursor-not-allowed opacity-60'
             : 'hover:border-primary-400',
         ]"
-        @change="handleChange"
-        @blur="handleBlur"
+        :aria-describedby="errorMessage ? `${computedInputId}-error` : undefined"
+        :aria-invalid="!!errorMessage"
       >
         <option value="" disabled>{{ placeholder }}</option>
         <option v-for="option in options" :key="option.value" :value="option.value">

@@ -21,14 +21,14 @@ const getToastIcon = (type: string) => {
 const getToastColor = (type: string) => {
   switch (type) {
     case 'success':
-      return 'bg-success-100 dark:bg-success-800 border-success-500 dark:border-success-600 text-success-900 dark:text-white'
+      return '!bg-success-100 !border-success-500 dark:!border-success-700 !text-success-900 dark:!text-white'
     case 'error':
-      return 'bg-danger-100 dark:bg-danger-800 border-danger-500 dark:border-danger-600 text-danger-900 dark:text-white'
+      return '!bg-danger-100 !border-danger-500 dark:!border-danger-700 !text-danger-900 dark:!text-white'
     case 'warning':
-      return 'bg-warning-100 dark:bg-warning-800 border-warning-500 dark:border-warning-600 text-warning-900 dark:text-white'
+      return '!bg-warning-100 !border-warning-500 dark:!border-warning-700 !text-warning-900 dark:!text-white'
     case 'info':
     default:
-      return 'bg-primary-100 dark:bg-primary-800 border-primary-500 dark:border-primary-600 text-primary-900 dark:text-white'
+      return '!bg-primary-100 !border-primary-500 dark:!border-primary-700 !text-primary-900 dark:!text-white'
   }
 }
 </script>

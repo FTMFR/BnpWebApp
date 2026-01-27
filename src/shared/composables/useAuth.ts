@@ -1,9 +1,10 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { useAuthStore, type AuthUser } from '@/stores/auth'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
+import type { MySessionsResponse, Session } from '@/shared/api/types'
 
 export interface LoginCredentials {
   UserName: string
@@ -30,6 +31,10 @@ export function useAuth() {
   const authStore = useAuthStore()
   const router = useRouter()
 
+  // Session management state
+  const maxSessionReached = ref()
+  const sessions = ref<Session[]>([]);
+
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResponse> => {
       const response = await apiClient.post<LoginResponse>(endpoints.auth.login, credentials)
@@ -40,14 +45,9 @@ export function useAuth() {
         console.log('MFA required:', loginData)
         return
       }
+      // Set token and publicId, but don't fetch user yet
+      // User fetching will be handled in LoginForm after session check
       authStore.setAuth(loginData.Token, loginData.PublicId)
-
-      try {
-        const userResponse = await apiClient.get<AuthUser>(endpoints.users.byId(loginData.PublicId))
-        authStore.setAuth(loginData.Token, loginData.PublicId, userResponse.data)
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error)
-      }
     },
     onError: (error: unknown) => {
       console.error('Login error:', error)
@@ -66,8 +66,35 @@ export function useAuth() {
       }
       return response.data
     },
-    enabled: computed(() => !!authStore.publicId && !!authStore.Token && !authStore.user),
+    // enabled: computed(() => !!authStore.publicId && !!authStore.Token && !authStore.user),
   })
+
+  const checkSessions = async (): Promise<MySessionsResponse | null> => {
+    try {
+      const response = await apiClient.get<MySessionsResponse>(endpoints.session.mySessions)
+      sessions.value = response.data.sessions
+      maxSessionReached.value = response.data
+      const data = response.data
+      console.log('checksession function: ', data);
+
+      return data
+    } catch (error) {
+      console.error('Failed to fetch sessions:', error)
+      return null
+    }
+  }
+
+  const revokeSession = async (sessionPublicId: string): Promise<boolean> => {
+    try {
+      await apiClient.delete(endpoints.session.revokeSession(sessionPublicId))
+      // Refresh sessions after revoke
+      await checkSessions()
+      return true
+    } catch (error) {
+      console.error('Failed to revoke session:', error)
+      return false
+    }
+  }
 
   const logout = async () => {
     try {
@@ -88,12 +115,15 @@ export function useAuth() {
 
     login: loginMutation.mutate,
     loginAsync: loginMutation.mutateAsync,
-    isLoggingIn: loginMutation.isPending,
-    resetLogin: loginMutation.reset,
-
+    isLoggingIn: loginMutation.isLoading,
     logout,
 
-    isLoadingUser: computed(() => userQuery.isLoading.value || userQuery.isFetching.value),
+    isLoadingUser: computed(() => userQuery.isLoading.value || userQuery.isLoading.value),
     fetchUser: userQuery.refetch,
+    // Session management
+    sessions: computed(() => sessions.value),
+    maxSessionReached: computed(() => maxSessionReached.value),
+    checkSessions,
+    revokeSession,
   }
 }

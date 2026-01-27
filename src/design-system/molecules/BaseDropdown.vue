@@ -6,6 +6,8 @@ export interface DropdownItem {
   value: string | number
   disabled?: boolean
   divider?: boolean
+  href?: string
+  iconName?: string
 }
 
 export interface DropdownProps {
@@ -27,27 +29,20 @@ const isOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const dropdownMenuRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
+const menuStyles = ref<Record<string, string>>({})
 
+// We keep this for basic fallback, but JS will override it
 const placementClasses = computed(() => {
+  // Removed left/right classes here to let JS handle the precise positioning
   const placements = {
-    'bottom-start': 'top-full left-0 mt-1',
-    'bottom-end': 'top-full right-0 mt-1',
-    'top-start': 'bottom-full left-0 mb-1',
-    'top-end': 'bottom-full right-0 mb-1',
+    'bottom-start': 'top-full mt-1',
+    'bottom-end': 'top-full mt-1',
+    'top-start': 'bottom-full mb-1',
+    'top-end': 'bottom-full mb-1',
   }
   return placements[props.placement]
 })
 
-const toggle = () => {
-  if (props.trigger === 'click') {
-    isOpen.value = !isOpen.value
-    if (isOpen.value) {
-      nextTick(() => {
-        adjustPosition()
-      })
-    }
-  }
-}
 
 const open = () => {
   if (props.trigger === 'hover') {
@@ -89,52 +84,83 @@ const handleMouseLeave = () => {
     close()
   }
 }
+const toggle = () => {
+  if (props.trigger === 'click') {
+    isOpen.value = !isOpen.value
 
+    if (isOpen.value) {
+      // Apply fixed position immediately so the menu breaks out of the table flow
+      // This ensures it renders at full width immediately
+      menuStyles.value = { position: 'fixed', visibility: 'hidden' }
+
+      nextTick(() => {
+        adjustPosition()
+        // Make it visible after positioning is done
+        if (menuStyles.value) {
+           menuStyles.value.visibility = 'visible'
+        }
+      })
+    } else {
+      menuStyles.value = {}
+    }
+  }
+}
+
+// 2. Update adjustPosition to handle the visibility reset
 const adjustPosition = () => {
   if (!dropdownMenuRef.value || !triggerRef.value || !isOpen.value) return
 
   requestAnimationFrame(() => {
     const menu = dropdownMenuRef.value!
     const trigger = triggerRef.value!
-    if (!menu || !trigger) return
 
-    const viewportWidth = window.innerWidth
     const triggerRect = trigger.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
 
-    // Reset styles
-    menu.style.left = ''
-    menu.style.right = ''
-    menu.style.maxWidth = ''
+    // Reset styles to measure natural width
+    // We keep position: fixed so it doesn't get squashed by the table
+    menu.style.left = 'auto'
+    menu.style.right = 'auto'
+    menu.style.top = '0'
+    menu.style.bottom = 'auto'
+    menu.style.width = 'auto'
+    menu.style.maxWidth = 'none'
 
-    // برای bottom-end و top-end (مثل منوی آواتار در هدر)
-    if (props.placement === 'bottom-end' || props.placement === 'top-end') {
-      // با bottom-end، dropdown از سمت راست trigger align می‌شود (right-0 relative to parent)
-      // ابتدا بدون style اضافه اندازه بگیر
-      const menuRect = menu.getBoundingClientRect()
-      const menuWidth = menuRect.width
+    // Get the width NOW that it is fixed and full-sized
+    const menuWidth = menu.getBoundingClientRect().width
+    const menuHeight = menu.getBoundingClientRect().height
 
-      // محاسبه موقعیت dropdown: از سمت راست trigger شروع می‌شود
-      const dropdownLeftInViewport = triggerRect.right - menuWidth
-
-      // بررسی اینکه آیا dropdown از سمت چپ viewport خارج می‌شود
-      if (dropdownLeftInViewport < 16) {
-        // dropdown را از لبه چپ viewport فاصله بده (absolute positioning)
-        const parentRect = dropdownRef.value!.getBoundingClientRect()
-        const leftPosition = 16 - parentRect.left // relative to parent
-        menu.style.left = `${leftPosition}px`
-        menu.style.right = 'auto'
-        menu.style.maxWidth = `${viewportWidth - 32}px`
-      }
+    // Calculate Vertical Position
+    let top = 0
+    if (props.placement.startsWith('bottom')) {
+      top = triggerRect.bottom + window.scrollY + 4
     } else {
-      // برای bottom-start و top-start
-      const menuRect = menu.getBoundingClientRect()
-      const menuWidth = menuRect.width
+      top = triggerRect.top + window.scrollY - menuHeight - 4
+    }
 
-      if (triggerRect.left + menuWidth > viewportWidth - 16 || triggerRect.left < 16) {
-        menu.style.left = '1rem'
-        menu.style.right = 'auto'
-        menu.style.maxWidth = `${viewportWidth - 32}px`
-      }
+    // Calculate Horizontal Position
+    let left: string | number = 'auto'
+    let right: string | number = 'auto'
+    const leftOffset = 10
+
+    // Align Left + Offset
+    left = triggerRect.left + window.scrollX + leftOffset
+
+    // Boundary Check
+    if (triggerRect.left + leftOffset + menuWidth > viewportWidth - 16) {
+      left = 'auto'
+      right = 16
+    }
+
+    // Apply Final Styles
+    menuStyles.value = {
+      position: 'fixed',
+      top: `${top}px`,
+      left: typeof left === 'number' ? `${left}px` : left,
+      right: typeof right === 'number' ? `${right}px` : right,
+      maxWidth: `${viewportWidth - 32}px`,
+      zIndex: '50',
+      visibility: 'visible' // Ensure it's visible
     }
   })
 }
@@ -162,16 +188,18 @@ onUnmounted(() => {
     <div ref="triggerRef" @click="toggle">
       <slot name="trigger" :is-open="isOpen" />
     </div>
+
     <Transition name="dropdown">
       <div
         v-if="isOpen"
         ref="dropdownMenuRef"
         :class="[
-          'dropdown-menu absolute z-dropdown min-w-[200px] max-w-[calc(100vw-2rem)] sm:max-w-none bg-card-background border border-border-default rounded-lg shadow-lg py-1',
+          // Removed 'absolute' here to rely on JS 'fixed' positioning
+          // Removed 'left-0' and 'right-0' to prevent conflicts
+          'dropdown-menu z-dropdown min-w-[200px] max-w-[calc(100vw-2rem)] sm:max-w-none bg-card-background border border-border-default rounded-lg overflow-hidden shadow-lg',
           placementClasses,
-          props.placement === 'bottom-end' ? 'dropdown-menu-bottom-end' : '',
-          props.placement === 'top-end' ? 'dropdown-menu-top-end' : '',
         ]"
+        :style="menuStyles"
       >
         <template v-if="$slots.items">
           <slot name="items" :items="items" :select="handleSelect" />
@@ -182,7 +210,7 @@ onUnmounted(() => {
             :key="index"
             :disabled="item.disabled"
             :class="[
-              'w-full text-right px-4 py-2 text-sm transition-colors',
+              'w-full hover:text-white text-right px-4 py-2 text-sm transition-colors',
               item.divider ? 'border-t border-border-default my-1' : '',
               item.disabled
                 ? 'opacity-50 cursor-not-allowed'
@@ -212,18 +240,12 @@ onUnmounted(() => {
   transform: translateY(-4px);
 }
 
-/* برای موبایل: dropdown را از سمت چپ صفحه شروع کن */
+/* Mobile styles override */
 @media (max-width: 640px) {
   .dropdown-menu {
     max-width: calc(100vw - 2rem) !important;
-  }
-
-  .dropdown-menu-bottom-end {
-    left: 1rem !important;
-    right: auto !important;
-  }
-
-  .dropdown-menu-top-end {
+    /* Ensure fixed positioning is respected on mobile */
+    position: fixed !important;
     left: 1rem !important;
     right: auto !important;
   }

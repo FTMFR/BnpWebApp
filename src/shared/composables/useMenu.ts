@@ -22,21 +22,48 @@ export function normalizePath(path: string): string {
 
 }
 
-function convertApiMenuItemToMenuItem(apiItem: ApiMenuItem): MenuItem | null {
-  const children = apiItem.Children
-    ? apiItem.Children.map(convertApiMenuItemToMenuItem).filter((item): item is MenuItem => item !== null)
+function convertApiMenuItemToMenuItem(
+  apiItem: ApiMenuItem
+): { item: MenuItem | null; extractedChildren: MenuItem[] } {
+  const processedChildren = apiItem.Children
+    ? apiItem.Children.map(convertApiMenuItemToMenuItem)
     : []
 
-  if (!apiItem.Path && children.length === 0) {
-    return null
+  const children: MenuItem[] = []
+  const extractedChildren: MenuItem[] = []
+
+  for (const { item, extractedChildren: childExtracted } of processedChildren) {
+    if (item !== null) {
+      children.push(item)
+    }
+    extractedChildren.push(...childExtracted)
   }
 
+  if (!apiItem.IsMenu) {
+    return {
+      item: null,
+      extractedChildren: [...children, ...extractedChildren],
+    }
+  }
+
+  if (!apiItem.Path && children.length === 0) {
+    return {
+      item: null,
+      extractedChildren,
+    }
+  }
+
+  const allChildren = [...children, ...extractedChildren]
+
   return {
-    id: apiItem.PublicId,
-    label: apiItem.Title,
-    icon: apiItem.Icon || undefined,
-    href: apiItem.Path ? normalizePath(apiItem.Path) : undefined,
-    children: children.length > 0 ? children : undefined,
+    item: {
+      id: apiItem.PublicId,
+      label: apiItem.Title,
+      icon: apiItem.Icon || undefined,
+      href: normalizePath(apiItem.Path || '') || undefined,
+      children: allChildren.length > 0 ? allChildren : undefined,
+    },
+    extractedChildren: [],
   }
 }
 
@@ -47,9 +74,19 @@ export function useMenu() {
     queryKey: ['menu', 'tree'],
     queryFn: async (): Promise<MenuItem[]> => {
       const response = await apiClient.get<ApiMenuItem[]>(endpoints.menu.myTree)
-      return response.data
-        .map(convertApiMenuItemToMenuItem)
-        .filter((item): item is MenuItem => item !== null)
+      const processed = response.data.map(convertApiMenuItemToMenuItem)
+
+      const menuItems: MenuItem[] = []
+      const extractedChildren: MenuItem[] = []
+
+      for (const { item, extractedChildren: extracted } of processed) {
+        if (item !== null) {
+          menuItems.push(item)
+        }
+        extractedChildren.push(...extracted)
+      }
+
+      return [...menuItems, ...extractedChildren]
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -75,3 +112,4 @@ export function useMenu() {
     error: computed(() => menuQuery.error.value),
   }
 }
+

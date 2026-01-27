@@ -36,14 +36,50 @@ export interface CreateUserRequest {
   password: string
   firstName: string
   lastName: string
-  email: string
-  phone: string
+  email?: string
+  phone?: string | undefined
   mobileNumber: string
   userCode?: string
   grpPublicId: string
+  IpAddress: string
+}
+
+export interface resetUserPassRequest {
+  NewPassword: string,
+  MustChangePassword?: boolean
 }
 
 export interface CreateUserResponse {
   success: boolean
   message?: string
 }
+
+export interface CreateGroupRequest {
+  Title: string
+  ParentPublicId: string
+  Description: string
+}
+
+export interface CreateMenuRequest {
+  Title: string
+  Path: string
+  ParentPublicId?: string
+}
+
+export interface Session {
+  PublicId: string;
+  UserAgent: string;
+  IsCurrentSession: boolean;
+  CreatedAt: string
+}
+
+export interface MySessionsResponse {
+  sessions: Session[]
+  isMaxSessionsReached: boolean
+  MaxAllowedSessions: number
+  CurrentSessionCount: number
+  totalCount: number
+  maxConcurrentSessions: number
+}
+
+

@@ -6,17 +6,8 @@ import BaseBadge from '../atoms/BaseBadge.vue'
 import UserMenuDropdown from './UserMenuDropdown.vue'
 import { useTheme } from '@/design-system/utilities/useTheme'
 import { useNotifications } from '@/shared/composables/useNotifications'
-import { useAuth } from '@/shared/composables/useAuth'
-import type { AuthUser } from '@/stores/auth'
-import { getAvatarInitial } from '@/shared/utils/user'
-
-export interface UserInfo {
-  firstName: string
-  lastName: string
-  email?: string
-  avatar?: string
-  avatarName?: string
-}
+import { useUserInfo, type UserInfo } from '@/shared/composables/useUserInfo'
+import { RouterLink } from 'vue-router'
 
 export interface HeaderProps {
   showSearch?: boolean
@@ -24,6 +15,8 @@ export interface HeaderProps {
   showHelp?: boolean
   searchPlaceholder?: string
 }
+
+export type { UserInfo }
 
 const props = withDefaults(defineProps<HeaderProps>(), {
   showSearch: true,
@@ -35,32 +28,11 @@ const props = withDefaults(defineProps<HeaderProps>(), {
 // Use props in template
 const { showSearch, showNotifications, showHelp, searchPlaceholder } = props
 
-// Get user info from auth
-const { user } = useAuth()
-
-const userInfo = computed<UserInfo>(() => {
-  const currentUser = user.value as AuthUser | null
-  if (!currentUser) {
-    return {
-      firstName: 'کاربر',
-      lastName: 'سیستم',
-      email: '',
-      avatarName: 'ک',
-    }
-  }
-
-  const avatarInitial = getAvatarInitial(currentUser.FirstName, currentUser.LastName)
-
-  return {
-    firstName: currentUser.FirstName,
-    lastName: currentUser.LastName || '',
-    email: currentUser.Email,
-    avatarName: avatarInitial,
-  }
-})
+// Get user info from composable
+const { userInfo } = useUserInfo()
 
 const logo = {
-  text: 'سیستم مدیریت وام',
+  text: 'نرم افزار ابری پاسارگاد',
   subtext: 'پنل مدیریت',
 }
 
@@ -135,7 +107,7 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
         </button>
 
         <!-- Logo Section -->
-        <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
+        <RouterLink to="/dashboard" class="flex items-center gap-2 sm:gap-3 group !bg-transparent">
           <div
             class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0"
           >
@@ -149,7 +121,7 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
               {{ logo.subtext }}
             </p>
           </div>
-        </div>
+        </RouterLink>
 
         <!-- Search Box - با فاصله بیشتر از لوگو -->
         <div
@@ -220,9 +192,7 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
           />
           <BaseBadge
             v-if="unreadCount > 0"
-            variant="danger"
-            size="sm"
-            class="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] px-0 !bg-danger-500 !text-white dark:!bg-danger-100 dark:!text-danger-700"
+            class="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs p-0 !bg-danger-500 !text-white dark:!bg-danger-100 dark:!text-danger-700 leading-none"
           >
             {{ unreadCount > 9 ? '9+' : unreadCount }}
           </BaseBadge>

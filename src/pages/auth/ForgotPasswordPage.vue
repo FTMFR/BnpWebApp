@@ -37,7 +37,7 @@
     </div>
 
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-4 sm:gap-5" novalidate>
-      <FormInput
+      <FormField
         label="نام کاربری یا ایمیل"
         v-model="userNameOrEmail"
         type="text"
@@ -121,15 +121,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+// import { useRouter } from 'vue-router'
 import { AuthLayout } from '@/design-system/templates'
-import { FormInput } from '@/design-system/molecules'
 import { BaseIcon } from '@/design-system/atoms'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import type { AxiosError } from 'axios'
 
-const router = useRouter()
+// const router = useRouter()
 
 const userNameOrEmail = ref('')
 const errorMessage = ref('')

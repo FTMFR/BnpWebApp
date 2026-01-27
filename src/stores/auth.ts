@@ -1,8 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+// import { setSentryUser, clearSentryUser } from '../../sentry.config'
 
 export interface AuthUser {
-  PublicIdid: number
+  PublicId: number
   UserName: string
   FirstName: string
   LastName: string | null
@@ -19,7 +20,7 @@ export interface AuthUser {
   MustChangePassword: boolean
 }
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   Token: 'auth_token',
   publicId: 'auth_public_id',
 } as const
@@ -50,6 +51,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (userData) {
       user.value = userData
+      // Set Sentry user context
+      // setSentryUser(userData.PublicIdid, userData.UserName, userData.Email, {
+      //   firstName: userData.FirstName,
+      //   lastName: userData.LastName,
+      //   phone: userData.Phone,
+      //   mobileNumber: userData.MobileNumber,
+      //   userCode: userData.UserCode,
+      // })
     }
 
     try {
@@ -65,6 +74,9 @@ export const useAuthStore = defineStore('auth', () => {
     Token.value = null
     publicId.value = null
     user.value = null
+
+    // Clear Sentry user context
+    // clearSentryUser()
 
     try {
       sessionStorage.removeItem(STORAGE_KEYS.Token)

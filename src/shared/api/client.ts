@@ -3,6 +3,7 @@ import type { ApiResponse, ApiError } from './types';
 import { endpoints } from './endpoints';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
+import { useSessionModalStore } from '@/stores/sessionModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? '/api' : '/api');
@@ -13,7 +14,7 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false,
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -40,9 +41,14 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${authStore.Token}`;
     }
 
-    config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    // Enable credentials for refresh endpoint to send httpOnly cookies
+    // if (config.url?.includes('/Auth/refresh')) {
+    //   config.withCredentials = true;
+    // }
+
+    // config.headers['X-Requested-With'] = 'XMLHttpRequest';
     config.headers['Accept'] = 'application/json';
-    
+
     return config;
   },
   (error) => {
@@ -71,7 +77,23 @@ apiClient.interceptors.response.use(
       let shouldShowToast = false;
       let toastMessage = '';
 
+
       if (status === 401 && originalRequest && originalRequest.url?.includes('/Auth/refresh')) {
+        const errorMessage = data?.message || '';
+        const isRefreshTokenNotFound =
+          errorMessage.includes('یافت نشد') || errorMessage.includes('Refresh Token');
+
+        if (isRefreshTokenNotFound) {
+          // Refresh token cookie not found, but token might still be valid
+          // Don't logout, just reject the request silently
+          // User can continue with current token until it expires
+          console.warn(
+            'Refresh token cookie not found, continuing with current token'
+          );
+          return Promise.reject(error);
+        }
+
+        // For other 401 errors on refresh, logout user
         const authStore = useAuthStore();
         try {
           await apiClient.post(endpoints.auth.logout);
@@ -88,12 +110,14 @@ apiClient.interceptors.response.use(
       if (status === 401 && originalRequest && !originalRequest._retry) {
         const isLoginRequest = originalRequest.url?.includes('/Auth/login');
 
+
         if (isLoginRequest) {
           const loginErrorMessage = data?.message || data?.error || 'خطایی در ورود به سیستم رخ داده است';
           toastStore.showToast(loginErrorMessage, 'error', 5000);
           return Promise.reject(error);
         } else {
           if (isRefreshing) {
+
             return new Promise((resolve, reject) => {
               failedQueue.push({ resolve, reject });
             })
@@ -108,12 +132,36 @@ apiClient.interceptors.response.use(
           originalRequest._retry = true;
           isRefreshing = true;
 
+
           try {
-            await apiClient.post(endpoints.auth.refresh);
+            const refreshResponse = await apiClient.post(endpoints.auth.refresh);
+
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/78cb98de-e89b-46df-9c9b-90604e1948c0', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client.ts:113', message: 'Refresh API success', data: { status: refreshResponse.status, hasData: !!refreshResponse.data, dataKeys: refreshResponse.data ? Object.keys(refreshResponse.data) : [], tokenInResponse: !!(refreshResponse.data && typeof refreshResponse.data === 'object' && 'Token' in refreshResponse.data ? (refreshResponse.data as { Token?: unknown }).Token : undefined), currentToken: useAuthStore().Token?.substring(0, 20) + '...' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H1,H4' }) }).catch(() => { });
+            // #endregion
+
             processQueue(null);
             return apiClient.request(originalRequest);
           } catch (refreshErr: unknown) {
-            const refreshError = refreshErr as AxiosError;
+            const refreshError = refreshErr as AxiosError<ApiError>;
+            const errorMessage = refreshError.response?.data?.message || '';
+            const isRefreshTokenNotFound = errorMessage.includes('یافت نشد') ||
+              errorMessage.includes('Refresh Token');
+
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/78cb98de-e89b-46df-9c9b-90604e1948c0', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client.ts:115', message: 'Refresh API error', data: { status: refreshError.response?.status, message: refreshError.message, isAxiosError: refreshError instanceof AxiosError, hasResponse: !!refreshError.response }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3,H5' }) }).catch(() => { });
+            // #endregion
+
+            if (isRefreshTokenNotFound) {
+              // Cookie not found, but current token might still be valid
+              // Don't logout, just fail the refresh attempt
+              // Original request will fail, but user won't be logged out
+              console.warn('Refresh token cookie not found');
+              processQueue(refreshError);
+              return Promise.reject(refreshError);
+            }
+
+            // For other errors, proceed with normal logout
             processQueue(refreshError);
             const authStore = useAuthStore();
 
@@ -140,6 +188,25 @@ apiClient.interceptors.response.use(
 
       if (status === 403) {
         if (data?.denialCode === 'TooManySessions') {
+          const authStore = useAuthStore();
+          const isSessionCheckRequest = originalRequest?.url?.includes('/Session/MySessions');
+
+          // If this is a session check request after successful login
+          if (isSessionCheckRequest && authStore.Token) {
+            // DO NOT reject — instead, open the modal
+            const sessionModalStore = useSessionModalStore();
+            console.log('model session');
+
+            if (!sessionModalStore.isModalShown) {
+              console.log('model session');
+
+              await sessionModalStore.openModal(); // This will show the modal
+            }
+            // Return a rejected promise so the calling code knows something failed
+            return Promise.reject(error);
+          }
+
+          // For other cases (e.g., other API calls), show toast
           const errorMessage = data?.message || 'تعداد نشست‌های همزمان به حداکثر رسیده است';
           toastStore.showToast(errorMessage, 'error', 7000);
           return Promise.reject(error);
@@ -150,18 +217,18 @@ apiClient.interceptors.response.use(
         const authPages = ['/login', '/register', '/forgot-password'];
         const isAuthPage = authPages.some(page => currentPath.startsWith(page));
 
-        if (isUserRequest) {
-          const authStore = useAuthStore();
-          try {
-            await apiClient.post(endpoints.auth.logout);
-          } catch (logoutError) {
-            console.error('Logout API error:', logoutError);
+        if (isUserRequest && !isAuthPage) {
+          // Check if modal is already shown to prevent duplicate modals
+          const sessionModalStore = useSessionModalStore();
+
+          if (!sessionModalStore.isModalShown) {
+            // Open modal and fetch sessions instead of logging out
+            await sessionModalStore.openModal();
+            // Don't logout or redirect - user can continue with current token
+            return Promise.reject(error);
           }
-          authStore.clear();
-          toastStore.showToast(data?.message || data?.error || 'دسترسی غیرمجاز', 'error', 5000);
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
+
+          // If modal is already shown, just reject the error
           return Promise.reject(error);
         }
 

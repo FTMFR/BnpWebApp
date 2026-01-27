@@ -6,7 +6,9 @@ import CommandPalette from '../organisms/CommandPalette.vue'
 import Modal from '../molecules/Modal.vue'
 import HelpCenter from '../organisms/HelpCenter.vue'
 import NotificationsPanel from '../organisms/NotificationsPanel.vue'
+import SessionsModal from '../organisms/SessionsModal.vue'
 import { useMenu } from '@/shared/composables/useMenu'
+import { useSessionModalStore } from '@/stores/sessionModal'
 import type { MenuItem } from '../organisms/Sidebar.vue'
 import type { CommandItem } from '../organisms/CommandPalette.vue'
 
@@ -81,6 +83,17 @@ const handleHelpClick = () => {
   emit('help-click')
 }
 
+// Session modal
+const sessionModalStore = useSessionModalStore()
+
+const handleSessionModalContinue = () => {
+  sessionModalStore.continueWithToken()
+}
+
+const handleRevokeSession = async (sessionPublicId: string) => {
+  await sessionModalStore.revokeSession(sessionPublicId)
+}
+
 // Provide functions to child components
 provide('closeMobileMenu', closeMobileMenu)
 provide('isSidebarCollapsed', isSidebarCollapsed)
@@ -140,5 +153,17 @@ provide('toggleSidebarCollapse', toggleSidebarCollapse)
     <Modal v-model="showHelpModal" title="مرکز راهنما" size="lg">
       <HelpCenter />
     </Modal>
+
+    <!-- Session Modal -->
+    <SessionsModal
+      v-model="sessionModalStore.showModal"
+      :sessions="sessionModalStore.sessions"
+      :sessions-info="sessionModalStore.sessionsInfo"
+      :revoking-session-id="sessionModalStore.revokingSessionId"
+      :show-continue="true"
+      @continue="handleSessionModalContinue"
+      @revoke-session="handleRevokeSession"
+      @close="sessionModalStore.closeModal"
+    />
   </div>
 </template>

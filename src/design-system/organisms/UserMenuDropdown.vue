@@ -17,24 +17,10 @@ const emit = defineEmits<{
 const showLogoutModal = ref(false)
 
 const handleMenuItemSelect = (item: DropdownItem) => {
-  switch (item.value) {
-    case 'profile':
-      if (publicId.value) {
-        router.push(`/users/${publicId.value}`)
-      }
-      break
-    case 'settings':
-      router.push('/settings')
-      break
-    case 'change-password':
-      router.push('/change-password')
-      break
-    case 'sessions':
-      router.push('/sessions')
-      break
-    case 'logout':
-      showLogoutModal.value = true
-      break
+  if (item.value === 'logout') {
+    showLogoutModal.value = true
+  } else if (item.href) {
+    router.push(item.href)
   }
   emit('close')
 }
@@ -52,22 +38,31 @@ const menuItems: DropdownItem[] = [
   {
     label: 'پروفایل من',
     value: 'profile',
+    href: `/profile`,
+    iconName: 'User',
   },
   {
     label: 'تنظیمات',
     value: 'settings',
+    href: '/settings',
+    iconName: 'Settings',
   },
   {
     label: 'تغییر رمز عبور',
     value: 'change-password',
+    href: '/change-password',
+    iconName: 'Lock',
   },
   {
     label: 'جلسات من',
     value: 'sessions',
+    href: '/sessions',
+    iconName: 'Layout',
   },
   {
     label: 'خروج',
     value: 'logout',
+    iconName: 'X',
   },
 ]
 </script>
@@ -94,40 +89,12 @@ const menuItems: DropdownItem[] = [
         @click="select(item)"
       >
         <BaseIcon
-          v-if="item.value === 'profile'"
-          name="User"
-          :size="16"
-          :stroke-width="2"
-          icon-class="text-muted-foreground"
-        />
-        <BaseIcon
-          v-else-if="item.value === 'settings'"
-          name="Settings"
-          :size="16"
-          :stroke-width="2"
-          icon-class="text-muted-foreground"
-        />
-        <BaseIcon
-          v-else-if="item.value === 'change-password'"
-          name="Lock"
-          :size="16"
-          :stroke-width="2"
-          icon-class="text-muted-foreground"
-        />
-        <BaseIcon
-          v-else-if="item.value === 'sessions'"
-          name="Layout"
-          :size="16"
-          :stroke-width="2"
-          icon-class="text-muted-foreground"
-        />
-        <BaseIcon
-          v-else-if="item.value === 'logout'"
-          name="X"
-          :size="16"
-          :stroke-width="2"
+          v-if="item.value == 'logout'"
+          :name="item.iconName"
+          href
           icon-class="text-danger-600"
         />
+        <BaseIcon v-else :name="item.iconName" href icon-class="text-muted-foreground" />
         <span>{{ item.label }}</span>
       </button>
     </template>

@@ -4,9 +4,10 @@ import { computed, ref, inject, watch, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '../atoms/BaseButton.vue'
 import BaseBadge from '../atoms/BaseBadge.vue'
-import BaseSpinner from '../atoms/BaseSpinner.vue'
+import CustomLoader from '../atoms/CustomLoader.vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 import { useMenu } from '@/shared/composables/useMenu'
+import SubMenuItem from './SubMenuItem.vue'
 
 export interface MenuItem {
   id: string
@@ -39,7 +40,13 @@ const emit = defineEmits<{
 const router = useRouter()
 
 const { menuItems: apiMenuItems, isLoadingMenu } = useMenu()
-const menuItems = computed(() => props.menuItems || apiMenuItems.value)
+
+const menuItems = computed<MenuItem[]>(() => {
+  if (props.menuItems && props.menuItems.length > 0) {
+    return props.menuItems
+  }
+  return Array.isArray(apiMenuItems.value) ? apiMenuItems.value : []
+})
 
 const isCollapsed = inject<Ref<boolean>>('isSidebarCollapsed', ref(false))
 
@@ -93,17 +100,27 @@ const updateExpandedMenus = () => {
 
   const menusToExpand: string[] = []
 
-  // پیدا کردن منوی اصلی که این activeMenu یکی از child های آن است
-  for (const menuItem of menuItems.value) {
-    if (menuItem.children && menuItem.children.length > 0) {
-      const hasActiveChild = menuItem.children.some((child) => child.id === activeMenu.value)
-      if (hasActiveChild) {
-        menusToExpand.push(menuItem.id)
+  // Recursive helper to find all parents of the active menu
+  const findParents = (items: MenuItem[], parents: string[] = []): boolean => {
+    for (const item of items) {
+      // Check if current item is active
+      if (item.id === activeMenu.value) {
+        menusToExpand.push(...parents)
+        return true
+      }
+      // Check children recursively
+      if (item.children && item.children.length > 0) {
+        if (findParents(item.children, [...parents, item.id])) {
+          return true
+        }
       }
     }
+    return false
   }
 
-  // اضافه کردن منوهای لازم به expandedMenus (بدون حذف موارد موجود)
+  findParents(menuItems.value)
+
+  // Add found parents to expandedMenus
   menusToExpand.forEach((menuId) => {
     if (!expandedMenus.value.includes(menuId)) {
       expandedMenus.value.push(menuId)
@@ -166,29 +183,28 @@ const toggleSubmenu = (itemId: string) => {
   }
 }
 
-const isMenuActive = (item: MenuItem): boolean => {
-  if (activeMenu.value === item.id) return true
-  if (item.children && item.children.length > 0) {
-    return item.children.some((child) => child.id === activeMenu.value)
-  }
-  return false
-}
-
+// Update handleMenuItemClick to handle clicks from SubMenuItem
 const handleMenuItemClick = (item: MenuItem) => {
   if (item.children && item.children.length > 0) {
     toggleSubmenu(item.id)
   } else {
     activeMenu.value = item.id
     emit('menu-item-click', item)
-
     if (item.href) {
       router.push(item.href)
     }
-
     if (closeMobileMenu) {
       closeMobileMenu()
     }
   }
+}
+
+const isMenuActive = (item: MenuItem): boolean => {
+  if (activeMenu.value === item.id) return true
+  if (item.children && item.children.length > 0) {
+    return item.children.some((child) => child.id === activeMenu.value)
+  }
+  return false
 }
 
 const handleSubmenuItemClick = (item: MenuItem) => {
@@ -202,6 +218,11 @@ const handleSubmenuItemClick = (item: MenuItem) => {
   if (closeMobileMenu) {
     closeMobileMenu()
   }
+}
+
+const isActive = (item: MenuItem): boolean => {
+  if (item.id === activeMenu.value) return true
+  return item.children?.some(isActive) ?? false
 }
 
 const getBadgeVariant = (
@@ -233,20 +254,21 @@ const getBadgeVariant = (
 
     <div class="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
       <div v-if="isLoadingMenu" class="flex flex-col items-center justify-center gap-4 py-8">
-        <BaseSpinner size="md" color="primary" />
+        <CustomLoader size="md" />
         <p class="text-sm text-muted-foreground">در حال بارگذاری منوها...</p>
       </div>
 
       <nav v-else class="space-y-1">
         <template v-for="item in menuItems" :key="item.id">
           <div class="menu-item-wrapper">
+            <!-- LEVEL 1 ITEM (Rendered Manually) -->
             <button
               @click="handleMenuItemClick(item)"
               class="group"
               :class="[
                 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-right',
                 'hover:bg-primary-100 dark:hover:bg-gray-300/20 hover:text-primary-700 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
-                isMenuActive(item)
+                isActive(item)
                   ? 'bg-primary-500/10 border-r-4 border-primary-500 text-foreground font-semibold'
                   : 'text-muted-foreground',
                 isCollapsed ? 'justify-center px-2' : '',
@@ -258,9 +280,8 @@ const getBadgeVariant = (
                 :stroke-width="2"
                 :icon-class="`flex-shrink-0 transition-colors ${isMenuActive(item) ? 'text-primary-500 group-hover:text-primary-700 dark:group-hover:text-gray-100' : 'text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-gray-100'}`"
               />
-
               <template v-if="!isCollapsed">
-                <span class="flex-1 text-sm font-medium truncate">{{ item.label }}</span>
+                <span class="flex-1 text-sm font-semibold truncate">{{ item.label }}</span>
                 <BaseBadge
                   v-if="item.badge"
                   :variant="getBadgeVariant(item.badgeVariant)"
@@ -279,6 +300,7 @@ const getBadgeVariant = (
               </template>
             </button>
 
+            <!-- LEVEL 2 & 3 (Recursive Component) -->
             <div
               v-if="
                 item.children &&
@@ -286,37 +308,18 @@ const getBadgeVariant = (
                 expandedMenus.includes(item.id) &&
                 !isCollapsed
               "
-              class="mt-1 mr-4 space-y-1"
+              class="mt-1 space-y-1"
             >
-              <button
+              <SubMenuItem
                 v-for="subItem in item.children"
                 :key="subItem.id"
-                @click="handleSubmenuItemClick(subItem)"
-                class="group"
-                :class="[
-                  'w-full flex items-center gap-2 px-3 py-2 rounded-md transition-all text-right text-sm',
-                  'hover:bg-primary-100 dark:hover:bg-gray-300/20 hover:text-primary-700 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
-                  activeMenu === subItem.id
-                    ? 'bg-primary-500/10 text-primary-500 font-semibold'
-                    : 'text-muted-foreground',
-                ]"
-              >
-                <BaseIcon
-                  :name="getMenuIcon(subItem)"
-                  :size="16"
-                  :stroke-width="2"
-                  :icon-class="`flex-shrink-0 transition-colors ${activeMenu === subItem.id ? 'text-primary-500 group-hover:text-primary-700 dark:group-hover:text-gray-100' : 'text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-gray-100'}`"
-                />
-                <span class="flex-1 truncate">{{ subItem.label }}</span>
-                <BaseBadge
-                  v-if="subItem.badge"
-                  :variant="getBadgeVariant(subItem.badgeVariant)"
-                  size="sm"
-                  class="flex-shrink-0"
-                >
-                  {{ subItem.badge }}
-                </BaseBadge>
-              </button>
+                :item="subItem"
+                :active-menu-id="activeMenu"
+                :expanded-menus="expandedMenus"
+                :level="0"
+                @toggle-menu="toggleSubmenu"
+                @menu-item-click="handleMenuItemClick"
+              />
             </div>
           </div>
         </template>

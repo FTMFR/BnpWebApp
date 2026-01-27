@@ -1,13 +1,73 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, h } from 'vue'
+import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/design-system/templates'
-import type { UserInfo } from '@/design-system/organisms'
-import { FormField, Pagination, Breadcrumb, Card } from '@/design-system/molecules'
-import { BaseBadge, BaseSpinner, BaseButton, BaseIcon } from '@/design-system/atoms'
+import { Pagination, Breadcrumb, Card, type SelectOption } from '@/design-system/molecules'
+import { BaseBadge, CustomLoader, BaseButton, BaseIcon } from '@/design-system/atoms'
 import Modal from '@/design-system/molecules/Modal.vue'
 import BaseDropdown, { type DropdownItem } from '@/design-system/molecules/BaseDropdown.vue'
-import { type DataTableColumn } from '@/design-system/organisms'
 import TableWithSettings from '@/design-system/organisms/TableWithSettings.vue'
+import { useAuth } from '@/shared/composables/useAuth'
+// import { useRouteAccess } from '@/shared/composables/useRouteAccess'
+import apiClient from '@/shared/api/client'
+import { endpoints } from '@/shared/api/endpoints'
+// import { useUserInfo } from '@/shared/composables/useUserInfo'
+import { useToastStore } from '@/stores/toast'
+import PasswordChangeModal from '@/design-system/organisms/PasswordChangeModal.vue'
+
+export interface DataTableColumn<T = Record<string, unknown>> {
+  /** Field name in the data object */
+  field: string
+  /** Column header text */
+  header: string
+  /** Whether column is sortable */
+  sortable?: boolean
+  /** Whether column is filterable */
+  filterable?: boolean
+  /** Filter type: text, select, multiselect, date, number, boolean */
+  filterType?: 'text' | 'select' | 'multiselect' | 'date' | 'number' | 'boolean'
+  /** Options for select/multiselect filters */
+  filterOptions?: SelectOption[]
+  /** Placeholder for filter input */
+  filterPlaceholder?: string
+  /** Column style */
+  style?: string | Record<string, string>
+  /** Body cell style */
+  bodyStyle?: string | Record<string, string>
+  /** Header cell style */
+  headerStyle?: string | Record<string, string>
+  /** Whether column is frozen (sticky) */
+  frozen?: boolean
+  /** Alignment for frozen column */
+  alignFrozen?: 'left' | 'right'
+  /** Editor type for inline editing */
+  editor?: 'text' | 'number' | 'date' | 'select' | 'custom'
+  /** Options for editor (e.g., select options) */
+  editorOptions?: Record<string, unknown>
+  /** Whether column is visible */
+  visible?: boolean
+  /** Custom body template function */
+  bodyTemplate?: (data: T, index?: number) => VNode | string | number
+}
+
+export interface User extends Record<string, unknown> {
+  PublicId: string
+  UserName: string
+  Email: string
+  FirstName: string
+  LastName: string
+  MobileNumber: string
+  IsActive: boolean
+}
+
+// export interface UserFilters {
+//   username: string
+//   email: string
+//   firstName: string
+//   lastName: string
+//   IsActive: string
+//   MobileNumber: string
+// }
 
 // Define TableColumn type locally to avoid import issues
 type TableColumn<T = Record<string, unknown>> = {
@@ -17,20 +77,39 @@ type TableColumn<T = Record<string, unknown>> = {
   visible?: boolean
   render?: (row: T, index?: number) => import('vue').VNode | string | number
 }
-import { useAuth } from '@/shared/composables/useAuth'
-import type { User, UserFilters, SelectOption } from '@/features/users/types/user'
 
 const { fetchUser, isLoadingUser } = useAuth()
+const router = useRouter()
+// const { hasAccess } = useRouteAccess()
+const users = ref<User[]>([])
+const isLoadingUsers = ref(false)
+const fullApiData = ref<User[]>([])
 
 // Fetch user info on mount
 onMounted(() => {
   fetchUser()
+  fetchUsersList()
 })
+
+async function fetchUsersList() {
+  isLoadingUsers.value = true
+  try {
+    const response = await apiClient.get<User[]>(endpoints.users.list)
+    // Store data in refs
+    users.value = response.data
+    fullApiData.value = response.data
+  } catch (error) {
+    console.error('Failed to fetch users:', error)
+    users.value = []
+    fullApiData.value = []
+  } finally {
+    isLoadingUsers.value = false
+  }
+}
 
 const breadcrumbItems = [
   { label: 'خانه', href: '/dashboard' },
-  { label: 'کاربران', href: '/dashboard/users/list' },
-  { label: 'لیست کاربران' },
+  { label: 'کاربران', href: '/users/list' },
 ]
 
 const handleSearch = (query: string) => {
@@ -54,203 +133,163 @@ const handleHelpClick = () => {
 }
 
 const currentPage = ref(1)
-const filters = ref<UserFilters>({
-  username: '',
-  email: '',
-  firstName: '',
-  lastName: '',
-  status: '',
-  role: '',
-  phone: '',
-})
+// const filters = ref<UserFilters>({
+//   username: '',
+//   email: '',
+//   firstName: '',
+//   lastName: '',
+//   IsActive: '',
+//   MobileNumber: '',
+// })
 
-// Mock data for users
-const mockUsers: User[] = [
-  {
-    id: 1,
-    username: 'admin',
-    email: 'admin@example.com',
-    firstName: 'علی',
-    lastName: 'محمدی',
-    phone: '09121234567',
-    status: 'active',
-    role: 'admin',
-  },
-  {
-    id: 2,
-    username: 'user1',
-    email: 'user1@example.com',
-    firstName: 'سارا',
-    lastName: 'احمدی',
-    phone: '09351234567',
-    status: 'active',
-    role: 'user',
-  },
-  {
-    id: 3,
-    username: 'moderator1',
-    email: 'mod@example.com',
-    firstName: 'رضا',
-    lastName: 'کریمی',
-    phone: '09191234567',
-    status: 'active',
-    role: 'moderator',
-  },
-  {
-    id: 4,
-    username: 'user2',
-    email: 'user2@example.com',
-    firstName: 'مریم',
-    lastName: 'رضایی',
-    phone: '09381234567',
-    status: 'inactive',
-    role: 'user',
-  },
-  {
-    id: 5,
-    username: 'user3',
-    email: 'user3@example.com',
-    firstName: 'حسین',
-    lastName: 'نوری',
-    status: 'pending',
-    role: 'user',
-  },
-]
+// async function deleteUser(publicId:string) {
+//   isLoadingUsers.value = true
+//   try {
 
-const statusOptions: SelectOption[] = [
-  { value: '', label: 'همه' },
-  { value: 'active', label: 'فعال' },
-  { value: 'inactive', label: 'غیرفعال' },
-  { value: 'pending', label: 'در انتظار' },
-]
-
-const roleOptions: SelectOption[] = [
-  { value: '', label: 'همه' },
-  { value: 'admin', label: 'مدیر' },
-  { value: 'user', label: 'کاربر' },
-  { value: 'moderator', label: 'ناظر' },
-]
+//   } catch (error) {
+//     console.error('Failed to fetch users:', error)
+//     users.value = [] // Clear data on error
+//   } finally {
+//     isLoadingUsers.value = false
+//   }
+// }
 
 const userColumns = ref<DataTableColumn<User>[]>([
   {
-    field: 'username',
+    field: 'UserName',
     header: 'نام کاربری',
     sortable: true,
-    visible: true,
+    filterable: true, // Enables Search
+    filterType: 'text',
+    // resizable: true,
   },
   {
-    field: 'firstName',
+    field: 'FirstName',
     header: 'نام',
     sortable: true,
-    visible: true,
+    filterable: true,
+    filterType: 'text',
+    // resizable: true,
   },
   {
-    field: 'lastName',
+    field: 'LastName',
     header: 'نام خانوادگی',
     sortable: true,
-    visible: true,
+    filterable: true,
+    filterType: 'text',
+    // resizable: true,
   },
   {
-    field: 'email',
+    field: 'Email',
     header: 'ایمیل',
     sortable: true,
-    visible: true,
+    filterable: true,
+    filterType: 'text',
+    bodyTemplate: (row: any) => h('span', { dir: 'ltr', class: 'font-mono text-sm' }, row.Email),
+    // resizable: true,
   },
   {
-    field: 'phone',
-    header: 'شماره تماس',
-    sortable: true,
-    visible: true,
-  },
-  {
-    field: 'role',
-    header: 'نقش',
-    sortable: true,
-    visible: true,
-  },
-  {
-    field: 'status',
+    field: 'IsActive',
     header: 'وضعیت',
     sortable: true,
-    visible: true,
+    // filterable: true,
+    // filterType: 'select',
+    // filterOptions: [
+    //   { label: 'همه', value: null },
+    //   { label: 'فعال', value: true },
+    //   { label: 'غیرفعال', value: false },
+    // ],
+    bodyTemplate: (row: any) =>
+      h(BaseBadge, { variant: row.IsActive ? 'success' : 'secondary', size: 'sm' }, () =>
+        row.IsActive ? 'فعال' : 'غیرفعال',
+      ),
+    // resizable: true,
   },
   {
     field: 'actions',
     header: 'عملیات',
     sortable: false,
-    visible: true,
+    filterable: false,
+    // resizable: false,
   },
 ])
 
-const showFilters = ref(false)
-const searchQuery = ref('')
+// const showFilters = ref(false)
 
-const toggleFilters = () => {
-  showFilters.value = !showFilters.value
-}
+// const toggleFilters = () => {
+//   showFilters.value = !showFilters.value
+// }
 
-const handleFilterSearch = () => {
-  console.log('Search filters:', filters.value)
-  // TODO: Implement search with filters
-}
+// const handleFilterSearch = () => {
+//   console.log('Search filters:', filters.value)
+// }
 
-const handleQuickSearch = () => {
-  console.log('Quick search:', searchQuery.value)
-  // TODO: Implement quick search
-}
-
-const handleClear = () => {
-  Object.assign(filters.value, {
-    username: '',
-    email: '',
-    firstName: '',
-    lastName: '',
-    status: '',
-    role: '',
-    phone: '',
-  })
-}
-
-const handleView = (row: User) => {
-  console.log('View user:', row.username)
-  // TODO: Navigate to view page
-}
+// const handleClear = () => {
+//   Object.assign(filters.value, {
+//     UserName: '',
+//     Email: '',
+//     FirstName: '',
+//     LastName: '',
+//     IsActive: '',
+//     MobileNumber: '',
+//   })
+// }
 
 const handleEdit = (row: User) => {
-  console.log('Edit user:', row.username)
-  // TODO: Navigate to edit page
+  const routePath = `/users/${row.PublicId}`
+
+  // // فراخوانی صحیح:
+  // // ۱. بدون await
+  // // ۲. حتما با پرانتز ()
+  // const access = hasAccess('Users.Update')
+
+  // console.log('Access Value:', access)
+
+  // if (access) {
+  // showAccessDeniedModal.value = true
+  // } else {
+  router.push(routePath)
+  // }
 }
 
 const showDeleteModal = ref(false)
 const userToDelete = ref<User | null>(null)
+const showPasswordModal = ref(false)
+const currentPublicId = ref<string | null>(null)
+
+// const showAccessDeniedModal = ref(false)
+const toastStore = useToastStore()
 
 const handleDelete = (row: User) => {
   userToDelete.value = row
   showDeleteModal.value = true
 }
 
-const confirmDelete = () => {
-  if (userToDelete.value) {
-    console.log('Delete user:', userToDelete.value.username)
-    // TODO: Implement actual delete API call
+const handleCreate = () => {
+  console.log('click')
+
+  router.push('/users/create')
+}
+
+const confirmDelete = async (publicId: string) => {
+  if (!userToDelete.value) return
+
+  try {
+    await apiClient.delete(endpoints.users.delete(publicId))
+
     showDeleteModal.value = false
     userToDelete.value = null
+    toastStore.showToast('کاربر با موفقیت حذف شد.', 'success', 3000)
+    await fetchUsersList()
+  } catch (error: any) {
+    toastStore.showToast('مشکلی در حذف کاربر رخ داده است.', 'error', 3000)
+    console.error('Delete failed:', error)
   }
 }
 
 const cancelDelete = () => {
   showDeleteModal.value = false
   userToDelete.value = null
-}
-
-const handleExport = () => {
-  console.log('Export users')
-  // TODO: Implement export
-}
-
-const handleCreate = () => {
-  console.log('Create new user')
-  // TODO: Navigate to create page
 }
 
 const isUpdatingFromParent = ref(false)
@@ -261,26 +300,20 @@ const convertToTableColumns = (cols: DataTableColumn<User>[]): TableColumn<User>
     let renderFn: ((row: User, index?: number) => import('vue').VNode | string | number) | undefined
 
     // Create render functions for custom cells
-    if (col.field === 'phone') {
+    if (col.field === 'MobileNumber') {
       renderFn = (row: User) => {
-        return row.phone
-          ? h('span', { dir: 'ltr', class: 'font-mono' }, row.phone)
+        return row.MobileNumber
+          ? h('span', { dir: 'ltr', class: 'font-mono' }, row.MobileNumber)
           : h('span', { class: 'text-muted-foreground' }, '-')
       }
     } else if (col.field === 'email') {
       renderFn = (row: User) => {
-        return h('span', { dir: 'ltr', class: 'font-mono text-sm' }, row.email)
+        return h('span', { dir: 'ltr', class: 'font-mono text-sm' }, row.Email)
       }
-    } else if (col.field === 'role') {
+    } else if (col.field === 'IsActive') {
       renderFn = (row: User) => {
-        return row.role || '-'
-      }
-    } else if (col.field === 'status') {
-      renderFn = (row: User) => {
-        const variant =
-          row.status === 'active' ? 'success' : row.status === 'inactive' ? 'secondary' : 'warning'
-        const label =
-          row.status === 'active' ? 'فعال' : row.status === 'inactive' ? 'غیرفعال' : 'در انتظار'
+        const variant = row.IsActive === true ? 'success' : 'secondary'
+        const label = row.IsActive === true ? 'فعال' : 'غیرفعال'
         return h(
           BaseBadge,
           { variant, size: 'sm', class: 'text-[10px] px-1.5 py-0.5' },
@@ -290,19 +323,20 @@ const convertToTableColumns = (cols: DataTableColumn<User>[]): TableColumn<User>
     } else if (col.field === 'actions') {
       renderFn = (row: User) => {
         const menuItems: DropdownItem[] = [
-          { label: 'مشاهده', value: 'view' },
           { label: 'ویرایش', value: 'edit' },
+          { label: 'تغییر رمز عبور کاربر', value: 'changePass' },
           { divider: true, label: '', value: '' },
           { label: 'حذف', value: 'delete' },
         ]
 
         const handleAction = (item: DropdownItem) => {
           switch (item.value) {
-            case 'view':
-              handleView(row)
-              break
             case 'edit':
               handleEdit(row)
+              break
+            case 'changePass':
+              currentPublicId.value = row.PublicId
+              showPasswordModal.value = true
               break
             case 'delete':
               handleDelete(row)
@@ -324,14 +358,11 @@ const convertToTableColumns = (cols: DataTableColumn<User>[]): TableColumn<User>
                 {
                   variant: 'ghost',
                   size: 'sm',
-                  class: 'text-muted-foreground hover:text-foreground',
+                  class: 'text-black dark:text-white',
                 },
-                () =>
-                  h(BaseIcon, {
-                    name: 'MoreVertical',
-                    size: 18,
-                  }),
+                () => h(BaseIcon, { name: 'MoreVertical', size: 18 }),
               ),
+
             items: ({
               items: dropdownItems,
               select,
@@ -343,27 +374,44 @@ const convertToTableColumns = (cols: DataTableColumn<User>[]): TableColumn<User>
                 if (item.divider) {
                   return h('div', { key: item.value, class: 'border-t border-border-default my-1' })
                 }
+
+                const isDelete = item.value === 'delete'
+
+                const baseClasses =
+                  'w-full text-right px-4 py-2 text-sm transition-colors flex items-center gap-2'
+
+                const styleClasses = isDelete
+                  ? 'bg-white dark:bg-black text-danger-600 hover:bg-danger-600 hover:text-white dark:hover:bg-danger dark:hover:text-white'
+                  : 'bg-white dark:bg-black text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-gray-600 dark:hover:text-muted-foreground'
+
+                let iconNode: ReturnType<typeof h> | null = null
+                if (item.value === 'changePass')
+                  iconNode = h(BaseIcon, {
+                    name: 'Key',
+                    size: 16,
+                    class: 'text-black group-hover:text-white dark:text-white',
+                  })
+                else if (item.value === 'edit')
+                  iconNode = h(BaseIcon, {
+                    name: 'Edit',
+                    size: 16,
+                    class: 'text-black group-hover:text-white dark:text-white',
+                  })
+                else if (item.value === 'delete')
+                  iconNode = h(BaseIcon, {
+                    name: 'Trash',
+                    size: 16,
+                    class: 'text-danger-600 group-hover:text-white',
+                  })
+
                 return h(
                   'button',
                   {
                     key: item.value,
-                    class: [
-                      'w-full text-right px-4 py-2 text-sm transition-colors flex items-center gap-2',
-                      item.value === 'delete'
-                        ? 'hover:bg-danger-50 text-danger-600'
-                        : 'hover:bg-secondary text-foreground',
-                    ],
+                    class: ['group', baseClasses, styleClasses],
                     onClick: () => select(item),
                   },
-                  [
-                    item.value === 'view' &&
-                      h(BaseIcon, { name: 'Eye', size: 16, iconClass: 'text-muted-foreground' }),
-                    item.value === 'edit' &&
-                      h(BaseIcon, { name: 'Edit', size: 16, iconClass: 'text-muted-foreground' }),
-                    item.value === 'delete' &&
-                      h(BaseIcon, { name: 'Trash', size: 16, iconClass: 'text-danger-600' }),
-                    h('span', item.label),
-                  ],
+                  [iconNode, h('span', item.label)],
                 )
               })
             },
@@ -424,11 +472,16 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
     userColumns.value[columnIndex].visible = visible
   }
 }
+
+const handleClosePasswordModal = () => {
+  showPasswordModal.value = false
+  currentPublicId.value = null // Optional: clear ID
+}
 </script>
 
 <template>
   <div v-if="isLoadingUser" class="flex items-center justify-center min-h-screen">
-    <BaseSpinner size="lg" />
+    <CustomLoader size="lg" />
   </div>
   <DashboardLayout
     v-else
@@ -444,19 +497,13 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
       </div>
 
       <!-- Card with Filters and Table -->
-      <Card variant="elevated" padding="none">
+      <Card title="لیست کاربران" variant="elevated" padding="none">
         <!-- Header -->
         <template #header>
-          <div class="p-4 sm:p-6">
-            <div
-              class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6"
-            >
-              <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                لیست کاربران
-              </h1>
+          <div class="py-4 sm:py-6">
+            <div class="flex flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <!-- Create Button - Only show if user has permission -->
-              <!-- این باتن فعلا غیر فعال میشه تا وقتی که بشه یجور دسترسی یا عدم دسترسی کاربر ب پیج مربوطه رو بررسی کرد -->
-              <!-- <BaseButton
+              <BaseButton
                 variant="outline"
                 @click="handleCreate"
                 class="border-2 border-success-500 text-success-600"
@@ -464,56 +511,13 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
                 <BaseIcon name="Plus" :size="16" />
                 <span class="hidden sm:inline">ایجاد کاربر جدید</span>
                 <span class="sm:hidden">ایجاد</span>
-              </BaseButton> -->
-            </div>
-
-            <!-- Search and Actions Row (Always Visible) -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <!-- Search Input -->
-              <div class="relative flex-1 sm:flex-initial sm:w-64 md:w-72">
-                <BaseIcon
-                  name="Search"
-                  :size="16"
-                  :stroke-width="2"
-                  icon-class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10"
-                />
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="جستجو..."
-                  class="w-full pr-10 pl-4 py-2 bg-secondary/20 dark:bg-card-background dark:border-border-default border border-border-default/50 rounded-lg focus:bg-background dark:focus:bg-card-background focus:dark:border-primary-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 placeholder:text-muted-foreground/60 dark:placeholder:text-muted-foreground/70 text-foreground dark:text-foreground text-sm"
-                  @keyup.enter="handleQuickSearch"
-                />
-              </div>
-
-              <!-- Action Buttons -->
-              <div class="flex items-center gap-2 sm:gap-3">
-                <!-- Toggle Filters Button -->
-                <BaseButton
-                  variant="outline"
-                  @click="toggleFilters"
-                  class="flex items-center gap-2"
-                >
-                  <BaseIcon name="Filter" :size="16" />
-                  <span class="hidden sm:inline">فیلترها</span>
-                </BaseButton>
-                <!-- Export Excel Button -->
-                <BaseButton
-                  variant="outline"
-                  @click="handleExport"
-                  class="border-2 border-success-500 text-success-600"
-                >
-                  <BaseIcon name="Download" :size="16" />
-                  <span class="hidden sm:inline">خروجی Excel</span>
-                  <span class="sm:hidden">Excel</span>
-                </BaseButton>
-              </div>
+              </BaseButton>
             </div>
           </div>
         </template>
 
         <!-- Filters Section (Collapsible) -->
-        <Transition name="slide-down">
+        <!-- <Transition name="slide-down">
           <div v-show="showFilters" class="border-t border-border-default">
             <div class="p-4 sm:p-6">
               <div class="bg-background rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
@@ -557,42 +561,30 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
                   />
 
                   <FormField
-                    id="status"
+                    id="IsActive"
                     label="وضعیت"
                     type="select"
-                    :model-value="filters.status"
+                    :model-value="filters.IsActive"
                     placeholder="انتخاب کنید"
                     :options="statusOptions"
-                    @update:model-value="filters.status = $event as string"
-                  />
-
-                  <FormField
-                    id="role"
-                    label="نقش"
-                    type="select"
-                    :model-value="filters.role"
-                    placeholder="انتخاب کنید"
-                    :options="roleOptions"
-                    @update:model-value="filters.role = $event as string"
+                    @update:model-value="filters.IsActive = $event as string"
                   />
 
                   <FormField
                     id="phone"
                     label="شماره تلفن/موبایل"
                     type="tel"
-                    :model-value="filters.phone"
+                    :model-value="filters.MobileNumber"
                     placeholder="09121234567"
-                    @update:model-value="filters.phone = $event as string"
+                    @update:model-value="filters.MobileNumber = $event as string"
                   />
                 </div>
               </div>
-              <!-- Filter Action Buttons -->
               <div
                 class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 md:gap-4 pt-3 sm:pt-4 border-t border-dotted"
               >
                 <BaseButton
                   variant="outline"
-                  @click="handleFilterSearch"
                   class="border-2 border-primary-500 text-primary-600 hover:!bg-primary-50 dark:hover:!bg-primary-900/20"
                 >
                   <BaseIcon name="Search" :size="16" />
@@ -611,13 +603,17 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
               </div>
             </div>
           </div>
-        </Transition>
+        </Transition> -->
 
         <!-- Table Section -->
-        <div class="border-t border-border-default p-3 sm:p-4 md:p-6 overflow-x-auto">
+        <div class="border-t border-border-default py-3 sm:py-4 md:py-6 overflow-x-auto">
+          <CustomLoader v-if="isLoadingUsers" size="lg" class="mx-auto my-10" />
           <TableWithSettings
+            v-else
             :columns="tableColumns"
-            :data="mockUsers"
+            :data="users"
+            :raw-data="fullApiData"
+            :searchable="true"
             @column-order-change="handleColumnOrderChange"
             @column-visibility-change="handleColumnVisibilityChange"
           />
@@ -631,8 +627,7 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
             <div
               class="text-xs sm:text-sm text-muted-foreground text-center sm:text-right w-full sm:w-auto"
             >
-              صفحه {{ currentPage }} از 1 • نمایش 1 تا {{ mockUsers.length }} از
-              {{ mockUsers.length }} مورد
+              صفحه {{ currentPage }} از 1 • نمایش 1 تا {{ users.length }} از {{ users.length }} مورد
             </div>
             <Pagination
               v-model:current-page="currentPage"
@@ -662,9 +657,9 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
               این عملیات غیرقابل بازگشت است و تمام اطلاعات کاربر حذف خواهد شد.
             </p>
             <div v-if="userToDelete" class="mt-3 p-2 bg-secondary/50 rounded text-xs">
-              <span class="font-semibold">کاربر:</span> {{ userToDelete.firstName }}
-              {{ userToDelete.lastName }}
-              <span class="text-muted-foreground">({{ userToDelete.username }})</span>
+              <span class="font-semibold">کاربر:</span>
+              {{ userToDelete.FirstName }} {{ userToDelete.LastName }}
+              <span class="text-muted-foreground"> ({{ userToDelete.UserName }}) </span>
             </div>
           </div>
         </div>
@@ -675,13 +670,44 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
           <BaseButton
             variant="default"
             class="bg-danger-600 hover:bg-danger-700 text-white"
-            @click="confirmDelete"
+            @click="confirmDelete(userToDelete?.PublicId)"
           >
             حذف
           </BaseButton>
         </div>
       </template>
     </Modal>
+
+    <PasswordChangeModal
+      v-if="showPasswordModal"
+      :publicId="currentPublicId"
+      @close="handleClosePasswordModal"
+    />
+    <!-- Access Denied Modal -->
+    <!-- <Modal v-model="showAccessDeniedModal" title="عدم دسترسی" size="sm" :close-on-backdrop="true">
+      <div class="space-y-4">
+        <div class="flex items-start gap-3">
+          <div
+            class="flex-shrink-0 w-10 h-10 rounded-full bg-warning-100 dark:bg-warning-900/30 flex items-center justify-center"
+          >
+            <BaseIcon name="AlertCircle" :size="20" class="text-warning-600" />
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-foreground mb-1">
+              شما دسترسی لازم برای ایجاد کاربر جدید را ندارید
+            </p>
+            <p class="text-xs text-muted-foreground">
+              برای دسترسی به این بخش، با مدیر سیستم تماس بگیرید.
+            </p>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end">
+          <BaseButton variant="outline" @click="showAccessDeniedModal = false"> بستن </BaseButton>
+        </div>
+      </template>
+    </Modal> -->
   </DashboardLayout>
 </template>
 

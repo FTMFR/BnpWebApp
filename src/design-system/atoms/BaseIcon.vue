@@ -11,7 +11,7 @@ export interface BaseIconProps {
 }
 
 const props = withDefaults(defineProps<BaseIconProps>(), {
-  size: 20,
+  size: 16,
   strokeWidth: 2,
   iconClass: '',
 })

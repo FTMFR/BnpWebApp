@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import BaseInput from '../atoms/BaseInput.vue'
+import { computed, ref } from 'vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 import type { BaseInputProps } from '../atoms/BaseInput.vue'
 
@@ -29,13 +28,16 @@ export interface FormFieldProps extends Omit<BaseInputProps, 'label' | 'hint' | 
   type?: FieldType
   options?: SelectOption[]
   rows?: number
-  maxLength?: number
+  maxlength?: number
+  icon?: string
+  autocomplete?: string
+  inputId?: string
 }
 
 const props = withDefaults(defineProps<FormFieldProps>(), {
   type: 'text',
-  required: false,
   rows: 3,
+  inputId: undefined,
 })
 
 const emit = defineEmits<{
@@ -56,13 +58,6 @@ const isDropdown = computed(() => props.type === 'dropdown')
 
 const isTextarea = computed(() => props.type === 'textarea')
 
-const baseInputType = computed(() => {
-  if (['text', 'number', 'email', 'password'].includes(props.type || '')) {
-    return props.type as 'text' | 'number' | 'email' | 'password'
-  }
-  return 'text'
-})
-
 const handleInputChange = (value: string | number) => {
   emit('update:modelValue', value)
 }
@@ -71,53 +66,97 @@ const handleSelectChange = (event: Event) => {
   const target = event.target as HTMLSelectElement
   emit('update:modelValue', target.value)
 }
+
+const showPassword = ref(false)
+
+const actualInputType = computed(() => {
+  if (props.type === 'password' && showPassword.value) {
+    return 'text'
+  }
+  return props.type
+})
+
+const computedInputId = computed(() => {
+  return props.inputId || `form-input-${Math.random().toString(36).substr(2, 9)}`
+})
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
+
+// function handleInput(event: Event) {
+//   const target = event.target as HTMLInputElement
+//   emit('update:modelValue', target.value)
+//   if (props.errorMessage) {
+//     emit('clear-error')
+//   }
+// }
 </script>
 
 <template>
   <div class="w-full">
-    <BaseInput
-      v-if="isSimpleInput && ['text', 'number', 'email', 'password'].includes(type || '')"
-      v-bind="props"
-      :type="baseInputType"
-      :label="label"
-      :hint="hint"
-      :required="required"
-      :model-value="modelValue"
-      @update:model-value="handleInputChange"
-      @blur="emit('blur', $event)"
-      @focus="emit('focus', $event)"
-    />
-    <div v-else-if="isSimpleInput" class="w-full">
-      <label v-if="label" class="block mb-2 text-sm font-medium text-foreground">
+    <div
+      v-if="
+        isSimpleInput &&
+        ['text', 'number', 'email', 'password', 'tel', 'date', 'time', 'datetime-local'].includes(
+          type || '',
+        )
+      "
+      class="flex flex-col gap-2"
+    >
+      <label :for="computedInputId" class="text-sm font-medium text-foreground text-right">
         {{ label }}
         <span v-if="required" class="text-danger-500">*</span>
       </label>
-      <input
-        :type="type"
-        :value="modelValue"
-        :placeholder="placeholder"
-        :disabled="disabled"
-        :required="required"
-        :class="[
-          'w-full rounded-lg border-2 px-4 py-2.5 text-base transition-colors',
-          'focus:outline-none',
-          error
-            ? 'border-danger-500 focus:border-danger-500'
-            : 'border-border focus:border-primary-500',
-          disabled ? 'bg-secondary/50 cursor-not-allowed opacity-60' : 'bg-input-background',
-        ]"
-        @input="handleInputChange(($event.target as HTMLInputElement).value)"
-        @blur="emit('blur', $event)"
-        @focus="emit('focus', $event)"
-      />
-      <p v-if="error && errorMessage" class="mt-1 text-sm text-danger-600">
+      <div class="relative flex items-center">
+        <BaseIcon
+          v-if="icon"
+          :name="icon"
+          :size="20"
+          :stroke-width="2"
+          icon-class="absolute group-focus-within:text-primary left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none transition-colors
+          z-10 group-focus-within:text-primary-500"
+        />
+        <input
+          @update:model-value="handleInputChange(($event.target as HTMLInputElement).value)"
+          @blur="emit('blur', $event)"
+          @focus="emit('focus', $event)"
+          :value="modelValue"
+          :placeholder="placeholder"
+          :disabled="disabled"
+          class="w-full max-w-full h-12 px-4 text-base bg-input-background border border-border-default rounded-xl transition-all outline-none text-foreground box-border focus-within:border-primary text-center group"
+          :class="{
+            'pl-12': icon,
+            'pr-12': type === 'password',
+          }"
+          @input="handleInputChange(($event.target as HTMLInputElement).value)"
+          :id="computedInputId"
+          :type="actualInputType"
+          :maxlength="maxlength"
+          :aria-describedby="errorMessage ? `${computedInputId}-error` : undefined"
+          :aria-invalid="!!errorMessage"
+          :autocomplete="autocomplete"
+        />
+        <button
+          v-if="type === 'password'"
+          type="button"
+          @click="togglePasswordVisibility"
+          class="absolute right-3.5 top-0 bottom-0 flex items-center justify-center bg-transparent border-0 text-muted-foreground cursor-pointer p-0 transition-colors z-10 hover:text-foreground"
+          :aria-label="showPassword ? 'مخفی کردن' : 'نمایش'"
+          :aria-pressed="showPassword"
+        >
+          <BaseIcon :name="showPassword ? 'EyeOff' : 'Eye'" :size="20" :stroke-width="2" />
+        </button>
+      </div>
+      <div
+        v-if="errorMessage"
+        :id="`${computedInputId}-error`"
+        class="text-sm text-danger-500 mt-1 text-right"
+        role="alert"
+      >
         {{ errorMessage }}
-      </p>
-      <p v-else-if="hint" class="mt-1 text-sm text-muted-foreground">
-        {{ hint }}
-      </p>
+      </div>
     </div>
-
     <div v-else-if="isSelect" class="w-full">
       <label v-if="label" class="block mb-2 text-sm font-medium text-foreground">
         {{ label }}

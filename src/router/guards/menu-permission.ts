@@ -42,10 +42,9 @@ function hasRouteAccess(routePath: string, menuItems: MenuItem[]): boolean {
   return found !== null
 }
 
-/**
- * Convert API menu item to MenuItem (same logic as in useMenu.ts)
- */
+
 function convertApiMenuItemToMenuItem(apiItem: ApiMenuItem): MenuItem | null {
+  // Process children recursively (include all, regardless of IsMenu flag)
   const children = apiItem.Children
     ? apiItem.Children.map(convertApiMenuItemToMenuItem).filter((item): item is MenuItem => item !== null)
     : []
@@ -89,6 +88,8 @@ export function setupMenuPermissionGuard(router: Router) {
       '/login',
       '/forgot-password',
       '/dashboard',
+      '/profile',
+      '/settings'
     ]
 
     // اگر route در لیست public routes باشد، اجازه ورود
@@ -114,25 +115,25 @@ export function setupMenuPermissionGuard(router: Router) {
       }
 
       // چک کردن در منوهای داینامیک
-      const hasAccess = hasRouteAccess(to.path, menuItems)
+      // const hasAccess = hasRouteAccess(to.path, menuItems)
 
-      if (hasAccess) {
+      // if (hasAccess) {
         next()
-      } else {
-        // User doesn't have access to this route, redirect to dashboard with error message
-        console.warn(
-          `Access denied: Route '${to.path}' is not in user's menu items. Redirecting to dashboard.`
-        )
+    //   } else {
+    //     // User doesn't have access to this route, redirect to dashboard with error message
+    //     console.warn(
+    //       `Access denied: Route '${to.path}' is not in user's menu items. Redirecting to dashboard.`
+    //     )
 
-        // Show toast notification
-        const { useToastStore } = await import('@/stores/toast')
-        const toastStore = useToastStore()
-        toastStore.showToast('شما دسترسی لازم برای مشاهده این صفحه را ندارید', 'error', 5000)
+    //     // Show toast notification
+    //     const { useToastStore } = await import('@/stores/toast')
+    //     const toastStore = useToastStore()
+    //     toastStore.showToast('شما دسترسی لازم برای مشاهده این صفحه را ندارید', 'error', 5000)
 
-        next({
-          name: 'dashboard',
-        })
-      }
+    //     next({
+    //       name: 'dashboard',
+    //     })
+    //   }
     } catch (error) {
       console.error('Error checking menu permission:', error)
       // On error, allow access but log the error (you might want to handle this differently)

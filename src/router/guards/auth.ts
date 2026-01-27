@@ -8,7 +8,7 @@ const isAuthenticated = (): boolean => {
     const savedUser = sessionStorage.getItem('auth_user')
     if (savedUser) {
       try {
-        authStore.initializeAuth()
+        authStore.initialize()
       } catch (error) {
         console.error('Failed to restore user from sessionStorage in guard:', error)
         sessionStorage.removeItem('auth_user')
@@ -20,7 +20,7 @@ const isAuthenticated = (): boolean => {
 }
 
 export function setupAuthGuard(router: Router) {
-  router.beforeEach((to, from, next) => {
+  router.beforeEach((to, _, next) => {
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
     if (requiresAuth && !isAuthenticated()) {

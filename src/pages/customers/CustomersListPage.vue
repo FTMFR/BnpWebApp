@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { DashboardLayout } from '@/design-system/templates'
-import { BaseSpinner } from '@/design-system/atoms'
+import { CustomLoader } from '@/design-system/atoms'
 import { useAuth } from '@/shared/composables/useAuth'
 
 const { fetchUser, isLoadingUser } = useAuth()
@@ -34,7 +34,7 @@ const handleHelpClick = () => {
 
 <template>
   <div v-if="isLoadingUser" class="flex items-center justify-center min-h-screen">
-    <BaseSpinner size="lg" />
+    <CustomLoader size="lg" />
   </div>
   <DashboardLayout
     v-else

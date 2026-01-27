@@ -43,7 +43,7 @@
 import { computed } from 'vue'
 import { useTheme } from '@/design-system/utilities/useTheme'
 import BaseIcon from '../atoms/BaseIcon.vue'
-import AuthVisualSection from '@/components/auth/AuthVisualSection.vue'
+import AuthVisualSection from '../organisms/AuthVisualSection.vue'
 
 const { theme, toggleTheme } = useTheme()
 

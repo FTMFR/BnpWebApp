@@ -66,7 +66,7 @@ export function useNotifications() {
       type: 'success',
       read: false,
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-      link: '/dashboard/users/list',
+      link: '/api/users/list',
     },
     {
       id: 3,

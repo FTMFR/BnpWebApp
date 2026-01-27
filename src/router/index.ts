@@ -61,6 +61,7 @@ const router = createRouter({
       name: 'users',
       component: () => import('@/pages/users/UsersListPage.vue'),
       meta: {
+        permissions: ['Users.Read'],
         requiresAuth: true,
         layout: 'dashboard',
       },
@@ -72,8 +73,85 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Users.Create']
       },
     },
+    {
+      path: '/users/:id',
+      name: 'user-update',
+      component: () => import('@/pages/users/UserViewPage.vue'),
+      // meta: {
+      //   permissions: ['Users.Update']
+      // }
+    },
+    {
+      path: '/grp/list',
+      name: 'groups',
+      component: () => import('@/pages/groups/GroupsListPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/grp/create',
+      name: 'groups-create',
+      component: () => import('@/pages/groups/GroupCreatePage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/grp/:id',
+      name: 'groups-update',
+      component: () => import('@/pages/groups/GroupViewPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/Menu/List',
+      name: 'menus',
+      component: () => import('@/pages/menus/MenuListPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/Menu/create',
+      name: 'menu-create',
+      component: () => import('@/pages/menus/MenuCreatePage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/Permission/List',
+      name: 'permission-create',
+      component: () => import('@/pages/access/AccessListPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/pages/UserProfile.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard'
+      }
+    },
+    // {
+    //   path:'/settings',
+    //   name:'settings',
+    //   component:()=>
+    // }
   ],
 })
 

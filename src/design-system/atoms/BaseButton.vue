@@ -54,7 +54,6 @@ const buttonClasses = computed(() => {
       'bg-success text-success-foreground hover:bg-success/90 hover:shadow-md active:scale-[0.98]',
     accent:
       'bg-accent text-accent-foreground hover:bg-accent/90 hover:shadow-md active:scale-[0.98]',
-    // Legacy support
     primary:
       'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md active:scale-[0.98]',
     danger:
@@ -76,7 +75,11 @@ const buttonClasses = computed(() => {
   return `${base} ${variants[props.variant] || variants.default} ${sizes[props.size] || sizes.default} ${width}`
 })
 
-const handleClick = (event: MouseEvent) => {
+const handleClick = (event: MouseEvent, forcePrevent = false) => {
+  if (props.type !== 'submit' || forcePrevent) {
+    event.preventDefault()
+  }
+
   if (!props.disabled && !props.loading) {
     emit('click', event)
   }
@@ -84,7 +87,13 @@ const handleClick = (event: MouseEvent) => {
 </script>
 
 <template>
-  <button :type="type" :class="buttonClasses" :disabled="disabled || loading" @click="handleClick">
+  <button
+    to="#"
+    :type="type"
+    :class="buttonClasses"
+    :disabled="disabled || loading"
+    @click="type === 'submit' ? handleClick : handleClick($event, true)"
+  >
     <ButtonLoader v-if="loading" :size="size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md'" />
     <slot />
   </button>

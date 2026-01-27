@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 export interface BaseInputProps {
-  modelValue?: string | number
+  modelValue?: string | number // Added modelValue
   type?: 'text' | 'email' | 'password' | 'number'
   placeholder?: string
   disabled?: boolean
@@ -15,6 +15,7 @@ export interface BaseInputProps {
   size?: 'sm' | 'md' | 'lg'
 }
 
+
 const props = withDefaults(defineProps<BaseInputProps>(), {
   type: 'text',
   disabled: false,
@@ -22,6 +23,7 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
   required: false,
   error: false,
   size: 'md',
+
 })
 
 const emit = defineEmits<{

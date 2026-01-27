@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import Card from './Card.vue'
-import { BaseButton } from '../atoms'
 
 export interface FormCardProps {
   title: string
   description?: string
-  submitLabel: string
   cancelLabel?: string
   isSubmitting?: boolean
   disabled?: boolean
+  routeBack?: string
 }
 
 const props = withDefaults(defineProps<FormCardProps>(), {
@@ -23,8 +22,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const handleSubmit = (e: Event) => {
-  e.preventDefault()
+const handleSubmit = () => {
   if (!props.isSubmitting && !props.disabled) {
     emit('submit')
   }
@@ -38,37 +36,19 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <Card variant="elevated" padding="none">
-    <template #header>
-      <div class="p-4 sm:p-6">
-        <h2 class="text-xl sm:text-2xl font-bold text-foreground mb-2">{{ title }}</h2>
-        <p v-if="description" class="text-sm text-muted-foreground">{{ description }}</p>
-      </div>
-    </template>
+  <Card :back-route="routeBack" :title="title" :description="description" variant="elevated" padding="none">
+    <template #header></template>
 
-    <form @submit="handleSubmit">
-      <div class="p-4 sm:p-6">
+    <form @submit.prevent="handleSubmit">
+      <div class="pt-4 sm:p-6">
         <slot />
       </div>
 
-      <div class="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-border-default">
-        <BaseButton
-          type="button"
-          variant="outline"
-          :disabled="isSubmitting || disabled"
-          @click="handleCancel"
-        >
-          {{ cancelLabel }}
-        </BaseButton>
-        <BaseButton
-          type="submit"
-          variant="default"
-          :loading="isSubmitting"
-          :disabled="disabled"
-          class="!text-white"
-        >
-          {{ submitLabel }}
-        </BaseButton>
+      <div class="flex items-center justify-end gap-3 pt-4 sm:pt-6">
+        <!-- default cancel -->
+        <button type="button" class="hidden" @click="handleCancel" />
+
+        <slot name="footer" />
       </div>
     </form>
   </Card>
