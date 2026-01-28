@@ -1,259 +1,460 @@
-<template>
-  <div class="p-4">
-    <!-- Card Container -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-      <!-- Card Header -->
-      <div class="p-4 border-b border-gray-200 bg-gray-50">
-        <!-- <h4 class="inline-block text-lg font-semibold text-gray-800">دسترسی به امکانات</h4> -->
-        <h4>{{ title }}</h4>
-        <hr class="mt-2 border-gray-300" />
-      </div>
-
-      <!-- Card Content -->
-      <div class="p-4">
-        <!-- Alert Section -->
-        <div
-          class="flex items-center p-3 mb-4 text-sm text-green-800 bg-green-100 rounded-lg border border-green-200"
-          role="alert"
-        >
-          <!-- <span class="font-medium">{{ grpTitle }}</span> -->
-          <span class="mx-1">[</span>
-          <!-- <a
-            href="#"
-            class="font-medium underline text-red-600 hover:text-red-800"
-            @click.prevent="openCopyModal"
-          >
-             کپی دسترسی
-          </a> -->
-          <a>{{ copyText }}</a>
-          <span class="mx-1">]</span>
-        </div>
-
-        <!-- <div v-else class="flex items-center p-3 mb-4 text-sm text-blue-800 bg-blue-100 rounded-lg border border-blue-200" role="alert">
-          <span>هیچ سمتی انتخاب نیست ، برای دسترسی به سمت ها بر روی سمت مورد نظر کلیک کنید .</span>
-        </div> -->
-
-        <!-- Tree Section (Grid Layout) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" dir="rtl">
-          <!-- Left Side: Roles (GrpShobe) -->
-          <div class="w-full">
-            <treeselect
-              class="mt-2"
-              placeholder="برای مشاهده کلیک کنید"
-              :multiple="false"
-              :options="rolesTree"
-              :always-open="true"
-              :no-children-text="farsiNochild"
-              :close-on-select="false"
-              :show-count="true"
-              v-model="value1"
-            >
-              <template
-                #option-label="{ node, shouldShowCount, count, labelClassName, countClassName }"
-              >
-                <label
-                  class="block py-2 cursor-pointer hover:bg-gray-100 px-2 rounded"
-                  :class="labelClassName"
-                  @click.prevent="ItemSelected_GrpShobe(node.id, node.label)"
-                >
-                  {{ node.label }}
-                  <span v-if="shouldShowCount" :class="countClassName">({{ count }})</span>
-                </label>
-              </template>
-            </treeselect>
-          </div>
-
-          <!-- Right Side: Permissions (DastresiGrp) -->
-          <div class="w-full">
-            <treeselect
-
-              class="mt-2"
-              placeholder="برای مشاهده کلیک کنید"
-              :multiple="false"
-               :options="store.state.DefineDastresi.treeDefineDastresi_DastresiGrp"
-              :always-open="alwaysOpen"
-              :no-children-text="farsiNochild"
-              :close-on-select="false"
-              :show-count="true"
-              v-model="value2"
-              :normalizer="normalizer"
-            >
-              <template
-                #option-label="{ node, shouldShowCount, count, labelClassName, countClassName }"
-              >
-                <label
-                  :class="labelClassName"
-                  class="block cursor-pointer hover:bg-gray-100 px-2 rounded"
-                >
-                  <!-- Custom Switch/Checkbox -->
-                  <div class="inline-flex items-center align-middle ml-2">
-                    <input
-                      type="checkbox"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      :id="'IsMojaz_' + node.id"
-                      @click.prevent="togglePermission(node.raw)"
-                      :checked="node.raw.isMojaz === 1"
-                    />
-                  </div>
-
-                  {{ node.label }}
-                  <span v-if="shouldShowCount" :class="countClassName">({{ count }})</span>
-
-                  <!-- Lock/Unlock Icons -->
-                  <span class="mr-2 font-normal text-sm">
-                    <i v-if="node.raw.isMojaz !== 1" class="fa fa-lock text-red-500"></i>
-                    <i v-else class="fa fa-unlock text-green-500"></i>
-                  </span>
-                </label>
-              </template>
-            </treeselect>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-------------------------------------------------------------->
-    <!-- Custom Tailwind Modal -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none"
-    >
-      <!-- Backdrop -->
-      <div
-        class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        @click="closeModal"
-      ></div>
-
-      <!-- Modal Container -->
-      <div class="relative w-auto max-w-sm mx-auto my-6 bg-white rounded-lg shadow-lg outline-none">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-4 border-b border-gray-200 rounded-t">
-          <h5 class="text-lg font-semibold text-gray-800">کپی سمت</h5>
-          <button
-            type="button"
-            class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-            @click="closeModal"
-          >
-            <span aria-hidden="true" class="text-xl">&times;</span>
-          </button>
-        </div>
-
-        <!-- Modal Body -->
-        <div class="p-4">
-          <div class="w-full">
-            <label for="roleSelect" class="block mb-2 text-sm font-medium text-gray-900"
-              >انتخاب سمت</label
-            >
-            <select
-              id="roleSelect"
-              v-model="selectedSemat"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dir-rtl"
-              dir="rtl"
-            >
-              <option :value="-1">-- لطفا سمت مورد نظر را انتخاب کنید --</option>
-              <!-- <option
-               v-for="itemDb in dataForCopy"
-                :key="itemDb.id"
-                :value="itemDb.id"
-              >
-                {{ itemDb.Gname }}
-              </option> -->
-            </select>
-          </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div
-          class="flex items-center justify-end p-4 space-x-2 space-x-reverse border-t border-gray-200 rounded-b"
-        >
-          <button
-            type="button"
-            class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-            @click="SaveCopy"
-          >
-            ثـبـت کـپـی
-          </button>
-          <button
-            type="button"
-            class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-            @click="closeModal"
-          >
-            انصراف
-          </button>
-        </div>
-      </div>
-    </div>
-    <!-------------------------------------------------------------->
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import Treeselect from 'vue-treeselect' // Ensure Vue 3 compatible version
-import 'vue-treeselect/dist/vue-treeselect.css'
+import { h, ref, computed, watch } from 'vue'
+import BaseIcon from '@/design-system/atoms/BaseIcon.vue'
 
-interface Props {
-  rolesTree: any[]
-  permissionsTree: any[]
-  showPermissions: boolean
+export interface BaseTreeNode {
+  PublicId: string
+  Title: string
+  Icon?: string
+  Children?: BaseTreeNode[]
 }
 
-// State
-const value1 = ref(null)
-const value2 = ref(null)
-const alwaysOpen = ref(true)
-const farsiNochild = ref('بدون فرزند')
-const showModal = ref(false)
-const selectedSemat = ref(-1)
+const props = defineProps<{
+  nodes: BaseTreeNode[]
+  selectedId?: string | null
+  level?: number
+  showIcon?: boolean
+  search?: string
+  modelValue: string | string[]
+  multiSelect?: boolean
+  showEdit?: boolean
+  showDelete?: boolean
+}>()
 
-// Computed
-// const grpTitle = computed(() => store.state.DefineDastresi.GrpTitle);
-// const dataForCopy = computed(() => store.state.DefineDastresi.DataForCopy);
-// const dataForCopyId = computed(() => store.state.DefineDastresi.DataForCopyId);
+const emit = defineEmits<{
+  (e: 'select', node: BaseTreeNode): void
+  (e: 'update:modelValue', value: string | string[]): void
+  (e: 'edit', node: BaseTreeNode): void
+  (e: 'delete', node: BaseTreeNode): void
+}>()
 
-// Methods
-const normalizer = (node) => {
-  return {
-    id: node.id,
-    label: node.label,
-    children: node.children,
+const rootLevel = props.level ?? 0
+const collapsedMap = ref<Record<string, boolean>>({})
+const searchQuery = ref<string>('')
+const localSelectedIds = ref<string[]>([])
+
+// Initialize localSelectedIds from modelValue
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (props.multiSelect) {
+      localSelectedIds.value = Array.isArray(newValue) ? newValue : newValue ? [newValue] : []
+    } else {
+      localSelectedIds.value = newValue ? [newValue as string] : []
+    }
+  },
+  { immediate: true },
+)
+
+const isSearching = () => !!searchQuery.value.trim()
+
+const isCollapsed = (id: string, level: number) => {
+  if (isSearching()) return false
+  if (collapsedMap.value[id] === undefined) {
+    return level <= 1
+  }
+  return collapsedMap.value[id]
+}
+
+const toggleCollapse = (id: string, level: number) => {
+  collapsedMap.value[id] = !isCollapsed(id, level)
+}
+
+const handleNodeClick = (node: BaseTreeNode) => {
+  emit('select', node)
+
+  if (props.multiSelect) {
+    const index = localSelectedIds.value.indexOf(node.PublicId)
+    if (index === -1) {
+      // Add to selection
+      localSelectedIds.value.push(node.PublicId)
+    } else {
+      // Remove from selection
+      localSelectedIds.value.splice(index, 1)
+    }
+    emit('update:modelValue', [...localSelectedIds.value])
+  } else {
+    // Single select mode
+    localSelectedIds.value = [node.PublicId]
+    emit('update:modelValue', node.PublicId)
   }
 }
 
-const ItemSelected_GrpShobe = (id, label) => {
-  console.log('Selected Role:', id, label)
-  // Dispatch action to fetch permissions for this role
-}
-
-const togglePermission = (rawNode) => {
-  const newValue = rawNode.isMojaz === 1 ? 0 : 1
-  rawNode.isMojaz = newValue
-  // Dispatch action to update backend
-}
-
-const openCopyModal = () => {
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  selectedSemat.value = -1 // Reset selection
-}
-
-const SaveCopy = () => {
-  if (selectedSemat.value === -1) {
-    alert('لطفا سمت را انتخاب کنید')
-    return
+const removeSelected = (id: string, event: Event) => {
+  event.stopPropagation()
+  const index = localSelectedIds.value.indexOf(id)
+  if (index !== -1) {
+    localSelectedIds.value.splice(index, 1)
+    emit('update:modelValue', [...localSelectedIds.value])
   }
-  console.log('Copying access to role ID:', selectedSemat.value)
-  // Dispatch save action
-  closeModal()
+}
+
+const clearAllSelected = () => {
+  localSelectedIds.value = []
+  emit('update:modelValue', [])
+}
+
+const selectedNodes = computed(() => {
+  const findNode = (nodes: BaseTreeNode[], id: string): BaseTreeNode | null => {
+    for (const node of nodes) {
+      if (node.PublicId === id) return node
+      if (node.Children) {
+        const found = findNode(node.Children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  return localSelectedIds.value
+    .map((id) => findNode(props.nodes, id))
+    .filter(Boolean) as BaseTreeNode[]
+})
+
+const TreeNode = ({ node, level = 0 }: { node: BaseTreeNode; level?: number }) => {
+  const hasChildren = !!node.Children?.length
+  const isSelected = localSelectedIds.value.includes(node.PublicId)
+
+  const collapsible = hasChildren && level <= 1
+  const collapsed = collapsible && isCollapsed(node.PublicId, level)
+
+  return h(
+    'div',
+    {
+      class: ['tree-node', collapsed && 'collapsed'],
+      style: { paddingRight: `${level * 1.5}rem` },
+    },
+    [
+      h(
+        'div',
+        {
+          class: [
+            'tree-row flex items-center justify-between py-3 px-2 cursor-pointer transition-colors group',
+            isSelected ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-primary-50',
+          ],
+          onClick: () => handleNodeClick(node),
+        },
+        [
+          h('div', { class: 'flex items-center gap-2' }, [
+            collapsible &&
+              h(
+                'button',
+                {
+                  class:
+                    'tree-toggle flex items-center justify-center w-5 h-5 text-gray-700 font-bold text-lg leading-none hover:text-primary-600',
+                  onClick: (e: Event) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    toggleCollapse(node.PublicId, level)
+                  },
+                },
+                collapsed ? '+' : '–',
+              ),
+
+            !collapsible && level <= 1 && h('span', { class: 'w-5 h-5' }),
+
+            props.showIcon !== false &&
+              h(BaseIcon, {
+                name: node.Icon || (hasChildren ? 'Folder' : 'File'),
+                size: 18,
+                class: hasChildren ? 'text-primary-500' : 'text-gray-400',
+              }),
+
+            h('span', { class: 'font-medium', innerHTML: highlight(node.Title) }, node.Title),
+          ]),
+
+          h(
+            'div',
+            {
+              class: 'flex gap-2 opacity-0 group-hover:opacity-100',
+              onClick: (e: Event) => e.stopPropagation(),
+            },
+            props.$slots?.actions?.({ node }),
+          ),
+        ],
+      ),
+
+      hasChildren &&
+        !collapsed &&
+        h(
+          'div',
+          { class: 'tree-children' },
+          node.Children!.map((child) =>
+            h(
+              'div',
+              { class: 'tree-child' },
+              h(TreeNode, {
+                node: child,
+                level: level + 1,
+              }),
+            ),
+          ),
+        ),
+    ],
+  )
+}
+
+const filterTree = (nodes: BaseTreeNode[], search: string): BaseTreeNode[] => {
+  if (!search) return nodes
+
+  const term = search.toLowerCase()
+
+  const walk = (node: BaseTreeNode): BaseTreeNode | null => {
+    const isMatch = node.Title.toLowerCase().includes(term)
+
+    const children = node.Children?.map(walk).filter(Boolean) as BaseTreeNode[] | undefined
+
+    if (isMatch || (children && children.length)) {
+      return {
+        ...node,
+        Children: children,
+      }
+    }
+
+    return null
+  }
+
+  return nodes.map(walk).filter(Boolean) as BaseTreeNode[]
+}
+
+const highlight = (text: string) => {
+  if (!searchQuery.value) return text
+
+  const regex = new RegExp(`(${searchQuery.value})`, 'gi')
+  return text.replace(regex, '<mark>$1</mark>')
 }
 </script>
 
-<style scoped>
-/* Ensure RTL works correctly for the select dropdown if needed */
-[dir='rtl'] select {
-  background-position: left 0.5rem center;
+<template>
+  <div class="tree-select">
+    <div class="relative">
+      <input
+        type="text"
+        v-model="searchQuery"
+        placeholder="جستجو ..."
+        class="tree-search mr-1 mb-3 w-full md:w-[240px] rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-900 dark:border-gray-700"
+      />
+
+      <!-- Selected tags display -->
+      <div v-if="multiSelect && selectedNodes.length > 0" class="selected-tags-container mb-3">
+        <div class="flex flex-wrap gap-2 items-center">
+          <div
+            v-for="node in selectedNodes"
+            :key="node.PublicId"
+            class="selected-tag flex items-center gap-1 bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-sm"
+          >
+            <span>{{ node.Title }}</span>
+            <button
+              @click="removeSelected(node.PublicId, $event)"
+              class="remove-tag-btn text-primary-600 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-100 ml-1"
+              type="button"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+          <button
+            v-if="selectedNodes.length > 1"
+            @click="clearAllSelected"
+            class="clear-all-btn text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            type="button"
+          >
+            پاک کردن همه
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tree-root">
+    <TreeNode
+      v-for="node in filterTree(nodes, searchQuery)"
+      :key="node.PublicId"
+      :node="node"
+      :level="rootLevel"
+    />
+  </div>
+</template>
+
+<style>
+mark {
+  background-color: #fde68a;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.dark mark {
+  background-color: #92400e;
+  color: #fff;
+}
+
+.tree-search::placeholder {
+  color: #9ca3af;
+}
+
+.dark .tree-search {
+  background-color: #0b1014;
+  color: #e5e7eb;
+}
+
+.dark .tree-search::placeholder {
+  color: #6b7280;
+}
+
+.tree-toggle {
+  border-radius: 4px;
+  background-color: #f1f5f9;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.tree-toggle:hover {
+  background-color: #e2e8f0;
+  transform: scale(1.05);
+}
+
+.tree-node {
+  position: relative;
+}
+
+.tree-node::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0.75rem;
+  width: 1px;
+  height: 100%;
+  background-color: #e5e7eb;
+}
+
+.tree-root > .tree-node::before {
+  display: none;
+}
+
+.tree-row {
+  position: relative;
+  border-bottom: 1px dotted #c0c0c0;
+  border-radius: 6px;
+}
+
+.tree-row {
+  background-color: #f8fafc;
+  margin-bottom: 5px;
+}
+
+.tree-row.bg-primary-100 {
+  background-color: #eef2ff;
+  border-right: 3px solid #6366f1;
+}
+
+.tree-row::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  width: 1rem;
+  height: 1px;
+}
+
+.tree-children {
+  margin-right: 1.5rem;
+  overflow: hidden;
+  transition:
+    max-height 0.25s ease,
+    opacity 0.2s ease;
+}
+
+.tree-node > .tree-children {
+  opacity: 1;
+}
+
+.tree-node.collapsed > .tree-children {
+  max-height: 0;
+  opacity: 0;
+}
+
+.tree-child:last-child > .tree-node::before {
+  height: 50%;
+}
+
+/* Selected tags styling */
+.selected-tags-container {
+  margin-top: 0.5rem;
+}
+
+.selected-tag {
+  transition: all 0.2s ease;
+}
+
+.selected-tag:hover {
+  background-color: #e0e7ff;
+}
+
+.dark .selected-tag:hover {
+  background-color: #1e293b;
+}
+
+.remove-tag-btn {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.remove-tag-btn:hover {
+  opacity: 1;
+}
+
+.clear-all-btn {
+  transition: color 0.2s ease;
+}
+
+/* Dark mode styles */
+.dark .tree-row {
+  background-color: #0b1014;
+  border-bottom: 1px dotted #334155;
+}
+
+.dark .tree-row:hover {
+  background-color: #121820;
+}
+
+.dark .tree-row.bg-primary-100 {
+  background-color: #1c2330;
+  border-right: 3px solid #6366f1;
+}
+
+.dark .tree-toggle {
+  background-color: #111827;
+  color: #e5e7eb;
+}
+
+.dark .tree-toggle:hover {
+  background-color: #0f1520;
+}
+
+.dark .tree-node.collapsed > .tree-children {
+  opacity: 0;
+}
+
+.dark .tree-row .font-medium {
+  color: #e5e7eb;
+}
+
+.dark .tree-row .text-gray-400 {
+  color: #9ca3af;
+}
+
+.dark .tree-row .text-primary-500 {
+  color: #818cf8;
+}
+
+.dark .tree-row.bg-primary-100:hover {
+  background-color: #222a38;
 }
 </style>

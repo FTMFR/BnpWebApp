@@ -22,7 +22,6 @@ export interface MenuFilters {
   parentPublicId: string
 }
 
-
 const { fetchUser, isLoadingUser } = useAuth()
 const { searchItems } = useGlobalSearch()
 

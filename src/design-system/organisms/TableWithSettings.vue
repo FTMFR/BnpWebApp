@@ -298,7 +298,7 @@
           <BaseButton
             variant="outline"
             size="sm"
-            class="flex items-center gap-2 border-2 border-border hover:bg-secondary text-xs sm:text-sm sm:flex-initial"
+            class="flex items-center gap-2 border-2 border-border hover:bg-secondary-300 text-xs sm:text-sm sm:flex-initial hover:text-black dark:hover:text-white "
             @click="isSettingsOpen = true"
           >
             <BaseIcon name="Settings" :size="14" class="sm:w-4 sm:h-4" />
