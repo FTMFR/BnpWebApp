@@ -22,10 +22,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select', node: BaseTreeNode): void
-  (e: 'update:modelValue', value: string | string[]): void
-  (e: 'edit', node: BaseTreeNode): void
-  (e: 'delete', node: BaseTreeNode): void
+  select: [node: BaseTreeNode]
+  'update:modelValue': [value: string | string[]]
+  edit: [node: BaseTreeNode]
+  delete: [node: BaseTreeNode]
 }>()
 
 const slots = useSlots()
