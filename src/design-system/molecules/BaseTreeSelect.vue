@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref, computed, watch } from 'vue'
+import { h, ref, computed, watch, useSlots } from 'vue'
 import BaseIcon from '@/design-system/atoms/BaseIcon.vue'
 
 export interface BaseTreeNode {
@@ -27,6 +27,8 @@ const emit = defineEmits<{
   (e: 'edit', node: BaseTreeNode): void
   (e: 'delete', node: BaseTreeNode): void
 }>()
+
+const slots = useSlots()
 
 const rootLevel = props.level ?? 0
 const collapsedMap = ref<Record<string, boolean>>({})
@@ -175,7 +177,7 @@ const TreeNode = ({ node, level = 0 }: { node: BaseTreeNode; level?: number }) =
               class: 'flex gap-2 opacity-0 group-hover:opacity-100',
               onClick: (e: Event) => e.stopPropagation(),
             },
-            props.$slots?.actions?.({ node }),
+            slots.actions?.({ node }),
           ),
         ],
       ),
