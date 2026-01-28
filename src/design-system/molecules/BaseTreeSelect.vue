@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref, computed, watch } from 'vue'
+import { h, ref, computed, watch, useSlots } from 'vue'
 import BaseIcon from '@/design-system/atoms/BaseIcon.vue'
 
 export interface BaseTreeNode {
@@ -22,11 +22,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select', node: BaseTreeNode): void
-  (e: 'update:modelValue', value: string | string[]): void
-  (e: 'edit', node: BaseTreeNode): void
-  (e: 'delete', node: BaseTreeNode): void
+  select: [node: BaseTreeNode]
+  'update:modelValue': [value: string | string[]]
+  edit: [node: BaseTreeNode]
+  delete: [node: BaseTreeNode]
 }>()
+
+const slots = useSlots()
 
 const rootLevel = props.level ?? 0
 const collapsedMap = ref<Record<string, boolean>>({})
@@ -35,13 +37,19 @@ const localSelectedIds = ref<string[]>([])
 
 // Initialize localSelectedIds from modelValue
 watch(
-  () => props.modelValue,
-  (newValue) => {
-    if (props.multiSelect) {
+  () => [props.modelValue, props.multiSelect],
+  ([newValue, multiSelect]) => {
+    if (multiSelect) {
       localSelectedIds.value = Array.isArray(newValue) ? newValue : newValue ? [newValue] : []
-    } else {
-      localSelectedIds.value = newValue ? [newValue as string] : []
+      return
     }
+
+    if (Array.isArray(newValue)) {
+      localSelectedIds.value = newValue.length ? [newValue[0]] : []
+      return
+    }
+
+    localSelectedIds.value = newValue ? [newValue as string] : []
   },
   { immediate: true },
 )
@@ -169,7 +177,7 @@ const TreeNode = ({ node, level = 0 }: { node: BaseTreeNode; level?: number }) =
               class: 'flex gap-2 opacity-0 group-hover:opacity-100',
               onClick: (e: Event) => e.stopPropagation(),
             },
-            props.$slots?.actions?.({ node }),
+            slots.actions?.({ node }),
           ),
         ],
       ),
@@ -226,24 +234,19 @@ const highlight = (text: string) => {
 </script>
 
 <template>
-  <div class="tree-select">
-    <div class="relative">
-      <input
-        type="text"
-        v-model="searchQuery"
-        placeholder="جستجو ..."
-        class="tree-search mr-1 mb-3 w-full md:w-[240px] rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-900 dark:border-gray-700"
-      />
-
-      <!-- Selected tags display -->
-      <div v-if="multiSelect && selectedNodes.length > 0" class="selected-tags-container mb-3">
-        <div class="flex flex-wrap gap-2 items-center">
+  <div class="tree-select w-full">
+    <div class="tree-search-wrapper w-full max-w-full md:w-[240px] mb-3">
+      <div
+        class="tree-search-input flex flex-wrap items-center gap-2 w-full max-w-full rounded-md border px-2 py-2 text-sm focus-within:ring-2 focus-within:ring-primary-500 dark:bg-gray-900 dark:border-gray-700"
+      >
+        <!-- Selected tags display -->
+        <template v-if="multiSelect && selectedNodes.length > 0">
           <div
             v-for="node in selectedNodes"
             :key="node.PublicId"
-            class="selected-tag flex items-center gap-1 bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-sm"
+            class="selected-tag flex items-center gap-1 bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-sm min-w-0 max-w-full"
           >
-            <span>{{ node.Title }}</span>
+            <span class="truncate max-w-full">{{ node.Title }}</span>
             <button
               @click="removeSelected(node.PublicId, $event)"
               class="remove-tag-btn text-primary-600 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-100 ml-1"
@@ -259,16 +262,24 @@ const highlight = (text: string) => {
               </svg>
             </button>
           </div>
-          <button
-            v-if="selectedNodes.length > 1"
-            @click="clearAllSelected"
-            class="clear-all-btn text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            type="button"
-          >
-            پاک کردن همه
-          </button>
-        </div>
+        </template>
+
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="جستجو ..."
+          class="tree-search flex-1 min-w-[120px] bg-transparent px-1 py-1 text-sm focus:outline-none"
+        />
       </div>
+
+      <button
+        v-if="multiSelect && selectedNodes.length > 1"
+        @click="clearAllSelected"
+        class="clear-all-btn mt-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        type="button"
+      >
+        پاک کردن همه
+      </button>
     </div>
   </div>
 
@@ -294,12 +305,21 @@ mark {
   color: #fff;
 }
 
+.tree-select {
+  max-width: 100%;
+}
+
+.tree-search-wrapper,
+.tree-search-input {
+  min-width: 0;
+}
+
 .tree-search::placeholder {
   color: #9ca3af;
 }
 
 .dark .tree-search {
-  background-color: #0b1014;
+  background-color: transparent;
   color: #e5e7eb;
 }
 
@@ -382,11 +402,6 @@ mark {
 
 .tree-child:last-child > .tree-node::before {
   height: 50%;
-}
-
-/* Selected tags styling */
-.selected-tags-container {
-  margin-top: 0.5rem;
 }
 
 .selected-tag {
