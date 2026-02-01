@@ -11,6 +11,8 @@ import Card from '@/design-system/molecules/Card.vue'
 import Breadcrumb from '@/design-system/molecules/Breadcrumb.vue'
 import type { Group } from './GroupsListPage.vue'
 import FormSelect from '@/design-system/molecules/FormSelect.vue'
+import FormCard from '@/design-system/molecules/FormCard.vue'
+import router from '@/router'
 
 const route = useRoute()
 
@@ -23,13 +25,18 @@ const isSubmitting = ref(false)
 const toastStore = useToastStore()
 const isLoadingGrps = ref(false)
 const hasShownAdminToast = ref(false)
-const groups = ref([])
+const groups = ref<Array<{ value: string; label: string }>>([])
+
+interface GroupListItem {
+  PublicId: string
+  Title: string
+}
 
 const fetchGroups = async () => {
   isLoadingGrps.value = true
   try {
-    const response = await apiClient.get(endpoints.groups.list)
-    groups.value = response.data.map((group: any) => ({
+    const response = await apiClient.get<GroupListItem[]>(endpoints.groups.list)
+    groups.value = response.data.map((group: GroupListItem) => ({
       value: group.PublicId,
       label: group.Title,
     }))
@@ -119,6 +126,10 @@ const breadcrumbItems = computed(() => [
   { label: 'گروه‌ها', href: '/grp/list' },
   { label: user.value?.Title || 'جزئیات گروه' },
 ])
+
+const handleCancel = () => {
+  router.push('/grp/list')
+}
 </script>
 
 <template>
@@ -129,7 +140,7 @@ const breadcrumbItems = computed(() => [
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
-      <Card title="جزئیات گروه" backRoute="/grp/list" variant="elevated" padding="none">
+      <!-- <Card title="جزئیات گروه" backRoute="/grp/list" variant="elevated" padding="none">
         <template #header>
           <div class="p-4 sm:p-6">
             <div
@@ -163,13 +174,21 @@ const breadcrumbItems = computed(() => [
               </div>
             </div>
           </div>
-        </template>
+        </template> -->
 
         <div v-if="isLoading" class="p-10 flex justify-center">
           <CustomLoader size="lg" />
         </div>
 
-        <form v-else @submit.prevent="handleSubmit" class="p-4 sm:p-6 w-full space-y-6">
+        <FormCard
+        route-back="/grp/list"
+          v-else
+          title="تعریف گروه جدید"
+          description="لطفا تمام فیلدهای مورد نیاز را تکمیل کنید"
+          :is-submitting="isSubmitting"
+          @submit="handleSubmit"
+          @cancel="handleCancel"
+        >
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               v-model="formData.Title"
@@ -193,7 +212,7 @@ const breadcrumbItems = computed(() => [
               :disabled="isSubmitting || !isEditable"
             />
           </div>
-        </form>
+        </FormCard>
       </Card>
     </div>
   </DashboardLayout>

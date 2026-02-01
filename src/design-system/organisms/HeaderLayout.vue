@@ -75,22 +75,8 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
     <div
       class="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-6 py-3 sm:py-4 w-full"
     >
-      <!-- سمت راست: منوی موبایل + لوگو + دکمه toggle سایدبار + جستجو -->
+      <!-- سمت راست: لوگو + دکمه toggle سایدبار (دسکتاپ) + جستجو -->
       <div class="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-shrink-0">
-        <!-- Mobile Menu Button -->
-        <button
-          @click="emit('menu-toggle')"
-          class="group lg:hidden w-10 h-10 rounded-lg bg-card-background border border-border-default flex items-center justify-center cursor-pointer transition-all hover:bg-primary-100 dark:hover:bg-primary-900/20 hover:border-primary-400 dark:hover:border-primary-700 flex-shrink-0"
-          aria-label="Toggle Menu"
-        >
-          <BaseIcon
-            name="Menu"
-            :size="20"
-            :stroke-width="2"
-            icon-class="text-foreground group-hover:text-primary-700 dark:group-hover:text-primary-400 transition-colors"
-          />
-        </button>
-
         <!-- Desktop Sidebar Toggle Button -->
         <button
           v-if="toggleSidebarCollapse"

@@ -52,11 +52,11 @@ const getMenuIcon = (iconName?: string): string => {
     .join('')
 }
 
-// Indentation: Level 2 gets mr-4, Level 3 gets mr-8
-const paddingClass = computed(() => {
-  if (props.level === 0) return 'mr-4'
-  if (props.level === 1) return 'mr-8'
-  return 'mr-4'
+// Level-based indentation
+const indentClass = computed(() => {
+  if (props.level === 0) return 'mr-2'
+  if (props.level === 1) return 'mr-4'
+  return 'mr-6'
 })
 </script>
 
@@ -67,9 +67,10 @@ const paddingClass = computed(() => {
       @click="handleClick"
       class="group w-full flex items-center gap-2 px-3 py-2 rounded-md transition-all text-right text-sm"
       :class="[
-        'hover:bg-primary-100 hover:text-primary-700 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+        'hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-gray-100',
+        'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
         isActive(item)
-          ? 'bg-primary-500/10 text-primary-500 font-semibold'
+          ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-semibold'
           : 'text-muted-foreground',
       ]"
     >
@@ -77,8 +78,7 @@ const paddingClass = computed(() => {
         :name="getMenuIcon(item.icon)"
         :size="16"
         :stroke-width="2"
-        :icon-class="`flex-shrink-0 group-hover:bg-primary-100 group-hover:text-primary-700 dark:group-hover:text-gray-100
-        -${isActive(item) ? 'text-primary-500' : 'text-muted-foreground'}`"
+        :icon-class="`flex-shrink-0 transition-colors ${isActive(item) ? 'text-primary-500' : 'text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-gray-100'}`"
       />
       <span class="flex-1 truncate">{{ item.label }}</span>
 
@@ -114,7 +114,7 @@ const paddingClass = computed(() => {
     <!-- RECURSIVE CHILDREN -->
     <div
       v-if="item.children && item.children.length > 0 && isExpanded"
-      :class="['mt-1 space-y-1', paddingClass]"
+      :class="['mt-1 space-y-0.5', indentClass]"
     >
       <SubMenuItem
         v-for="child in item.children"

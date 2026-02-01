@@ -1,31 +1,54 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/design-system/templates'
-import { CustomLoader } from '@/design-system/atoms'
+import { BaseButton } from '@/design-system/atoms'
 import { FormCard, FormSelect, Breadcrumb, FormField } from '@/design-system/molecules'
 import type { FormSelectOption } from '@/design-system/molecules'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
-import type { ApiMenuItem, CreateMenuRequest } from '@/shared/api/types'
+import type { CreateMenuRequest } from '@/shared/api/types'
 import { AxiosError } from 'axios'
 import { useToastStore } from '@/stores/toast'
-import { useAuth } from '@/shared/composables/useAuth'
 import { useForm } from '@/shared/validation/useForm'
 import { createMenuSchema, type CreateMenuFormInput } from '@/shared/validation/schemas/menu'
 
 const router = useRouter()
 const toastStore = useToastStore()
-const { fetchUser, isLoadingUser } = useAuth()
 
-// Fetch user info on mount
+/** Menu list API can return a tree; flatten to { PublicId, Title } for parent dropdown */
+interface MenuNode {
+  PublicId: string
+  Title: string
+  Children?: MenuNode[]
+}
+
+function flattenMenuNodes(
+  nodes: MenuNode[],
+  result: { PublicId: string; Title: string }[] = [],
+): { PublicId: string; Title: string }[] {
+  for (const node of nodes) {
+    result.push({ PublicId: node.PublicId, Title: node.Title })
+    if (node.Children?.length) {
+      flattenMenuNodes(node.Children, result)
+    }
+  }
+  return result
+}
+
+/** Sentinel for "no parent" so the select shows "بدون منوی والد" instead of the placeholder */
+const NO_PARENT_VALUE = '__none__'
+
 onMounted(async () => {
-  fetchUser()
-  await fetchMenus()
+  await fetchParentMenus()
 })
 
-const menus = ref<FormSelectOption[]>([])
-const isLoadingMenus = ref(false)
+const parentMenuOptions = ref<FormSelectOption[]>([])
+const isLoadingParentMenus = ref(false)
+
+const parentSelectValue = computed(() =>
+  formData.ParentPublicId == null ? NO_PARENT_VALUE : formData.ParentPublicId,
+)
 
 // Initialize form with useForm composable
 const {
@@ -41,26 +64,23 @@ const {
   initialValues: {
     Title: '',
     Path: '',
-    ParentPublicId: '',
+    ParentPublicId: null,
   },
   onSubmit: async (values) => {
     try {
-      // Parse the form values through the schema to get transformed values
       const parsed = createMenuSchema.parse(values)
       const menuData: CreateMenuRequest = {
         Title: parsed.Title,
         Path: parsed.Path,
-        ParentPublicId: parsed.ParentPublicId,
+        ParentPublicId: parsed.ParentPublicId ?? undefined,
       }
       await apiClient.post(endpoints.menu.create, menuData)
       toastStore.showToast('منو با موفقیت ثبت شد', 'success', 5000)
 
-      // Reset form after successful submission
       resetForm()
 
-      // Navigate back to menus list after a short delay
       setTimeout(() => {
-        router.push('/menus/list')
+        router.push('/menu/list')
       }, 1000)
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -69,31 +89,19 @@ const {
           ? error.response.data.message
           : 'خطا در ثبت منو'
       toastStore.showToast(errorMessage, 'error', 5000)
-      throw error // Re-throw to prevent form reset
+      throw error
     }
   },
 })
 
-const fetchMenus = async () => {
-  isLoadingMenus.value = true
+const fetchParentMenus = async () => {
+  isLoadingParentMenus.value = true
   try {
-    const response = await apiClient.get<ApiMenuItem[]>(endpoints.menu.list)
-    // Flatten the menu tree structure
-    const flattenMenus = (items: ApiMenuItem[]): ApiMenuItem[] => {
-      const result: ApiMenuItem[] = []
-      items.forEach((item) => {
-        result.push(item)
-        if (item.Children && item.Children.length > 0) {
-          result.push(...flattenMenus(item.Children))
-        }
-      })
-      return result
-    }
-
-    const flatMenus = flattenMenus(response.data)
-    menus.value = [
-      { value: '', label: 'بدون منوی والد' },
-      ...flatMenus.map((menu: ApiMenuItem) => ({
+    const response = await apiClient.get<MenuNode[]>(endpoints.menu.list)
+    const flat = Array.isArray(response.data) ? flattenMenuNodes(response.data) : []
+    parentMenuOptions.value = [
+      { value: NO_PARENT_VALUE, label: 'بدون منوی والد' },
+      ...flat.map((menu) => ({
         value: menu.PublicId,
         label: menu.Title,
       })),
@@ -102,11 +110,19 @@ const fetchMenus = async () => {
     console.error('Error fetching menus:', error)
     toastStore.showToast('خطا در دریافت لیست منوها', 'error', 5000)
   } finally {
-    isLoadingMenus.value = false
+    isLoadingParentMenus.value = false
   }
 }
 
-const handleInputChange = (field: keyof CreateMenuFormInput) => (value: string) => {
+const handleInputChange = (field: keyof CreateMenuFormInput, value: string | number | boolean) => {
+  setFieldValue(field, value)
+}
+
+const handleSelectChange = (field: keyof CreateMenuFormInput, value: string | number | boolean) => {
+  if (field === 'ParentPublicId') {
+    setFieldValue(field, value === NO_PARENT_VALUE ? null : (value as string))
+    return
+  }
   setFieldValue(field, value)
 }
 
@@ -115,47 +131,18 @@ const handleSubmit = async () => {
 }
 
 const handleCancel = () => {
-  router.push('/menus/list')
-}
-
-const handleSearch = (query: string) => {
-  console.log('Global search:', query)
-  // TODO: Implement global search
-}
-
-const handleUserMenuClick = () => {
-  console.log('User menu clicked')
-  // TODO: show user menu dropdown
-}
-
-const handleNotificationClick = () => {
-  console.log('Notification clicked')
-  // TODO: show notifications
-}
-
-const handleHelpClick = () => {
-  console.log('Help clicked')
-  // TODO: show help
+  router.push('/menu/list')
 }
 
 const breadcrumbItems = [
   { label: 'خانه', href: '/dashboard' },
-  { label: 'منوها', href: '/menus/list' },
+  { label: 'منوها', href: '/menu/list' },
   { label: 'تعریف منو جدید' },
 ]
 </script>
 
 <template>
-  <div v-if="isLoadingUser" class="flex items-center justify-center min-h-screen">
-    <CustomLoader size="lg" />
-  </div>
-  <DashboardLayout
-    v-else
-    @search="handleSearch"
-    @user-menu-click="handleUserMenuClick"
-    @notification-click="handleNotificationClick"
-    @help-click="handleHelpClick"
-  >
+  <DashboardLayout>
     <div class="space-y-4 sm:space-y-6">
       <!-- Breadcrumb -->
       <div class="hidden sm:block">
@@ -164,8 +151,8 @@ const breadcrumbItems = [
 
       <!-- Form Card -->
       <FormCard
+        route-back="/menu/list"
         title="تعریف منو جدید"
-        description="لطفا تمام فیلدهای مورد نیاز را تکمیل کنید"
         :is-submitting="isSubmitting"
         submit-label="ثبت منو"
         cancel-label="خروج"
@@ -180,36 +167,47 @@ const breadcrumbItems = [
             label="عنوان منو"
             placeholder="عنوان منو را وارد کنید"
             :model-value="formData.Title"
-            @update:model-value="handleInputChange('Title')"
+            @update:model-value="(val) => handleInputChange('Title', val)"
             :error-message="touched.Title ? errors.Title : undefined"
             :required="true"
             :disabled="isSubmitting"
           />
 
-          <!-- Path -->
-          <FormField
-            label="مسیر"
-            type="text"
-            placeholder="مسیر منو را وارد کنید"
-            :model-value="formData.Path"
-            @update:model-value="handleInputChange('Path')"
-            :error-message="touched.Path ? errors.Path : undefined"
-            :required="true"
-            :disabled="isSubmitting"
-          />
-
-          <!-- ParentPublicId -->
+          <!-- ParentPublicId (parent menu, not group) -->
           <FormSelect
             label="منوی والد"
             placeholder="انتخاب کنید"
-            :model-value="formData.ParentPublicId || ''"
-            :options="menus"
-            :is-loading="isLoadingMenus"
-            @update:model-value="handleInputChange('ParentPublicId')"
+            :model-value="parentSelectValue"
+            :options="parentMenuOptions"
+            :is-loading="isLoadingParentMenus"
+            @update:model-value="(val) => handleSelectChange('ParentPublicId', val)"
             :error-message="touched.ParentPublicId ? errors.ParentPublicId : undefined"
-            :disabled="isSubmitting || isLoadingMenus"
+            :disabled="isSubmitting || isLoadingParentMenus"
           />
         </div>
+
+        <template #footer>
+          <div class="flex items-center justify-end gap-3">
+            <BaseButton
+              type="button"
+              variant="outline"
+              :disabled="isSubmitting"
+              @click="handleCancel"
+            >
+              انصراف
+            </BaseButton>
+            <BaseButton
+              type="submit"
+              variant="default"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
+              class="!text-white"
+              @click="handleSubmit"
+            >
+              ثبت منو
+            </BaseButton>
+          </div>
+        </template>
       </FormCard>
     </div>
   </DashboardLayout>

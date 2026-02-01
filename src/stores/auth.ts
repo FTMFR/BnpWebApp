@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 // import { setSentryUser, clearSentryUser } from '../../sentry.config'
 
 export interface AuthUser {
-  PublicId: number
+  PublicId: string
   UserName: string
   FirstName: string
   LastName: string | null
@@ -52,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (userData) {
       user.value = userData
       // Set Sentry user context
-      // setSentryUser(userData.PublicIdid, userData.UserName, userData.Email, {
+      // setSentryUser(userData.PublicId, userData.UserName, userData.Email, {
       //   firstName: userData.FirstName,
       //   lastName: userData.LastName,
       //   phone: userData.Phone,

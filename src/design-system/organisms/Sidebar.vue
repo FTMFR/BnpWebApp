@@ -22,6 +22,7 @@ export interface MenuItem {
 export interface SidebarProps {
   menuItems?: MenuItem[]
   activeMenuItemId?: string
+  variant?: 'sidebar' | 'sheet'
   logo?: {
     text: string
     subtext?: string
@@ -30,6 +31,7 @@ export interface SidebarProps {
 
 const props = withDefaults(defineProps<SidebarProps>(), {
   activeMenuItemId: '',
+  variant: 'sidebar',
 })
 
 const emit = defineEmits<{
@@ -39,7 +41,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 
-const { menuItems: apiMenuItems, isLoadingMenu } = useMenu()
+const { menuItems: apiMenuItems, fullMenuTree, isLoadingMenu } = useMenu()
 
 const menuItems = computed<MenuItem[]>(() => {
   if (props.menuItems && props.menuItems.length > 0) {
@@ -59,7 +61,7 @@ const activeMenu = computed({
 
 const closeMobileMenu = inject<(() => void) | undefined>('closeMobileMenu')
 
-// Function to find menu item by route path
+// Function to find menu item by route path in visible menu items
 const findMenuItemByPath = (path: string, items: MenuItem[]): MenuItem | null => {
   for (const item of items) {
     if (item.href && path === item.href) {
@@ -73,12 +75,51 @@ const findMenuItemByPath = (path: string, items: MenuItem[]): MenuItem | null =>
   return null
 }
 
+// Find closest visible parent in the full tree when navigating to a non-menu item
+interface MenuItemWithMeta extends MenuItem {
+  isMenu: boolean
+  children?: MenuItemWithMeta[]
+}
+
+const findClosestVisibleParent = (
+  path: string,
+  items: MenuItemWithMeta[],
+  parents: MenuItemWithMeta[] = []
+): MenuItem | null => {
+  for (const item of items) {
+    if (item.href && path === item.href) {
+      // Found the item - if it's not a menu, return closest visible parent
+      if (!item.isMenu) {
+        // Find the closest parent that is a menu item
+        for (let i = parents.length - 1; i >= 0; i--) {
+          if (parents[i].isMenu) {
+            return parents[i]
+          }
+        }
+      }
+      return item
+    }
+    if (item.children) {
+      const found = findClosestVisibleParent(path, item.children, [...parents, item])
+      if (found) return found
+    }
+  }
+  return null
+}
+
 // Watch route to set active menu on refresh or route change
 watch(
-  () => [router.currentRoute.value.path, menuItems.value] as [string, MenuItem[]],
-  ([path, items]) => {
+  () => [router.currentRoute.value.path, menuItems.value, fullMenuTree.value] as const,
+  ([path, items, fullTree]) => {
     if (items.length > 0) {
-      const matchedItem = findMenuItemByPath(path, items)
+      // First try to find in visible menu items
+      let matchedItem = findMenuItemByPath(path, items)
+      
+      // If not found in visible items, search full tree for closest visible parent
+      if (!matchedItem && fullTree && fullTree.length > 0) {
+        matchedItem = findClosestVisibleParent(path, fullTree)
+      }
+      
       if (matchedItem && activeMenu.value !== matchedItem.id) {
         activeMenu.value = matchedItem.id
       }
@@ -239,12 +280,18 @@ const getBadgeVariant = (
 <template>
   <aside
     :class="[
-      'bg-card-background border-l-2 border-border-default shadow-xl flex flex-col transition-all duration-300 overflow-hidden box-border fixed right-0 top-0 lg:top-[73px] bottom-0 z-fixed lg:z-50',
-      isCollapsed ? 'w-[5.5rem]' : 'w-64',
+      'bg-card-background flex flex-col overflow-hidden box-border',
+      variant === 'sheet'
+        ? 'flex-1 min-h-0 border-t border-border-default'
+        : [
+            'border-l-2 border-border-default shadow-xl transition-all duration-300 fixed right-0 top-0 lg:top-[73px] bottom-0 z-fixed lg:z-50',
+            isCollapsed ? 'w-[5.5rem]' : 'w-64',
+          ],
     ]"
   >
-    <!-- Mobile Close Button -->
+    <!-- Mobile Close Button (sidebar mode only; sheet has its own close in wrapper) -->
     <div
+      v-if="variant === 'sidebar'"
       class="flex items-center justify-end py-2 px-3 flex-shrink-0 border-b border-border-default/30 lg:hidden"
     >
       <BaseButton variant="ghost" size="sm" @click="handleMobileClose" aria-label="Close Menu">
@@ -264,23 +311,24 @@ const getBadgeVariant = (
             <!-- LEVEL 1 ITEM (Rendered Manually) -->
             <button
               @click="handleMenuItemClick(item)"
-              class="group"
+              class="group level-1-item"
               :class="[
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-right',
-                'hover:bg-primary-100 dark:hover:bg-gray-300/20 hover:text-primary-700 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-right',
+                'hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-700 dark:hover:text-primary-300 hover:shadow-md hover:scale-[1.01]',
+                'focus:outline-none focus:ring-2 focus:ring-primary-500/30',
                 isActive(item)
-                  ? 'bg-primary-500/10 border-r-4 border-primary-500 text-foreground font-semibold'
+                  ? 'bg-primary-500/15 border-r-4 border-primary-500 text-primary-700 dark:text-primary-300 font-semibold shadow-md'
                   : 'text-muted-foreground',
-                isCollapsed ? 'justify-center px-2' : '',
+                variant === 'sidebar' && isCollapsed ? 'justify-center px-2' : '',
               ]"
             >
               <BaseIcon
                 :name="getMenuIcon(item)"
                 :size="20"
                 :stroke-width="2"
-                :icon-class="`flex-shrink-0 transition-colors ${isMenuActive(item) ? 'text-primary-500 group-hover:text-primary-700 dark:group-hover:text-gray-100' : 'text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-gray-100'}`"
+                :icon-class="`flex-shrink-0 transition-colors duration-200 ${isActive(item) ? 'text-primary-500' : 'text-muted-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400'}`"
               />
-              <template v-if="!isCollapsed">
+              <template v-if="variant === 'sheet' || !isCollapsed">
                 <span class="flex-1 text-sm font-semibold truncate">{{ item.label }}</span>
                 <BaseBadge
                   v-if="item.badge"
@@ -306,9 +354,9 @@ const getBadgeVariant = (
                 item.children &&
                 item.children.length > 0 &&
                 expandedMenus.includes(item.id) &&
-                !isCollapsed
+                (variant === 'sheet' || !isCollapsed)
               "
-              class="mt-1 space-y-1"
+              class="submenu-container mt-1 mr-3 pr-2"
             >
               <SubMenuItem
                 v-for="subItem in item.children"
@@ -332,5 +380,17 @@ const getBadgeVariant = (
 .menu-item-wrapper {
   width: 100%;
   min-width: 0;
+}
+
+/* Level 1 items - main menu entries with enhanced hover/active states */
+.level-1-item {
+  position: relative;
+}
+
+/* Submenu container - simple indentation */
+.submenu-container {
+  position: relative;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 </style>

@@ -121,9 +121,18 @@ const router = createRouter({
       },
     },
     {
-      path: '/Menu/create',
-      name: 'menu-create',
-      component: () => import('@/pages/menus/MenuCreatePage.vue'),
+      path: '/menu/create',
+      name: 'menu-create-404',
+      component: () => import('@/pages/NotFoundPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/menu/:id',
+      name: 'menu-update',
+      component: () => import('@/pages/menus/MenuViewPage.vue'),
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
@@ -147,11 +156,36 @@ const router = createRouter({
         layout: 'dashboard'
       }
     },
-    // {
-    //   path:'/settings',
-    //   name:'settings',
-    //   component:()=>
-    // }
+    {
+      path: '/carts',
+      name: 'carts',
+      component: () => import('@/pages/PlaceholderPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'کارت ها'
+      }
+    },
+    {
+      path: '/profits',
+      name: 'profits',
+      component: () => import('@/pages/PlaceholderPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'حساب ها'
+      }
+    },
+    // 404 – must be last; still shows header + bottom bar via DashboardLayout
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/pages/NotFoundPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      }
+    },
   ],
 })
 

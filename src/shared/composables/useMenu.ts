@@ -22,6 +22,28 @@ export function normalizePath(path: string): string {
 
 }
 
+// Extended MenuItem that includes isMenu flag for internal tracking
+export interface MenuItemWithMeta extends MenuItem {
+  isMenu: boolean
+  children?: MenuItemWithMeta[]
+}
+
+// Build full menu tree (including non-menu items) for path matching
+function convertApiMenuItemToFullTree(apiItem: ApiMenuItem): MenuItemWithMeta {
+  const children = apiItem.Children
+    ? apiItem.Children.map(convertApiMenuItemToFullTree)
+    : undefined
+
+  return {
+    id: apiItem.PublicId,
+    label: apiItem.Title,
+    icon: apiItem.Icon || undefined,
+    href: normalizePath(apiItem.Path || '') || undefined,
+    isMenu: apiItem.IsMenu,
+    children: children && children.length > 0 ? children : undefined,
+  }
+}
+
 function convertApiMenuItemToMenuItem(
   apiItem: ApiMenuItem
 ): { item: MenuItem | null; extractedChildren: MenuItem[] } {
@@ -72,8 +94,13 @@ export function useMenu() {
 
   const menuQuery = useQuery({
     queryKey: ['menu', 'tree'],
-    queryFn: async (): Promise<MenuItem[]> => {
+    queryFn: async (): Promise<{ visibleItems: MenuItem[]; fullTree: MenuItemWithMeta[] }> => {
       const response = await apiClient.get<ApiMenuItem[]>(endpoints.menu.myTree)
+      
+      // Build full tree for path matching (includes non-menu items)
+      const fullTree = response.data.map(convertApiMenuItemToFullTree)
+      
+      // Build visible menu items (excludes non-menu items)
       const processed = response.data.map(convertApiMenuItemToMenuItem)
 
       const menuItems: MenuItem[] = []
@@ -86,7 +113,10 @@ export function useMenu() {
         extractedChildren.push(...extracted)
       }
 
-      return [...menuItems, ...extractedChildren]
+      return {
+        visibleItems: [...menuItems, ...extractedChildren],
+        fullTree,
+      }
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -96,7 +126,8 @@ export function useMenu() {
     () => menuQuery.data.value,
     (data) => {
       if (data) {
-        menuStore.setMenuItems(data)
+        menuStore.setMenuItems(data.visibleItems)
+        menuStore.setFullMenuTree(data.fullTree)
       }
     },
     { immediate: true }
@@ -104,6 +135,7 @@ export function useMenu() {
 
   return {
     menuItems: computed(() => menuStore.menuItems),
+    fullMenuTree: computed(() => menuStore.fullMenuTree),
     activeMenuItemId: computed(() => menuStore.activeMenuItemId),
     setActiveMenuItem: menuStore.setActiveMenuItem,
     fetchMenu: menuQuery.refetch,

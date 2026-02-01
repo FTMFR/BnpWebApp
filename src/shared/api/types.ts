@@ -44,7 +44,7 @@ export interface CreateUserRequest {
   IpAddress: string
 }
 
-export interface resetUserPassRequest {
+export interface ResetUserPassRequest {
   NewPassword: string,
   MustChangePassword?: boolean
 }

@@ -1,5 +1,5 @@
 import { reactive, ref } from "vue";
-import type { ZodError, ZodSchema } from "zod";
+import { z, type ZodError, type ZodSchema } from "zod";
 
 export interface FormErrors {
   [key: string]: string | undefined;
@@ -21,9 +21,6 @@ export function useForm<T extends Record<string, unknown>>(options: UseFormOptio
 
   const validate = (): boolean => {
     try {
-      // LOG THIS: Check what is actually being sent to Zod
-      console.log('Validating values:', values);
-
       schema.parse(values);
 
       Object.keys(errors).forEach((key) => {
@@ -31,7 +28,7 @@ export function useForm<T extends Record<string, unknown>>(options: UseFormOptio
       });
       return true;
     } catch (error) {
-      console.error('Zod Validation Error:', error); // LOG THIS: See the specific Zod error
+      console.error('Zod Validation Error:', error);
       if (error instanceof Error && 'issues' in error) {
         const zodError = error as ZodError;
         zodError.issues.forEach((issue) => {
@@ -46,9 +43,10 @@ export function useForm<T extends Record<string, unknown>>(options: UseFormOptio
   const validateField = (field: string): boolean => {
     // 1. Create a partial schema containing only the field we want to check
     // This works even if the main schema is wrapped in .refine() or other methods
-    const fieldSchema = 'shape' in schema
-      ? (schema as any).pick({ [field]: true })
-      : schema;
+    const fieldSchema =
+      'shape' in schema && typeof (schema as z.ZodObject<z.ZodRawShape>).pick === 'function'
+        ? (schema as z.ZodObject<z.ZodRawShape>).pick({ [field]: true } as { [k: string]: true })
+        : schema;
 
     // 2. Validate just that field against the current value
     const result = fieldSchema.safeParse({ [field]: values[field] });

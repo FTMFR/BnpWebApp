@@ -124,6 +124,7 @@ const togglePasswordVisibility = () => {
           :value="modelValue"
           :placeholder="placeholder"
           :disabled="disabled"
+          :dir="type === 'password' ? 'ltr' : undefined"
           class="w-full max-w-full h-12 px-4 text-base bg-input-background border border-border-default rounded-xl transition-all outline-none text-foreground box-border focus-within:border-primary text-center group"
           :class="{
             'pl-12': icon,

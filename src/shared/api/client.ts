@@ -87,9 +87,6 @@ apiClient.interceptors.response.use(
           // Refresh token cookie not found, but token might still be valid
           // Don't logout, just reject the request silently
           // User can continue with current token until it expires
-          console.warn(
-            'Refresh token cookie not found, continuing with current token'
-          );
           return Promise.reject(error);
         }
 
@@ -136,10 +133,6 @@ apiClient.interceptors.response.use(
           try {
             const refreshResponse = await apiClient.post(endpoints.auth.refresh);
 
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/78cb98de-e89b-46df-9c9b-90604e1948c0', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client.ts:113', message: 'Refresh API success', data: { status: refreshResponse.status, hasData: !!refreshResponse.data, dataKeys: refreshResponse.data ? Object.keys(refreshResponse.data) : [], tokenInResponse: !!(refreshResponse.data && typeof refreshResponse.data === 'object' && 'Token' in refreshResponse.data ? (refreshResponse.data as { Token?: unknown }).Token : undefined), currentToken: useAuthStore().Token?.substring(0, 20) + '...' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H1,H4' }) }).catch(() => { });
-            // #endregion
-
             processQueue(null);
             return apiClient.request(originalRequest);
           } catch (refreshErr: unknown) {
@@ -148,15 +141,10 @@ apiClient.interceptors.response.use(
             const isRefreshTokenNotFound = errorMessage.includes('یافت نشد') ||
               errorMessage.includes('Refresh Token');
 
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/78cb98de-e89b-46df-9c9b-90604e1948c0', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client.ts:115', message: 'Refresh API error', data: { status: refreshError.response?.status, message: refreshError.message, isAxiosError: refreshError instanceof AxiosError, hasResponse: !!refreshError.response }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3,H5' }) }).catch(() => { });
-            // #endregion
-
             if (isRefreshTokenNotFound) {
               // Cookie not found, but current token might still be valid
               // Don't logout, just fail the refresh attempt
               // Original request will fail, but user won't be logged out
-              console.warn('Refresh token cookie not found');
               processQueue(refreshError);
               return Promise.reject(refreshError);
             }
@@ -195,11 +183,8 @@ apiClient.interceptors.response.use(
           if (isSessionCheckRequest && authStore.Token) {
             // DO NOT reject — instead, open the modal
             const sessionModalStore = useSessionModalStore();
-            console.log('model session');
 
             if (!sessionModalStore.isModalShown) {
-              console.log('model session');
-
               await sessionModalStore.openModal(); // This will show the modal
             }
             // Return a rejected promise so the calling code knows something failed

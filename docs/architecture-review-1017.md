@@ -37,14 +37,11 @@ It is intended to:
 
 ### Frontend
 
-* JavaScript (ES2022+)
+* TypeScript (ES2022+)
 * Vue 3 (Composition API)
 * Vue Router 4
 * Pinia (state management)
 * Vite (build tool)
-
-> TypeScript is **not enabled by default**.
-> Any use of TypeScript must be explicitly approved.
 
 ### Styling
 
@@ -65,17 +62,23 @@ It is intended to:
 
 ```
 src/
-├── app/                # App bootstrap & global setup
+├── main.ts             # App bootstrap
 ├── router/             # Router, guards, dynamic route loader
-├── stores/             # Pinia stores
+├── stores/             # Pinia stores (store files lowercase, e.g. auth.ts, permission.ts)
 ├── features/           # Feature-based modules (domain-driven)
 ├── pages/              # Route-level pages
-├── shared/              # Shared logic (composables, utils, constants)
-├── design-system/      # UI components (atomic structure)
-└── shared/api/           # API clients & integration layer
+├── shared/             # Shared logic (composables, utils, validation, api)
+├── design-system/      # UI components (atomic structure: atoms, molecules, organisms, templates)
+└── types/              # Global type declarations (if any)
 ```
 
 This structure is **non-negotiable**.
+
+### Conventions
+
+* **Store files:** lowercase (e.g. `auth.ts`, `toast.ts`, `permission.ts`).
+* **API types:** PascalCase (e.g. `CreateUserRequest`, `ResetUserPassRequest`).
+* **Route paths:** lowercase canonical paths (e.g. `/menu/list`, `/permission/list`); legacy PascalCase URLs redirect to canonical paths.
 
 ---
 

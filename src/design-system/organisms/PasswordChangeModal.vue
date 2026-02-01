@@ -9,7 +9,7 @@ import {
   resetPassword,
   type ResetPassword as ResetPasswordType,
 } from '@/shared/validation/schemas/user'
-import type { resetUserPassRequest } from '@/shared/api/types'
+import type { ResetUserPassRequest } from '@/shared/api/types'
 import { endpoints } from '@/shared/api/endpoints'
 import router from '@/router'
 import { AxiosError } from 'axios'
@@ -38,7 +38,7 @@ const { values, errors, touched, handleSubmit, setFieldValue } = useForm<ResetPa
   },
   onSubmit: async (values) => {
     try {
-      const userData: resetUserPassRequest = {
+      const userData: ResetUserPassRequest = {
         NewPassword: values.password,
         MustChangePassword: values.mustChangePass,
       }

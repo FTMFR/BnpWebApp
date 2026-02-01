@@ -42,7 +42,6 @@ export function useAuth() {
     },
     onSuccess: async (loginData: LoginResponse) => {
       if (loginData.RequiresMfa) {
-        console.log('MFA required:', loginData)
         return
       }
       // Set token and publicId, but don't fetch user yet
@@ -74,10 +73,7 @@ export function useAuth() {
       const response = await apiClient.get<MySessionsResponse>(endpoints.session.mySessions)
       sessions.value = response.data.sessions
       maxSessionReached.value = response.data
-      const data = response.data
-      console.log('checksession function: ', data);
-
-      return data
+      return response.data
     } catch (error) {
       console.error('Failed to fetch sessions:', error)
       return null

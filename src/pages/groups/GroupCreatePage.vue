@@ -20,17 +20,22 @@ const router = useRouter()
 const toastStore = useToastStore()
 const isLoadingGrps = ref(false)
 
-const groups = ref([])
+const groups = ref<Array<{ value: string; label: string }>>([])
 
 // Export the function explicitly
 const fetchGroups = async () => {
   isLoadingGrps.value = true
   try {
-    const response = await apiClient.get(endpoints.groups.list)
-    groups.value = response.data.map((group: any) => ({
-      value: group.PublicId,
-      label: group.Title,
-    }))
+    const response = await apiClient.get<Array<{ PublicId: string; Title: string }>>(
+      endpoints.groups.list,
+    )
+    groups.value = [
+      { value: '', label: 'بدون گروه والد' },
+      ...response.data.map((group) => ({
+        value: group.PublicId,
+        label: group.Title,
+      })),
+    ]
   } catch (error) {
     console.error('Error fetching groups:', error)
   } finally {
@@ -109,9 +114,8 @@ onMounted(async () => {
   await fetchGroups()
 })
 
-const handleSearch = (query: string) => {
-  console.log('Global search:', query)
-  // TODO: Implement global search
+const handleSearch = (_query: string) => {
+  // TODO(UX): Implement global search
 }
 
 const breadcrumbItems = [

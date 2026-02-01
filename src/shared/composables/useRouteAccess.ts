@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import { useMenuStore } from '@/stores/menu'
 import { normalizePath } from './useMenu'
 import type { MenuItem } from '@/design-system'
-import { usePermissionsStore } from '@/stores/Permission'
+import { usePermissionsStore } from '@/stores/permission'
 
 /**
  * Recursively find menu item by path in menu tree
@@ -47,11 +47,6 @@ export function useRouteAccess() {
         storePerm.toLowerCase() === perm.toLowerCase()
       )
     )
-
-    // لاگ برای دیباگ کردن (می‌توانید بعداً حذف کنید)
-    console.log('Checking access for:', perms)
-    console.log('User permissions:', permissionsStore.permissions)
-    console.log('Result:', result)
 
     return result
   }

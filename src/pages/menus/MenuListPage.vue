@@ -6,14 +6,16 @@ import Card from '@/design-system/molecules/Card.vue'
 import BaseTreeSelect from '@/design-system/molecules/BaseTreeSelect.vue'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import BaseIcon from '@/design-system/atoms/BaseIcon.vue'
 import BaseButton from '@/design-system/atoms/BaseButton.vue'
 
 const menus = ref<BaseTreeNode[]>([])
 const selectedId = ref<string | null>(null)
 const isLoadingMenus = ref<boolean>(true)
-const selectedMenu = ref<string | null>(null)
+const selectedMenu = ref<string[]>([])
+const router = useRouter()
 
 const breadcrumbItems = [
   { label: 'خانه', href: '/dashboard' },
@@ -27,12 +29,42 @@ onMounted(async () => {
 })
 
 const handleCreate = () => {
-  console.log('cretae new menu:')
+  router.push('/menu/create')
 }
 
 const handleSelect = (node: BaseTreeNode) => {
   selectedId.value = node.PublicId
+  console.log('Selected node:', node)
 }
+
+const handleEditMenu = (node: BaseTreeNode) => {
+  router.push(`/menu/${node.PublicId}`)
+}
+
+watch(
+  selectedMenu,
+  (newValue) => {
+    console.log('Selected menus (v-model):', newValue)
+  },
+  { deep: true },
+)
+
+// const selectedMenuNodes = computed(() => {
+//   const findNodeById = (nodes: BaseTreeNode[], id: string): BaseTreeNode | null => {
+//     for (const node of nodes) {
+//       if (node.PublicId === id) return node
+//       if (node.Children) {
+//         const found = findNodeById(node.Children, id)
+//         if (found) return found
+//       }
+//     }
+//     return null
+//   }
+
+//   return selectedMenu.value
+//     .map((id) => findNodeById(menus.value, id))
+//     .filter(Boolean) as BaseTreeNode[]
+// })
 </script>
 
 <template>
@@ -50,7 +82,7 @@ const handleSelect = (node: BaseTreeNode) => {
       <Card title="لیست منوها" variant="elevated" padding="none">
         <!-- Header -->
         <template #header>
-          <div class="p-6 pl-0 flex justify-between items-center">
+          <!-- <div class="p-6 pl-0 flex justify-between items-center">
             <BaseButton
               variant="outline"
               @click="handleCreate"
@@ -59,7 +91,7 @@ const handleSelect = (node: BaseTreeNode) => {
               <BaseIcon name="Plus" :size="16" />
               <span class="hidden sm:inline">ایجاد منو جدید</span>
             </BaseButton>
-          </div>
+          </div> -->
         </template>
 
         <div class="border-t border-border-default pt-3 sm:pt-4 md:pt-6 overflow-x-auto">
@@ -72,50 +104,15 @@ const handleSelect = (node: BaseTreeNode) => {
             @select="handleSelect"
             :multiSelect="true"
           >
-            <template #actions="">
-              <BaseButton size="sm" variant="ghost"> Edit </BaseButton>
+            <template #actions="{ node }">
+              <BaseButton size="sm" variant="ghost" @click="handleEditMenu(node)">
+                ویرایش
+              </BaseButton>
             </template>
           </BaseTreeSelect>
         </div>
       </Card>
     </div>
-
-    <!-- Delete Confirmation Modal -->
-    <!-- <Modal v-model="showDeleteModal" title="تأیید حذف" size="sm" :close-on-backdrop="false">
-      <div class="space-y-4">
-        <div class="flex items-start gap-3">
-          <div
-            class="flex-shrink-0 w-10 h-10 rounded-full bg-danger-100 dark:bg-danger-900/30 flex items-center justify-center"
-          >
-            <BaseIcon name="AlertTriangle" :size="20" class="text-danger-600" />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm font-medium text-foreground mb-1">آیا از حذف این منو مطمئن هستید؟</p>
-            <p class="text-xs text-muted-foreground">
-              این عملیات غیرقابل بازگشت است و تمام اطلاعات منو حذف خواهد شد.
-            </p>
-            <div v-if="menuToDelete" class="mt-3 p-2 bg-secondary/50 rounded text-xs">
-              <span class="font-semibold">منو:</span> {{ menuToDelete.title }}
-              <span v-if="menuToDelete.path" class="text-muted-foreground"
-                >({{ menuToDelete.path }})</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex items-center justify-end gap-3">
-          <BaseButton variant="outline" @click="cancelDelete"> انصراف </BaseButton>
-          <BaseButton
-            variant="default"
-            class="bg-danger-600 hover:bg-danger-700 text-white"
-            @click="confirmDelete"
-          >
-            حذف
-          </BaseButton>
-        </div>
-      </template>
-    </Modal> -->
 
     <!-- Access Denied Modal -->
     <!-- <Modal v-model="showAccessDeniedModal" title="عدم دسترسی" size="sm" :close-on-backdrop="true">

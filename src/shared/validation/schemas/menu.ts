@@ -7,7 +7,7 @@ import { z } from 'zod'
 export const createMenuInputSchema = z.object({
   Title: z.string().min(1, 'عنوان منو الزامی است').trim(),
   Path: z.string().min(1, 'مسیر منو الزامی است').trim(),
-  ParentPublicId: z.string().optional(),
+  ParentPublicId: z.string().nullable(),
 })
 
 /**
@@ -23,30 +23,7 @@ export const createMenuSchema = z.object({
     .string()
     .min(1, 'مسیر منو الزامی است')
     .trim(),
-  ParentPublicId: z
-    .union([z.string(), z.undefined()])
-    .optional()
-    .transform((val) => {
-      // Convert empty string to undefined
-      if (val === '' || val === null || val === undefined) {
-        return undefined
-      }
-      return val
-    })
-    .refine(
-      (val) => {
-        // Allow undefined
-        if (val === undefined) {
-          return true
-        }
-        // If provided, validate UUID format
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        return uuidRegex.test(val)
-      },
-      {
-        message: 'شناسه منوی والد باید فرمت UUID معتبر باشد',
-      }
-    ),
+  ParentPublicId: z.string().nullable(),
 })
 
 /**

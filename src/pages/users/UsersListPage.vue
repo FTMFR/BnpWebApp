@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, h } from 'vue'
+import type { VNode } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/design-system/templates'
-import { Pagination, Breadcrumb, Card, type SelectOption } from '@/design-system/molecules'
+import { Breadcrumb, Card, type SelectOption } from '@/design-system/molecules'
 import { BaseBadge, CustomLoader, BaseButton, BaseIcon } from '@/design-system/atoms'
 import Modal from '@/design-system/molecules/Modal.vue'
 import BaseDropdown, { type DropdownItem } from '@/design-system/molecules/BaseDropdown.vue'
@@ -60,15 +61,6 @@ export interface User extends Record<string, unknown> {
   IsActive: boolean
 }
 
-// export interface UserFilters {
-//   username: string
-//   email: string
-//   firstName: string
-//   lastName: string
-//   IsActive: string
-//   MobileNumber: string
-// }
-
 // Define TableColumn type locally to avoid import issues
 type TableColumn<T = Record<string, unknown>> = {
   id: string
@@ -82,8 +74,10 @@ const { fetchUser, isLoadingUser } = useAuth()
 const router = useRouter()
 // const { hasAccess } = useRouteAccess()
 const users = ref<User[]>([])
+
 const isLoadingUsers = ref(false)
 const fullApiData = ref<User[]>([])
+const processedExportData = ref<Record<string, unknown>[] | null>(null)
 
 // Fetch user info on mount
 onMounted(() => {
@@ -112,47 +106,22 @@ const breadcrumbItems = [
   { label: 'کاربران', href: '/users/list' },
 ]
 
-const handleSearch = (query: string) => {
-  console.log('Global search:', query)
-  // TODO: Implement global search
+const handleSearch = (_query: string) => {
+  void _query
+  // TODO(UX): Implement global search
 }
 
 const handleUserMenuClick = () => {
-  console.log('User menu clicked')
-  // TODO: show user menu dropdown
+  // TODO(UX): show user menu dropdown
 }
 
 const handleNotificationClick = () => {
-  console.log('Notification clicked')
-  // TODO: show notifications
+  // TODO(UX): show notifications
 }
 
 const handleHelpClick = () => {
-  console.log('Help clicked')
-  // TODO: show help
+  // TODO(UX): show help
 }
-
-const currentPage = ref(1)
-// const filters = ref<UserFilters>({
-//   username: '',
-//   email: '',
-//   firstName: '',
-//   lastName: '',
-//   IsActive: '',
-//   MobileNumber: '',
-// })
-
-// async function deleteUser(publicId:string) {
-//   isLoadingUsers.value = true
-//   try {
-
-//   } catch (error) {
-//     console.error('Failed to fetch users:', error)
-//     users.value = [] // Clear data on error
-//   } finally {
-//     isLoadingUsers.value = false
-//   }
-// }
 
 const userColumns = ref<DataTableColumn<User>[]>([
   {
@@ -185,7 +154,7 @@ const userColumns = ref<DataTableColumn<User>[]>([
     sortable: true,
     filterable: true,
     filterType: 'text',
-    bodyTemplate: (row: any) => h('span', { dir: 'ltr', class: 'font-mono text-sm' }, row.Email),
+    bodyTemplate: (row: User) => h('span', { dir: 'ltr', class: 'font-mono text-sm' }, row.Email),
     // resizable: true,
   },
   {
@@ -199,7 +168,7 @@ const userColumns = ref<DataTableColumn<User>[]>([
     //   { label: 'فعال', value: true },
     //   { label: 'غیرفعال', value: false },
     // ],
-    bodyTemplate: (row: any) =>
+    bodyTemplate: (row: User) =>
       h(BaseBadge, { variant: row.IsActive ? 'success' : 'secondary', size: 'sm' }, () =>
         row.IsActive ? 'فعال' : 'غیرفعال',
       ),
@@ -216,40 +185,8 @@ const userColumns = ref<DataTableColumn<User>[]>([
 
 // const showFilters = ref(false)
 
-// const toggleFilters = () => {
-//   showFilters.value = !showFilters.value
-// }
-
-// const handleFilterSearch = () => {
-//   console.log('Search filters:', filters.value)
-// }
-
-// const handleClear = () => {
-//   Object.assign(filters.value, {
-//     UserName: '',
-//     Email: '',
-//     FirstName: '',
-//     LastName: '',
-//     IsActive: '',
-//     MobileNumber: '',
-//   })
-// }
-
 const handleEdit = (row: User) => {
-  const routePath = `/users/${row.PublicId}`
-
-  // // فراخوانی صحیح:
-  // // ۱. بدون await
-  // // ۲. حتما با پرانتز ()
-  // const access = hasAccess('Users.Update')
-
-  // console.log('Access Value:', access)
-
-  // if (access) {
-  // showAccessDeniedModal.value = true
-  // } else {
-  router.push(routePath)
-  // }
+  router.push(`/users/${row.PublicId}`)
 }
 
 const showDeleteModal = ref(false)
@@ -257,7 +194,6 @@ const userToDelete = ref<User | null>(null)
 const showPasswordModal = ref(false)
 const currentPublicId = ref<string | null>(null)
 
-// const showAccessDeniedModal = ref(false)
 const toastStore = useToastStore()
 
 const handleDelete = (row: User) => {
@@ -266,8 +202,6 @@ const handleDelete = (row: User) => {
 }
 
 const handleCreate = () => {
-  console.log('click')
-
   router.push('/users/create')
 }
 
@@ -281,7 +215,7 @@ const confirmDelete = async (publicId: string) => {
     userToDelete.value = null
     toastStore.showToast('کاربر با موفقیت حذف شد.', 'success', 3000)
     await fetchUsersList()
-  } catch (error: any) {
+  } catch (error: unknown) {
     toastStore.showToast('مشکلی در حذف کاربر رخ داده است.', 'error', 3000)
     console.error('Delete failed:', error)
   }
@@ -473,9 +407,34 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
   }
 }
 
+// Handle export request from TableWithSettings
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- columns passed by TableWithSettings for future use
+const handleExportRequest = async (
+  data: Record<string, unknown>[],
+  _columns: TableColumn<User>[],
+) => {
+  try {
+    // Call API with export data
+    const response = await apiClient.post<Record<string, unknown>[]>(endpoints.users.export, data)
+
+    // Set processed data - component will watch this and trigger export
+    processedExportData.value = response.data
+
+    toastStore.showToast('داده‌ها با موفقیت آماده خروجی شدند.', 'success', 3000)
+
+    // Reset after a short delay to allow export to complete
+    setTimeout(() => {
+      processedExportData.value = null
+    }, 1000)
+  } catch (error: unknown) {
+    console.error('Export failed:', error)
+    toastStore.showToast('مشکلی در آماده‌سازی خروجی رخ داده است.', 'error', 3000)
+  }
+}
+
 const handleClosePasswordModal = () => {
   showPasswordModal.value = false
-  currentPublicId.value = null // Optional: clear ID
+  currentPublicId.value = null
 }
 </script>
 
@@ -614,29 +573,14 @@ const handleClosePasswordModal = () => {
             :data="users"
             :raw-data="fullApiData"
             :searchable="true"
+            :exportable="true"
+            :export-endpoint="endpoints.users.export"
+            :export-data="processedExportData || undefined"
             @column-order-change="handleColumnOrderChange"
             @column-visibility-change="handleColumnVisibilityChange"
+            @export-request="handleExportRequest"
           />
         </div>
-
-        <!-- Footer Section -->
-        <template #footer>
-          <div
-            class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4"
-          >
-            <div
-              class="text-xs sm:text-sm text-muted-foreground text-center sm:text-right w-full sm:w-auto"
-            >
-              صفحه {{ currentPage }} از 1 • نمایش 1 تا {{ users.length }} از {{ users.length }} مورد
-            </div>
-            <Pagination
-              v-model:current-page="currentPage"
-              :total-pages="1"
-              dir="ltr"
-              class="w-full sm:w-auto"
-            />
-          </div>
-        </template>
       </Card>
     </div>
 
@@ -670,7 +614,7 @@ const handleClosePasswordModal = () => {
           <BaseButton
             variant="default"
             class="bg-danger-600 hover:bg-danger-700 text-white"
-            @click="confirmDelete(userToDelete?.PublicId)"
+            @click="userToDelete?.PublicId && confirmDelete(userToDelete.PublicId)"
           >
             حذف
           </BaseButton>
@@ -679,8 +623,8 @@ const handleClosePasswordModal = () => {
     </Modal>
 
     <PasswordChangeModal
-      v-if="showPasswordModal"
-      :publicId="currentPublicId"
+      v-if="showPasswordModal && currentPublicId"
+      :publicId="currentPublicId!"
       @close="handleClosePasswordModal"
     />
     <!-- Access Denied Modal -->

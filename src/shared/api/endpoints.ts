@@ -186,6 +186,7 @@ export const endpoints = {
     byId: (publicId: string) => `${API_BASE_URL}/Users/${publicId}`,
     update: (publicId: string) => `${API_BASE_URL}/Users/${publicId}`,
     delete: (publicId: string) => `${API_BASE_URL}/Users/${publicId}`,
+    export: `${API_BASE_URL}/Users/export`,
 
     // User actions
     activate: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/activate`,

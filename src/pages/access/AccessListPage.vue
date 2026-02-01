@@ -54,24 +54,20 @@ const breadcrumbItems = [
   { label: 'لیست دسترسی‌ها' },
 ]
 
-const handleSearch = (query: string) => {
-  console.log('Global search:', query)
-  // TODO: Implement global search
+const handleSearch = (_query: string) => {
+  // TODO(UX): Implement global search
 }
 
 const handleUserMenuClick = () => {
-  console.log('User menu clicked')
-  // TODO: show user menu dropdown
+  // TODO(UX): show user menu dropdown
 }
 
 const handleNotificationClick = () => {
-  console.log('Notification clicked')
-  // TODO: show notifications
+  // TODO(UX): show notifications
 }
 
 const handleHelpClick = () => {
-  console.log('Help clicked')
-  // TODO: show help
+  // TODO(UX): show help
 }
 
 const currentPage = ref(1)
@@ -168,7 +164,6 @@ const handleDelete = (row: Access) => {
 
 const confirmDelete = () => {
   if (userToDelete.value) {
-    console.log('Delete user:', userToDelete.value.username)
     // TODO: Implement actual delete API call
     showDeleteModal.value = false
     userToDelete.value = null
@@ -181,13 +176,12 @@ const cancelDelete = () => {
 }
 
 const handleExport = () => {
-  console.log('Export users')
   // TODO: Implement export
 }
 
 const handleCreate = async () => {
-  // Check if user has access to the create route
-  const routePath = '/Permission/Create'
+  // Check if user has access to the permission list route
+  const routePath = '/permission/list'
 
   if (hasAccess(routePath)) {
     router.push(routePath)

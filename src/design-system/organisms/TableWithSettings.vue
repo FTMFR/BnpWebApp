@@ -42,7 +42,8 @@
     className?: string
     searchable?: boolean
     exportable?: boolean
-    exportEndpoint?:string
+    exportEndpoint?: string
+    exportData?: Record<string, unknown>[] // Processed data from API for export
   }
 
   const props = withDefaults(defineProps<TableWithSettingsProps<T>>(), {
@@ -55,6 +56,7 @@
   const emit = defineEmits<{
     'column-order-change': [columns: TableColumn<T>[]]
     'column-visibility-change': [columnId: string, visible: boolean]
+    'export-request': [data: Record<string, unknown>[], columns: TableColumn<T>[]]
   }>()
 
   const localColumns = ref<TableColumn<T>[]>([...props.columns])
@@ -121,7 +123,8 @@
     return result
   })
 
-  const handleExport = () => {
+  // Prepare export data
+  const prepareExportData = (): Record<string, unknown>[] => {
     // Use rawData if available, otherwise fallback to props.data
     const dataToExport = props.rawData && props.rawData.length > 0 ? props.rawData : props.data
 
@@ -136,11 +139,40 @@
       return newRow
     })
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    return exportData
+  }
+
+  // Perform actual Excel export
+  const performExport = (dataToExport: Record<string, unknown>[]) => {
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1")
     XLSX.writeFile(workbook, "ExportData.xlsx")
   }
+
+  const handleExport = () => {
+    const exportData = prepareExportData()
+    const columnsToExport = localColumns.value.filter(col => col.visible !== false && col.id !== 'actions')
+
+    // If exportEndpoint is provided, emit event for parent to handle API call
+    if (props.exportEndpoint) {
+      emit('export-request', exportData, columnsToExport)
+    } else {
+      // Direct export if no endpoint is provided (backward compatibility)
+      performExport(exportData)
+    }
+  }
+
+  // Watch for processed export data from parent and export when available
+  watch(
+    () => props.exportData,
+    (newExportData) => {
+      if (newExportData && newExportData.length > 0) {
+        performExport(newExportData)
+      }
+    },
+    { immediate: false }
+  )
 
 
   // Move column up

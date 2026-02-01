@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref, computed, watch } from 'vue'
+import { h, ref, computed, watch, useSlots } from 'vue'
 import BaseIcon from '@/design-system/atoms/BaseIcon.vue'
 
 export interface BaseTreeNode {
@@ -22,31 +22,37 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select', node: BaseTreeNode): void
-  (e: 'update:modelValue', value: string | string[]): void
-  (e: 'edit', node: BaseTreeNode): void
-  (e: 'delete', node: BaseTreeNode): void
+  select: [node: BaseTreeNode]
+  'update:modelValue': [value: string | string[]]
+  edit: [node: BaseTreeNode]
+  delete: [node: BaseTreeNode]
 }>()
 
 const rootLevel = props.level ?? 0
 const collapsedMap = ref<Record<string, boolean>>({})
 const searchQuery = ref<string>('')
-const localSelectedIds = ref<string[]>([])
+const localSelectedIds = ref<(string | true | undefined)[]>([])
 
-// Initialize localSelectedIds from modelValue
 watch(
-  () => props.modelValue,
-  (newValue) => {
-    if (props.multiSelect) {
+  () => [props.modelValue, props.multiSelect],
+  ([newValue, multiSelect]) => {
+    if (multiSelect) {
       localSelectedIds.value = Array.isArray(newValue) ? newValue : newValue ? [newValue] : []
-    } else {
-      localSelectedIds.value = newValue ? [newValue as string] : []
+      return
     }
+
+    if (Array.isArray(newValue)) {
+      localSelectedIds.value = newValue.length ? [newValue[0]] : []
+      return
+    }
+
+    localSelectedIds.value = newValue ? [newValue as string] : []
   },
   { immediate: true },
 )
 
 const isSearching = () => !!searchQuery.value.trim()
+const slots = useSlots()
 
 const isCollapsed = (id: string, level: number) => {
   if (isSearching()) return false
@@ -60,19 +66,46 @@ const toggleCollapse = (id: string, level: number) => {
   collapsedMap.value[id] = !isCollapsed(id, level)
 }
 
+const getAllChildIds = (node: BaseTreeNode): string[] => {
+  const ids: string[] = []
+  if (node.Children && node.Children.length > 0) {
+    for (const child of node.Children) {
+      ids.push(child.PublicId)
+      ids.push(...getAllChildIds(child))
+    }
+  }
+  return ids
+}
+
 const handleNodeClick = (node: BaseTreeNode) => {
   emit('select', node)
 
   if (props.multiSelect) {
     const index = localSelectedIds.value.indexOf(node.PublicId)
     if (index === -1) {
-      // Add to selection
       localSelectedIds.value.push(node.PublicId)
+
+      if (node.Children && node.Children.length > 0) {
+        const childIds = getAllChildIds(node)
+        for (const childId of childIds) {
+          if (!localSelectedIds.value.includes(childId)) {
+            localSelectedIds.value.push(childId)
+          }
+        }
+      }
     } else {
-      // Remove from selection
       localSelectedIds.value.splice(index, 1)
+      if (node.Children && node.Children.length > 0) {
+        const childIds = new Set(getAllChildIds(node))
+        localSelectedIds.value = localSelectedIds.value.filter(
+          (id) => typeof id === 'string' && !childIds.has(id),
+        )
+      }
     }
-    emit('update:modelValue', [...localSelectedIds.value])
+    emit(
+      'update:modelValue',
+      localSelectedIds.value.filter((id): id is string => typeof id === 'string'),
+    )
   } else {
     // Single select mode
     localSelectedIds.value = [node.PublicId]
@@ -85,7 +118,10 @@ const removeSelected = (id: string, event: Event) => {
   const index = localSelectedIds.value.indexOf(id)
   if (index !== -1) {
     localSelectedIds.value.splice(index, 1)
-    emit('update:modelValue', [...localSelectedIds.value])
+    emit(
+      'update:modelValue',
+      localSelectedIds.value.filter((id): id is string => typeof id === 'string'),
+    )
   }
 }
 
@@ -107,16 +143,29 @@ const selectedNodes = computed(() => {
   }
 
   return localSelectedIds.value
+    .filter((id): id is string => typeof id === 'string')
     .map((id) => findNode(props.nodes, id))
     .filter(Boolean) as BaseTreeNode[]
 })
 
-const TreeNode = ({ node, level = 0 }: { node: BaseTreeNode; level?: number }) => {
+const TreeNode = (
+  { node, level = 0, visitedIds = new Set<string>() }: { node: BaseTreeNode; level?: number; visitedIds?: Set<string> },
+) => {
+  if (visitedIds.has(node.PublicId)) {
+    return null
+  }
+  const nextVisited = new Set(visitedIds).add(node.PublicId)
+
   const hasChildren = !!node.Children?.length
   const isSelected = localSelectedIds.value.includes(node.PublicId)
 
   const collapsible = hasChildren && level <= 1
   const collapsed = collapsible && isCollapsed(node.PublicId, level)
+
+  const safeChildren =
+    hasChildren && !collapsed
+      ? node.Children!.filter((child) => !nextVisited.has(child.PublicId))
+      : []
 
   return h(
     'div',
@@ -129,7 +178,7 @@ const TreeNode = ({ node, level = 0 }: { node: BaseTreeNode; level?: number }) =
         'div',
         {
           class: [
-            'tree-row flex items-center justify-between py-3 px-2 cursor-pointer transition-colors group',
+            'tree-row flex items-center justify-between py-3 px-2 transition-colors group',
             isSelected ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-primary-50',
           ],
           onClick: () => handleNodeClick(node),
@@ -151,6 +200,16 @@ const TreeNode = ({ node, level = 0 }: { node: BaseTreeNode; level?: number }) =
                 collapsed ? '+' : '–',
               ),
 
+            h('input', {
+              type: 'checkbox',
+              checked: isSelected,
+              class: 'form-checkbox h-3 w-3 text-primary-600',
+              onClick: (e: Event) => {
+                e.stopPropagation()
+              },
+              onChange: () => handleNodeClick(node),
+            }),
+
             !collapsible && level <= 1 && h('span', { class: 'w-5 h-5' }),
 
             props.showIcon !== false &&
@@ -169,23 +228,23 @@ const TreeNode = ({ node, level = 0 }: { node: BaseTreeNode; level?: number }) =
               class: 'flex gap-2 opacity-0 group-hover:opacity-100',
               onClick: (e: Event) => e.stopPropagation(),
             },
-            props.$slots?.actions?.({ node }),
+            [slots.actions?.({ node })],
           ),
         ],
       ),
 
-      hasChildren &&
-        !collapsed &&
+      safeChildren.length > 0 &&
         h(
           'div',
           { class: 'tree-children' },
-          node.Children!.map((child) =>
+          safeChildren.map((child) =>
             h(
               'div',
               { class: 'tree-child' },
               h(TreeNode, {
                 node: child,
                 level: level + 1,
+                visitedIds: nextVisited,
               }),
             ),
           ),
@@ -198,8 +257,12 @@ const filterTree = (nodes: BaseTreeNode[], search: string): BaseTreeNode[] => {
   if (!search) return nodes
 
   const term = search.toLowerCase()
+  const visited = new Set<string>()
 
   const walk = (node: BaseTreeNode): BaseTreeNode | null => {
+    if (visited.has(node.PublicId)) return null
+    visited.add(node.PublicId)
+
     const isMatch = node.Title.toLowerCase().includes(term)
 
     const children = node.Children?.map(walk).filter(Boolean) as BaseTreeNode[] | undefined
@@ -226,24 +289,19 @@ const highlight = (text: string) => {
 </script>
 
 <template>
-  <div class="tree-select">
-    <div class="relative">
-      <input
-        type="text"
-        v-model="searchQuery"
-        placeholder="جستجو ..."
-        class="tree-search mr-1 mb-3 w-full md:w-[240px] rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-900 dark:border-gray-700"
-      />
-
-      <!-- Selected tags display -->
-      <div v-if="multiSelect && selectedNodes.length > 0" class="selected-tags-container mb-3">
-        <div class="flex flex-wrap gap-2 items-center">
+  <div class="tree-select w-full">
+    <div class="tree-search-wrapper w-full mb-3">
+      <div
+        class="tree-search-input w-full flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full rounded-md border px-2 py-2 text-sm focus-within:ring-2 focus-within:ring-primary-500 dark:bg-gray-900 dark:border-gray-700"
+      >
+        <!-- Selected tags display -->
+        <template v-if="multiSelect && selectedNodes.length > 0">
           <div
             v-for="node in selectedNodes"
             :key="node.PublicId"
-            class="selected-tag flex items-center gap-1 bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-sm"
+            class="selected-tag inline-flex items-center gap-1 bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-sm w-full sm:w-auto sm:shrink-0"
           >
-            <span>{{ node.Title }}</span>
+            <span class="truncate max-w-full">{{ node.Title }}</span>
             <button
               @click="removeSelected(node.PublicId, $event)"
               class="remove-tag-btn text-primary-600 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-100 ml-1"
@@ -259,16 +317,24 @@ const highlight = (text: string) => {
               </svg>
             </button>
           </div>
-          <button
-            v-if="selectedNodes.length > 1"
-            @click="clearAllSelected"
-            class="clear-all-btn text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            type="button"
-          >
-            پاک کردن همه
-          </button>
-        </div>
+        </template>
+
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="جستجو ..."
+          class="tree-search sm:flex-1 bg-transparent px-1 py-1 text-sm focus:outline-none"
+        />
       </div>
+
+      <button
+        v-if="multiSelect && selectedNodes.length > 1"
+        @click="clearAllSelected"
+        class="clear-all-btn mt-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        type="button"
+      >
+        پاک کردن همه
+      </button>
     </div>
   </div>
 
@@ -456,5 +522,19 @@ mark {
 
 .dark .tree-row.bg-primary-100:hover {
   background-color: #222a38;
+}
+
+.tree-select {
+  max-width: 100%;
+}
+
+.tree-search-wrapper,
+.tree-search-input {
+  min-width: 0;
+}
+
+.dark .tree-search {
+  background-color: transparent;
+  color: #e5e7eb;
 }
 </style>
