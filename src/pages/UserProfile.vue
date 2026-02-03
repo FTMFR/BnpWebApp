@@ -7,81 +7,140 @@ import FormField from '@/design-system/molecules/FormField.vue'
 import DashboardLayout from '@/design-system/templates/DashboardLayout.vue'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
+import { useAuth } from '@/shared/composables/useAuth'
 import { useUserInfo, type UserInfo } from '@/shared/composables/useUserInfo'
-import { useForm } from '@/shared/validation/useForm'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { AxiosError } from 'axios'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { z } from 'zod'
 
-interface UserProfile {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string | null
-  mobileNumber: string
-}
+const MOBILE_REGEX = /^09\d{9}$/
+
+const updateUserSchema = z.object({
+  firstName: z.string().min(1, 'نام الزامی است').trim(),
+  lastName: z.string().min(1, 'نام خانوادگی الزامی است').trim(),
+  email: z.union([z.string().email('آدرس ایمیل معتبر نیست'), z.literal('')]).optional(),
+  phone: z.union([z.string(), z.literal('')]).optional(),
+  mobileNumber: z
+    .string()
+    .min(1, 'شماره موبایل الزامی است')
+    .regex(MOBILE_REGEX, 'شماره موبایل معتبر نیست (مثال: 09123456789)')
+    .trim(),
+})
+
 const breadcrumbItems = [
   { label: 'خانه', href: '/dashboard' },
   { label: 'پروفایل من', href: '/profile' },
 ]
 
 const { userInfo } = useUserInfo()
-const user = ref<UserProfile | null>(null)
-
 const dynamicUserInfo = computed<UserInfo>(() => userInfo.value)
 const toastStore = useToastStore()
 const isEditable = ref(false)
+const isSubmitting = ref(false)
 const authStore = useAuthStore()
+const { publicId } = useAuth()
 
-const toggleEditability = () => {
+const formData = reactive({
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  mobileNumber: '',
+})
+
+const errors = reactive<Record<string, string>>({
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  mobileNumber: '',
+})
+
+function syncFormFromUser(info: UserInfo) {
+  formData.firstName = info.firstName
+  formData.lastName = info.lastName
+  formData.email = info.email ?? ''
+  formData.phone = info.phone ?? ''
+  formData.mobileNumber = info.mobileNumber
+}
+
+function clearErrors() {
+  errors.firstName = ''
+  errors.lastName = ''
+  errors.email = ''
+  errors.phone = ''
+  errors.mobileNumber = ''
+}
+
+function validate(): boolean {
+  clearErrors()
+  const result = updateUserSchema.safeParse({
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    email: formData.email,
+    phone: formData.phone,
+    mobileNumber: formData.mobileNumber,
+  })
+  if (result.success) return true
+  result.error.issues.forEach((issue) => {
+    const path = issue.path[0] as string
+    if (path in errors) errors[path] = issue.message
+  })
+  return false
+}
+
+const toggleEdit = () => {
+  if (isEditable.value && dynamicUserInfo.value) {
+    syncFormFromUser(dynamicUserInfo.value)
+    clearErrors()
+  }
   isEditable.value = !isEditable.value
 }
 
-const updateUserSchema = z.object({
-  firstName: z.string().min(1, 'نام الزامی است').trim(),
-  lastName: z.string().min(1, 'نام خانوادگی الزامی است').trim(),
-  email: z.string().email('آدرس ایمیل معتبر نیست').trim(),
-  phone: z
-    .string()
-    .regex(/^09\d{9}$/, 'شماره موبایل معتبر نیست (مثال: 09123456789)')
-    .trim(),
-  mobileNumber: z
-    .string()
-    .min(1, 'شماره موبایل الزامی است')
-    .regex(/^09\d{9}$/, 'شماره موبایل معتبر نیست (مثال: 09123456789)')
-    .trim(),
-})
-
-const updateUserInfo = (newValues: UserProfile) => {
-  userInfo.value = newValues
+const handleSubmit = async () => {
+  if (!validate()) return
+  const id = publicId.value
+  if (!id) return
+  isSubmitting.value = true
+  try {
+    const body = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email ?? '',
+      phone: formData.phone ?? '',
+      mobileNumber: formData.mobileNumber,
+    }
+    await apiClient.put(endpoints.users.byId(id), body)
+    if (authStore.user) {
+      authStore.user = {
+        ...authStore.user,
+        FirstName: formData.firstName,
+        LastName: formData.lastName,
+        Email: formData.email ?? '',
+        Phone: formData.phone ?? '',
+        MobileNumber: formData.mobileNumber,
+      }
+    }
+    toastStore.showToast('اطلاعات با موفقیت آپدیت شد.', 'success', 5000)
+    isEditable.value = false
+  } catch (error) {
+    const msg =
+      error instanceof AxiosError ? error.response?.data?.message : 'خطا در بروزرسانی کاربر'
+    toastStore.showToast(msg, 'error', 5000)
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
-const { values, errors, validate, handleSubmit, isSubmitting } = useForm({
-  schema: updateUserSchema,
-  initialValues: {
-    firstName: user.value?.firstName || '',
-    lastName: user.value?.lastName || '',
-    email: user.value?.email || '',
-    phone: user.value?.phone || '',
-    mobileNumber: user.value?.mobileNumber || '',
+watch(
+  dynamicUserInfo,
+  (info) => {
+    if (info && !isEditable.value) syncFormFromUser(info)
   },
-  onSubmit: async (values) => {
-    try {
-      if (!authStore.publicId) return
-      console.log('user info')
-
-      await apiClient.put<UserProfile>(endpoints.users.byId(authStore.publicId), values)
-
-      toastStore.showToast('اطلاعات با موفقیت آپدیت شد.', 'success', 5000)
-    } catch (error) {
-      const msg =
-        error instanceof AxiosError ? error.response?.data?.message : 'خطا در بروزرسانی کاربر'
-      toastStore.showToast(msg, 'error', 5000)
-    }
-  },
-})
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -95,28 +154,32 @@ const { values, errors, validate, handleSubmit, isSubmitting } = useForm({
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
-      <Card variant="elevated" padding="none">
+      <Card title="پروفایل من" variant="elevated" padding="none">
         <template #header>
           <div class="p-4 sm:p-6">
             <div
-              class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6"
+              class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4"
             >
-              <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">پروفایل من</h1>
-              <div>
+              <div class="flex gap-3">
                 <BaseButton
-                  variant="primary"
-                  @click="toggleEditability"
-                  class="border-2 text-white font-bold text-lg"
+                  v-if="!isEditable"
+                  variant="outline"
+                  @click="toggleEdit"
+                  class="border-2 border-primary-500 text-primary-600"
                 >
-                  <!-- <BaseIcon name="Edit" :size="16" /> -->
-                  <span class="inline">اصلاح</span>
+                  اصلاح
+                </BaseButton>
+
+                <BaseButton v-else variant="outline" @click="toggleEdit" :disabled="isSubmitting">
+                  انصراف
                 </BaseButton>
 
                 <BaseButton
-                  variant="outline"
-                  type="submit"
+                  v-if="isEditable"
+                  variant="default"
+                  class="bg-success-600 hover:bg-success-700 text-white"
                   @click="handleSubmit"
-                  class="border-2 border-success-600 text-success-600"
+                  :disabled="isSubmitting"
                 >
                   {{ isSubmitting ? 'در حال بروزرسانی' : 'ثبت تغییرات' }}
                 </BaseButton>
@@ -124,59 +187,65 @@ const { values, errors, validate, handleSubmit, isSubmitting } = useForm({
             </div>
           </div>
         </template>
-        <form @submit="handleSubmit">
-          <div class="p-4 sm:p-6 w-full gap-3 flex flex-col">
-            <div class="flex items-center justify-between gap-3">
-              <FormField
-                :disabled="true"
-                label="نام کاربری"
-                type="text"
-                :required="true"
-                @update:model-value="updateUserInfo"
-                v-model="dynamicUserInfo.userName"
-              />
 
-              <FormField
-                :disabled="!isEditable"
-                label="نام"
-                type="text"
-                @update:model-value="updateUserInfo"
-                v-model="dynamicUserInfo.firstName"
-              />
-            </div>
+        <form @submit.prevent="handleSubmit" class="p-4 sm:p-6 w-full space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              :model-value="dynamicUserInfo.userName"
+              label="نام کاربری"
+              type="text"
+              :disabled="true"
+              class="opacity-75"
+            />
 
-            <div class="flex items-center justify-between gap-3">
-              <FormField
-                :disabled="!isEditable"
-                label="نام خانوادگی"
-                type="text"
-                @update:model-value="updateUserInfo"
-                v-model="dynamicUserInfo.lastName"
-              />
-              <FormField
-                :disabled="!isEditable"
-                label="ایمیل"
-                type="text"
-                @update:modelValue="updateUserInfo"
-                v-model="dynamicUserInfo.email as string"
-              />
-            </div>
-            <div class="flex items-center justify-between gap-3">
-              <FormField
-                :disabled="!isEditable"
-                label="تلفن همراه"
-                type="tel"
-                @update:modelValue="updateUserInfo"
-                v-model="dynamicUserInfo.phone as string"
-              />
-              <FormField
-                :disabled="!isEditable"
-                label="تلفن ثابت"
-                type="tel"
-                @update:modelValue="updateUserInfo"
-                v-model="dynamicUserInfo.mobileNumber as string"
-              />
-            </div>
+            <FormField
+              v-model="formData.firstName"
+              label="نام"
+              type="text"
+              :disabled="!isEditable"
+              :error="!!errors.firstName"
+              :error-message="errors.firstName"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              v-model="formData.lastName"
+              label="نام خانوادگی"
+              type="text"
+              :disabled="!isEditable"
+              :error="!!errors.lastName"
+              :error-message="errors.lastName"
+            />
+
+            <FormField
+              v-model="formData.email"
+              label="ایمیل"
+              type="text"
+              :disabled="!isEditable"
+              :error="!!errors.email"
+              :error-message="errors.email"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              v-model="formData.phone"
+              label="تلفن همراه"
+              type="tel"
+              :disabled="!isEditable"
+              :error="!!errors.phone"
+              :error-message="errors.phone"
+            />
+
+            <FormField
+              v-model="formData.mobileNumber"
+              label="تلفن ثابت"
+              type="tel"
+              :disabled="!isEditable"
+              :error="!!errors.mobileNumber"
+              :error-message="errors.mobileNumber"
+            />
           </div>
         </form>
       </Card>

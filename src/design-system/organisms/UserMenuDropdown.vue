@@ -5,20 +5,28 @@ import Dropdown, { type DropdownItem } from '../molecules/BaseDropdown.vue'
 import BaseIcon from '../atoms/BaseIcon.vue'
 import BaseButton from '../atoms/BaseButton.vue'
 import Modal from '../molecules/Modal.vue'
+import ChangeMyPasswordModal from './ChangeMyPasswordModal.vue'
 import { useAuth } from '@/shared/composables/useAuth'
+import { useSessionModalStore } from '@/stores/sessionModal'
 
 const router = useRouter()
-const { logout, publicId } = useAuth()
+const { logout } = useAuth()
+const sessionModalStore = useSessionModalStore()
 
 const emit = defineEmits<{
   close: []
 }>()
 
 const showLogoutModal = ref(false)
+const showPasswordModal = ref(false)
 
 const handleMenuItemSelect = (item: DropdownItem) => {
   if (item.value === 'logout') {
     showLogoutModal.value = true
+  } else if (item.value === 'change-password') {
+    showPasswordModal.value = true
+  } else if (item.value === 'sessions') {
+    sessionModalStore.openModal()
   } else if (item.href) {
     router.push(item.href)
   }
@@ -50,13 +58,11 @@ const menuItems: DropdownItem[] = [
   {
     label: 'تغییر رمز عبور',
     value: 'change-password',
-    href: '/change-password',
     iconName: 'Lock',
   },
   {
     label: 'جلسات من',
     value: 'sessions',
-    href: '/sessions',
     iconName: 'Layout',
   },
   {
@@ -90,17 +96,23 @@ const menuItems: DropdownItem[] = [
       >
         <BaseIcon
           v-if="item.value == 'logout'"
-          :name="item.iconName"
+          :name="item.iconName ?? 'X'"
           href
           icon-class="text-danger-600"
         />
-        <BaseIcon v-else :name="item.iconName" href icon-class="text-muted-foreground" />
+        <BaseIcon v-else :name="item.iconName ?? 'X'" href icon-class="text-muted-foreground" />
         <span>{{ item.label }}</span>
       </button>
     </template>
   </Dropdown>
 
-  <!-- Logout Confirmation Modal -->
+  <!-- Change password modal (current user: CurrentPassword, NewPassword, ConfirmNewPassword) -->
+  <ChangeMyPasswordModal
+    v-if="showPasswordModal"
+    v-model="showPasswordModal"
+    @close="showPasswordModal = false"
+  />
+
   <Modal v-model="showLogoutModal" title="تأیید خروج" size="sm" :close-on-backdrop="false">
     <div class="space-y-4">
       <div class="flex items-start gap-3">

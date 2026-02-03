@@ -4,18 +4,24 @@ import type { BaseTreeNode } from '@/design-system/molecules/BaseTreeSelect.vue'
 import Breadcrumb from '@/design-system/molecules/Breadcrumb.vue'
 import Card from '@/design-system/molecules/Card.vue'
 import BaseTreeSelect from '@/design-system/molecules/BaseTreeSelect.vue'
+import { AccessDeniedModal } from '@/design-system/molecules'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseIcon from '@/design-system/atoms/BaseIcon.vue'
 import BaseButton from '@/design-system/atoms/BaseButton.vue'
+import { useRouteAccess } from '@/shared/composables/useRouteAccess'
+import { useAccessDenied } from '@/shared/composables/useAccessDenied'
 
 const menus = ref<BaseTreeNode[]>([])
 const selectedId = ref<string | null>(null)
 const isLoadingMenus = ref<boolean>(true)
 const selectedMenu = ref<string[]>([])
 const router = useRouter()
+const { hasAccess } = useRouteAccess()
+const { showAccessDeniedModal, accessDeniedTitle, accessDeniedMessage, openAccessDeniedModal } =
+  useAccessDenied()
 
 const breadcrumbItems = [
   { label: 'خانه', href: '/dashboard' },
@@ -29,6 +35,10 @@ onMounted(async () => {
 })
 
 const handleCreate = () => {
+  if (!hasAccess('Menus.Create')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ایجاد منو جدید را ندارید' })
+    return
+  }
   router.push('/menu/create')
 }
 
@@ -38,6 +48,10 @@ const handleSelect = (node: BaseTreeNode) => {
 }
 
 const handleEditMenu = (node: BaseTreeNode) => {
+  if (!hasAccess('Menus.Update')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ویرایش منو را ندارید' })
+    return
+  }
   router.push(`/menu/${node.PublicId}`)
 }
 
@@ -72,17 +86,17 @@ watch(
     <CustomLoader size="lg" />
   </div>
   <DashboardLayout v-else>
-    <div class="space-y-4 sm:space-y-6">
+    <div class="space-y-4 sm:space-y-6 min-w-0 overflow-x-auto">
       <!-- Breadcrumb -->
       <div class="hidden sm:block">
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
       <!-- Card with Filters and Table -->
-      <Card title="لیست منوها" variant="elevated" padding="none">
+      <Card title="لیست منوها" variant="elevated" padding="none" class="min-w-0">
         <!-- Header -->
         <template #header>
-          <!-- <div class="p-6 pl-0 flex justify-between items-center">
+          <div class="p-4 sm:p-6 pl-0 flex justify-between items-center flex-wrap gap-2">
             <BaseButton
               variant="outline"
               @click="handleCreate"
@@ -91,54 +105,36 @@ watch(
               <BaseIcon name="Plus" :size="16" />
               <span class="hidden sm:inline">ایجاد منو جدید</span>
             </BaseButton>
-          </div> -->
+          </div>
         </template>
 
-        <div class="border-t border-border-default pt-3 sm:pt-4 md:pt-6 overflow-x-auto">
+        <div class="overflow-x-auto min-w-0">
           <CustomLoader v-if="isLoadingMenus" size="lg" class="mx-auto my-10" />
-
-          <BaseTreeSelect
-            :nodes="menus"
-            v-model="selectedMenu"
-            :selected-id="selectedId"
-            @select="handleSelect"
-            :multiSelect="true"
-          >
-            <template #actions="{ node }">
-              <BaseButton size="sm" variant="ghost" @click="handleEditMenu(node)">
-                ویرایش
-              </BaseButton>
-            </template>
-          </BaseTreeSelect>
+          <div class="groups-tree-card">
+            <BaseTreeSelect
+              :nodes="menus"
+              v-model="selectedMenu"
+              :selected-id="selectedId"
+              @select="handleSelect"
+              :multi-select="true"
+              :show-checkbox="true"
+            >
+              <template #actions="{ node }">
+                <BaseButton size="sm" variant="ghost" @click="handleEditMenu(node)">
+                  ویرایش
+                </BaseButton>
+              </template>
+            </BaseTreeSelect>
+          </div>
         </div>
       </Card>
     </div>
 
-    <!-- Access Denied Modal -->
-    <!-- <Modal v-model="showAccessDeniedModal" title="عدم دسترسی" size="sm" :close-on-backdrop="true">
-      <div class="space-y-4">
-        <div class="flex items-start gap-3">
-          <div
-            class="flex-shrink-0 w-10 h-10 rounded-full bg-warning-100 dark:bg-warning-900/30 flex items-center justify-center"
-          >
-            <BaseIcon name="AlertCircle" :size="20" class="text-warning-600" />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm font-medium text-foreground mb-1">
-              شما دسترسی لازم برای ایجاد منو جدید را ندارید
-            </p>
-            <p class="text-xs text-muted-foreground">
-              برای دسترسی به این بخش، با مدیر سیستم تماس بگیرید.
-            </p>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex items-center justify-end">
-          <BaseButton variant="outline" @click="showAccessDeniedModal = false"> بستن </BaseButton>
-        </div>
-      </template>
-    </Modal> -->
+    <AccessDeniedModal
+      v-model="showAccessDeniedModal"
+      :title="accessDeniedTitle"
+      :message="accessDeniedMessage"
+    />
   </DashboardLayout>
 </template>
 
@@ -161,5 +157,29 @@ watch(
 .slide-down-leave-from {
   max-height: 1000px;
   opacity: 1;
+}
+
+.groups-tree-card :deep(.tree-row) {
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-default, #e5e7eb);
+  margin-bottom: 0.5rem;
+  padding: 0.875rem 0.75rem;
+  min-height: 4rem;
+  height: 4rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.groups-tree-card :deep(.tree-row:last-child) {
+  margin-bottom: 0;
+}
+.groups-tree-card :deep(.tree-row.bg-primary-100),
+.groups-tree-card :deep(.tree-row:hover) {
+  border-color: var(--primary-500, #6366f1);
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.15);
+}
+.groups-tree-card :deep(.tree-root) {
+  padding-right: 0;
+}
+.groups-tree-card :deep(.tree-node) {
+  margin-bottom: 0.25rem;
 }
 </style>

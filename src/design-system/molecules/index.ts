@@ -8,6 +8,7 @@ export type { FormCardProps } from './FormCard.vue';
 export type { FormSelectProps, FormSelectOption } from './FormSelect.vue';
 export type { ActionButtonsProps } from './ActionButtons.vue';
 export { default as Modal } from './Modal.vue';
+export { default as AccessDeniedModal } from './AccessDeniedModal.vue';
 export { default as Dropdown } from './BaseDropdown.vue';
 export { default as Tabs } from './BaseTabs.vue';
 export { default as Breadcrumb } from './Breadcrumb.vue';

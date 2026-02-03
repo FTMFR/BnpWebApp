@@ -11,8 +11,6 @@ import Card from '@/design-system/molecules/Card.vue'
 import Breadcrumb from '@/design-system/molecules/Breadcrumb.vue'
 import type { Group } from './GroupsListPage.vue'
 import FormSelect from '@/design-system/molecules/FormSelect.vue'
-import FormCard from '@/design-system/molecules/FormCard.vue'
-import router from '@/router'
 
 const route = useRoute()
 
@@ -126,26 +124,23 @@ const breadcrumbItems = computed(() => [
   { label: 'گروه‌ها', href: '/grp/list' },
   { label: user.value?.Title || 'جزئیات گروه' },
 ])
-
-const handleCancel = () => {
-  router.push('/grp/list')
-}
 </script>
 
 <template>
   <DashboardLayout>
-    <div class="space-y-4 sm:space-y-6">
-      <!-- Breadcrumb -->
+    <div class="space-y-4 sm:space-y-6 min-w-0 overflow-x-auto">
       <div class="hidden sm:block">
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
-      <!-- <Card title="جزئیات گروه" backRoute="/grp/list" variant="elevated" padding="none">
+      <Card variant="elevated" padding="none" class="min-w-0">
         <template #header>
           <div class="p-4 sm:p-6">
             <div
-              class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4"
+              class="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4"
             >
+              <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">جزئیات گروه</h1>
+
               <div class="flex gap-3">
                 <BaseButton
                   v-if="!isEditable"
@@ -174,22 +169,14 @@ const handleCancel = () => {
               </div>
             </div>
           </div>
-        </template> -->
+        </template>
 
         <div v-if="isLoading" class="p-10 flex justify-center">
           <CustomLoader size="lg" />
         </div>
 
-        <FormCard
-        route-back="/grp/list"
-          v-else
-          title="تعریف گروه جدید"
-          description="لطفا تمام فیلدهای مورد نیاز را تکمیل کنید"
-          :is-submitting="isSubmitting"
-          @submit="handleSubmit"
-          @cancel="handleCancel"
-        >
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form v-else @submit.prevent="handleSubmit" class="p-4 sm:p-6 w-full space-y-6 min-w-0 break-words">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
             <FormField
               v-model="formData.Title"
               label="نام گروه"
@@ -201,18 +188,14 @@ const handleCancel = () => {
             <FormSelect
               label="گروه والد"
               placeholder="گروه والد جدید را انتخاب کنید"
-              v-model="formData.ParentPublicId"
+              :model-value="formData.ParentPublicId"
               :options="groups"
-              @update:model-value="
-                (val) => {
-                  formData.ParentPublicId = val || null
-                }
-              "
+              @update:model-value="(val) => (formData.ParentPublicId = val || null)"
               :is-loading="isLoadingGrps"
               :disabled="isSubmitting || !isEditable"
             />
           </div>
-        </FormCard>
+        </form>
       </Card>
     </div>
   </DashboardLayout>

@@ -17,6 +17,7 @@ const props = defineProps<{
   search?: string
   modelValue: string | string[]
   multiSelect?: boolean
+  showCheckbox?: boolean
   showEdit?: boolean
   showDelete?: boolean
 }>()
@@ -148,9 +149,15 @@ const selectedNodes = computed(() => {
     .filter(Boolean) as BaseTreeNode[]
 })
 
-const TreeNode = (
-  { node, level = 0, visitedIds = new Set<string>() }: { node: BaseTreeNode; level?: number; visitedIds?: Set<string> },
-) => {
+const TreeNode = ({
+  node,
+  level = 0,
+  visitedIds = new Set<string>(),
+}: {
+  node: BaseTreeNode
+  level?: number
+  visitedIds?: Set<string>
+}) => {
   if (visitedIds.has(node.PublicId)) {
     return null
   }
@@ -178,19 +185,19 @@ const TreeNode = (
         'div',
         {
           class: [
-            'tree-row flex items-center justify-between py-3 px-2 transition-colors group',
+            'tree-row flex items-center justify-between gap-2 py-3 px-2 min-w-0 transition-colors group',
             isSelected ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-primary-50',
           ],
           onClick: () => handleNodeClick(node),
         },
         [
-          h('div', { class: 'flex items-center gap-2' }, [
+          h('div', { class: 'flex items-center gap-2 min-w-0 flex-1' }, [
             collapsible &&
               h(
                 'button',
                 {
                   class:
-                    'tree-toggle flex items-center justify-center w-5 h-5 text-gray-700 font-bold text-lg leading-none hover:text-primary-600',
+                    'tree-toggle flex items-center justify-center w-5 h-5 flex-shrink-0 text-gray-700 font-bold text-lg leading-none hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500',
                   onClick: (e: Event) => {
                     e.stopPropagation()
                     e.preventDefault()
@@ -200,32 +207,41 @@ const TreeNode = (
                 collapsed ? '+' : '–',
               ),
 
-            h('input', {
-              type: 'checkbox',
-              checked: isSelected,
-              class: 'form-checkbox h-3 w-3 text-primary-600',
-              onClick: (e: Event) => {
-                e.stopPropagation()
-              },
-              onChange: () => handleNodeClick(node),
-            }),
+            props.showCheckbox !== false &&
+              h('input', {
+                type: 'checkbox',
+                checked: isSelected,
+                class:
+                  'form-checkbox h-3 w-3 flex-shrink-0 text-primary-600 focus:ring-2 focus:ring-inset focus:ring-primary-500 focus:outline-none',
+                onClick: (e: Event) => {
+                  e.stopPropagation()
+                },
+                onChange: () => handleNodeClick(node),
+              }),
 
-            !collapsible && level <= 1 && h('span', { class: 'w-5 h-5' }),
+            !collapsible && level <= 1 && h('span', { class: 'w-5 h-5 flex-shrink-0' }),
 
             props.showIcon !== false &&
               h(BaseIcon, {
                 name: node.Icon || (hasChildren ? 'Folder' : 'File'),
                 size: 18,
-                class: hasChildren ? 'text-primary-500' : 'text-gray-400',
+                class: `flex-shrink-0 ${hasChildren ? 'text-primary-500' : 'text-gray-400'}`,
               }),
 
-            h('span', { class: 'font-medium', innerHTML: highlight(node.Title) }, node.Title),
+            h(
+              'span',
+              {
+                class: 'font-medium min-w-0 truncate text-right',
+                innerHTML: highlight(node.Title),
+              },
+              node.Title,
+            ),
           ]),
 
           h(
             'div',
             {
-              class: 'flex gap-2 opacity-0 group-hover:opacity-100',
+              class: 'flex gap-2 opacity-0 group-hover:opacity-100 flex-shrink-0',
               onClick: (e: Event) => e.stopPropagation(),
             },
             [slots.actions?.({ node })],
@@ -292,7 +308,7 @@ const highlight = (text: string) => {
   <div class="tree-select w-full">
     <div class="tree-search-wrapper w-full mb-3">
       <div
-        class="tree-search-input w-full flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full rounded-md border px-2 py-2 text-sm focus-within:ring-2 focus-within:ring-primary-500 dark:bg-gray-900 dark:border-gray-700"
+        class="tree-search-input w-full flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full rounded-md border px-2 py-2 text-sm focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 dark:bg-gray-900 dark:border-gray-700"
       >
         <!-- Selected tags display -->
         <template v-if="multiSelect && selectedNodes.length > 0">
@@ -444,10 +460,6 @@ mark {
 .tree-node.collapsed > .tree-children {
   max-height: 0;
   opacity: 0;
-}
-
-.tree-child:last-child > .tree-node::before {
-  height: 50%;
 }
 
 /* Selected tags styling */

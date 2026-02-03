@@ -3,8 +3,8 @@
   import type { VNode } from 'vue'
   import Checkbox from 'primevue/checkbox'
   import { BaseButton, BaseBadge, BaseIcon } from '../atoms'
-  import { Dialog } from 'primevue';
-  import * as XLSX from 'xlsx'
+  import { Dialog } from 'primevue'
+  import { exportToExcel } from '@/shared/utils/exportToExcel'
 
   // Simple component to render cell content
   const RenderCell = defineComponent({
@@ -125,53 +125,35 @@
 
   // Prepare export data
   const prepareExportData = (): Record<string, unknown>[] => {
-    // Use rawData if available, otherwise fallback to props.data
     const dataToExport = props.rawData && props.rawData.length > 0 ? props.rawData : props.data
-
     const columnsToExport = localColumns.value.filter(col => col.visible !== false && col.id !== 'actions')
-
-    const exportData = dataToExport.map(row => {
+    return dataToExport.map(row => {
       const newRow: Record<string, unknown> = {}
       columnsToExport.forEach(col => {
-        // We use the raw value from the JSON object, not the rendered HTML
         newRow[col.title] = (row as Record<string, unknown>)[col.id] ?? ''
       })
       return newRow
     })
-
-    return exportData
-  }
-
-  // Perform actual Excel export
-  const performExport = (dataToExport: Record<string, unknown>[]) => {
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1")
-    XLSX.writeFile(workbook, "ExportData.xlsx")
   }
 
   const handleExport = () => {
     const exportData = prepareExportData()
     const columnsToExport = localColumns.value.filter(col => col.visible !== false && col.id !== 'actions')
-
-    // If exportEndpoint is provided, emit event for parent to handle API call
     if (props.exportEndpoint) {
       emit('export-request', exportData, columnsToExport)
     } else {
-      // Direct export if no endpoint is provided (backward compatibility)
-      performExport(exportData)
+      exportToExcel(exportData)
     }
   }
 
-  // Watch for processed export data from parent and export when available
   watch(
     () => props.exportData,
     (newExportData) => {
       if (newExportData && newExportData.length > 0) {
-        performExport(newExportData)
+        exportToExcel(newExportData)
       }
     },
-    { immediate: false }
+    { immediate: false, flush: 'post' }
   )
 
 
@@ -186,7 +168,7 @@
     localColumns.value = newColumns
     emit('column-order-change', newColumns)
       props.onColumnOrderChange?.(newColumns)
-    }
+    } 
   }
 
   // Move column down
@@ -291,12 +273,12 @@
   </script>
 
   <template>
-    <div :class="['space-y-3 sm:space-y-4', className]">
-      <!-- Header با دکمه تنظیمات و جستجو -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center w-full justify-between gap-3 sm:gap-2 pb-2">
-        <div class="flex flex-1 items-center gap-3 w-full sm:w-auto">
-          <h3 class="text-base sm:text-lg font-semibold text-foreground whitespace-nowrap">نتایج جستجو</h3>
-          <div v-if="searchable" class="relative w-full sm:max-w-xs">
+    <div :class="['space-y-3 min-[931px]:space-y-4', className]">
+      <!-- Header: compact until 931px so 930px matches smaller screen style -->
+      <div class="flex flex-col min-[931px]:flex-row items-start min-[931px]:items-center w-full justify-between gap-3 min-[931px]:gap-2 pb-2">
+        <div class="flex flex-1 items-center gap-3 w-full min-[931px]:w-auto">
+          <h3 class="text-base min-[931px]:text-lg font-semibold text-foreground whitespace-nowrap">نتایج جستجو</h3>
+          <div v-if="searchable" class="relative w-full min-[931px]:max-w-xs">
                 <BaseIcon
                   name="Search"
                   :size="16"
@@ -318,24 +300,24 @@
           class="border-2 border-success-500 text-success-600 hover:bg-success-50"
         >
           <BaseIcon name="Download" :size="16" />
-          <span class="hidden sm:inline">خروجی Excel</span>
-          <span class="sm:hidden">Excel</span>
+          <span class="hidden min-[931px]:inline">خروجی Excel</span>
+          <span class="min-[931px]:hidden">Excel</span>
         </BaseButton>
 
         </div>
-        <div class="flex items-center justify-end gap-2 w-full sm:w-auto">
-          <BaseBadge variant="secondary" class="px-3 sm:px-4 py-1 text-xs sm:text-sm">
+        <div class="flex items-center justify-end gap-2 w-full min-[931px]:w-auto">
+          <BaseBadge variant="secondary" class="px-3 min-[931px]:px-4 py-1 text-xs min-[931px]:text-sm">
             {{ sortedData.length }} مورد
           </BaseBadge>
           <BaseButton
             variant="outline"
             size="sm"
-            class="flex items-center gap-2 border-2 border-border hover:bg-secondary-300 text-xs sm:text-sm sm:flex-initial hover:text-black dark:hover:text-white "
+            class="flex items-center gap-2 border-2 border-border hover:bg-secondary-300 text-xs min-[931px]:text-sm min-[931px]:flex-initial hover:text-black dark:hover:text-white "
             @click="isSettingsOpen = true"
           >
-            <BaseIcon name="Settings" :size="14" class="sm:w-4 sm:h-4" />
-            <span class="hidden sm:inline">تنظیمات ستون‌ها</span>
-            <span class="sm:hidden">تنظیمات</span>
+            <BaseIcon name="Settings" :size="14" class="min-[931px]:w-4 min-[931px]:h-4" />
+            <span class="hidden min-[931px]:inline">تنظیمات ستون‌ها</span>
+            <span class="min-[931px]:hidden">تنظیمات</span>
           </BaseButton>
         </div>
       </div>
@@ -434,8 +416,8 @@
       <!-- Table with Expandable Rows -->
       <div ref="tableContainerRef" class="border-2 border-border rounded-lg overflow-x-auto">
         <table class="w-full min-w-[600px]">
-          <!-- Desktop Header: All columns -->
-          <thead class="hidden md:table-header-group">
+          <!-- Desktop Header: All columns (show from 931px so 930px uses card style) -->
+          <thead class="hidden min-[931px]:table-header-group">
             <tr class="bg-primary-50 hover:bg-primary-50 border-b-2 border-primary-200">
               <th
                 v-for="(column, colIndex) in visibleColumns"
@@ -469,7 +451,7 @@
             </tr>
           </thead>
           <!-- Mobile Header: Expand icon + Primary columns -->
-          <thead class="md:hidden">
+          <thead class="min-[931px]:hidden">
             <tr class="bg-primary-50 hover:bg-primary-50 border-b-2 border-primary-200">
               <th class="text-center text-primary-700 py-2 px-2 text-xs font-semibold w-10 border-r border-border"></th>
               <th
@@ -515,7 +497,7 @@
             <!-- Desktop Rows: All columns -->
             <template v-for="(row, rowIndex) in sortedData" :key="rowIndex">
             <tr
-                class="hidden md:table-row hover:bg-primary-50/50 transition-colors border-b border-border"
+                class="hidden min-[931px]:table-row hover:bg-primary-50/50 transition-colors border-b border-border"
                   >
               <td
                 v-for="(column, colIndex) in visibleColumns"
@@ -535,7 +517,7 @@
             </tr>
               <!-- Mobile Rows: Expandable -->
               <tr
-                class="md:hidden hover:bg-primary-50/50 transition-colors border-b border-border cursor-pointer"
+                class="min-[931px]:hidden hover:bg-primary-50/50 transition-colors border-b border-border cursor-pointer"
                 @click="toggleRow(rowIndex)"
               >
                 <!-- Expand Icon (Right side) -->
@@ -578,7 +560,7 @@
               <Transition name="expand">
                 <tr
                   v-if="expandedRows.includes(rowIndex)"
-                  class="md:hidden bg-primary-100/40 dark:bg-primary-900/20 border-l-4 border-primary-500"
+                  class="min-[931px]:hidden bg-primary-100/40 dark:bg-primary-900/20 border-l-4 border-primary-500"
                 >
                   <td
                     :colspan="primaryColumns.length + (actionsColumn ? 1 : 0) + 1"

@@ -83,19 +83,28 @@ watch(
         @click="handleBackdropClick"
       >
         <div
-          class="bg-card-background rounded-xl shadow-2xl w-full"
+          class="bg-card-background rounded-xl shadow-2xl w-full max-h-[min(90vh,calc(100vh-8rem))] flex flex-col min-w-0"
           :class="sizeClasses"
           @click.stop
         >
           <div
             v-if="title || $slots.header"
-            class="flex items-center justify-between p-6 border-b border-border-default"
+            class="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-border-default flex-shrink-0 min-w-0"
           >
-            <h2 v-if="title" class="text-xl font-bold text-foreground">
-              {{ title }}
-            </h2>
-            <slot name="header" />
-            <button class="p-2 hover:bg-secondary rounded-lg transition-colors" @click="close">
+            <div class="min-w-0 flex-1 flex items-center gap-2">
+              <h2
+                v-if="title"
+                class="text-base sm:text-xl font-bold text-foreground line-clamp-2 break-words"
+              >
+                {{ title }}
+              </h2>
+              <slot name="header" />
+            </div>
+            <button
+              class="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+              aria-label="بستن"
+              @click="close"
+            >
               <svg
                 class="w-5 h-5 text-muted-foreground"
                 fill="none"
@@ -111,10 +120,15 @@ watch(
               </svg>
             </button>
           </div>
-          <div class="p-6">
+          <div
+            class="p-4 sm:p-6 overflow-y-auto overflow-x-hidden min-h-0 min-w-0 flex-1"
+          >
             <slot />
           </div>
-          <div v-if="$slots.footer" class="p-6 border-t border-border-default">
+          <div
+            v-if="$slots.footer"
+            class="p-4 sm:p-6 border-t border-border-default flex-shrink-0"
+          >
             <slot name="footer" />
           </div>
         </div>

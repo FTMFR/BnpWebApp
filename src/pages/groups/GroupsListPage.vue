@@ -2,12 +2,14 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/design-system/templates'
-import { Breadcrumb, Card, Modal } from '@/design-system/molecules'
+import { Breadcrumb, Card, Modal, AccessDeniedModal } from '@/design-system/molecules'
 import { BaseButton, BaseIcon, CustomLoader } from '@/design-system/atoms'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { useToastStore } from '@/stores/toast'
 import { useAuth } from '@/shared/composables/useAuth'
+import { useRouteAccess } from '@/shared/composables/useRouteAccess'
+import { useAccessDenied } from '@/shared/composables/useAccessDenied'
 
 export interface Group {
   PublicId: string
@@ -22,6 +24,9 @@ export interface Group {
 const router = useRouter()
 const { fetchUser, isLoadingUser } = useAuth()
 const toastStore = useToastStore()
+const { hasAccess } = useRouteAccess()
+const { showAccessDeniedModal, accessDeniedTitle, accessDeniedMessage, openAccessDeniedModal } =
+  useAccessDenied()
 
 const groups = ref<Group[]>([])
 const isLoadingGroups = ref(false)
@@ -77,12 +82,32 @@ const fetchGroups = async () => {
   }
 }
 
-const handleCreate = () => router.push('/grp/create')
+const handleCreate = () => {
+  if (!hasAccess('Groups.Create')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ایجاد گروه جدید را ندارید' })
+    return
+  }
+  router.push('/grp/create')
+}
+
 const cancelDelete = () => {
   showDeleteModal.value = false
 }
 
+const handleEditGroup = (node: Group) => {
+  if (isSystemAdminGroup(node)) return
+  if (!hasAccess('Groups.Update')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ویرایش گروه را ندارید' })
+    return
+  }
+  router.push(`/grp/${node.PublicId}`)
+}
+
 const handleDelete = (g: Group) => {
+  if (!hasAccess('Groups.Delete')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای حذف گروه را ندارید' })
+    return
+  }
   groupToDelete.value = g
   showDeleteModal.value = true
 }
@@ -158,10 +183,7 @@ const TreeNode = ({ node, level = 0 }: { node: Group; level?: number }) => {
                   size: 'sm',
                   disabled: isSystemAdminGroup(node),
                   class: isSystemAdminGroup(node) ? 'opacity-40 cursor-not-allowed' : '',
-                  onClick: () => {
-                    if (isSystemAdminGroup(node)) return
-                    router.push(`/grp/${node.PublicId}`)
-                  },
+                  onClick: () => handleEditGroup(node),
                 },
                 () => h(BaseIcon, { name: 'Edit', size: 16 }),
               ),
@@ -208,7 +230,7 @@ const isSystemAdminGroup = (group?: Group | null) => {
   </div>
 
   <DashboardLayout v-else>
-    <div class="space-y-6">
+    <div class="space-y-4 sm:space-y-6 min-w-0 overflow-x-auto">
       <div class="hidden sm:block">
         <Breadcrumb
           :items="[
@@ -218,9 +240,9 @@ const isSystemAdminGroup = (group?: Group | null) => {
         />
       </div>
 
-      <Card title="لیست گروه‌ها" variant="elevated" padding="none">
+      <Card title="لیست گروه‌ها" variant="elevated" padding="none" class="min-w-0">
         <template #header>
-          <div class="p-6 flex justify-between items-center">
+          <div class="p-4 sm:p-6 flex justify-between items-center flex-wrap gap-2">
             <BaseButton
               variant="outline"
               @click="handleCreate"
@@ -232,12 +254,12 @@ const isSystemAdminGroup = (group?: Group | null) => {
           </div>
         </template>
 
-        <div class="flex flex-col lg:flex-row w-full min-h-[500px]">
+        <div class="flex flex-col lg:flex-row w-full min-h-[500px] min-w-0">
           <!-- LEFT: TREE -->
           <div
             ref="leftPanel"
             :class="[
-              'border-l transition-all duration-300 ease-in-out lg:transition-[width] border-border-default bg-white dark:bg-gray-900',
+              'border-l transition-all duration-300 ease-in-out lg:transition-[width] border-border-default bg-white dark:bg-gray-900 min-w-0',
               selectedGroup ? 'hidden lg:block' : 'block',
               selectedGroup ? 'lg:w-[320px] xl:w-[360px]' : 'w-full',
             ]"
@@ -330,7 +352,7 @@ const isSystemAdminGroup = (group?: Group | null) => {
                         size="sm"
                         :disabled="isSystemAdminGroup(child)"
                         :class="isSystemAdminGroup(child) ? 'opacity-40 cursor-not-allowed' : ''"
-                        @click="!isSystemAdminGroup(child) && router.push(`/grp/${child.PublicId}`)"
+                        @click="handleEditGroup(child)"
                       >
                         <BaseIcon name="Edit" :size="16" />
                       </BaseButton>
@@ -389,6 +411,12 @@ const isSystemAdminGroup = (group?: Group | null) => {
       </div>
     </template>
   </Modal>
+
+  <AccessDeniedModal
+    v-model="showAccessDeniedModal"
+    :title="accessDeniedTitle"
+    :message="accessDeniedMessage"
+  />
 </template>
 
 <style scoped>

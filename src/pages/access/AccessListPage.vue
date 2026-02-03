@@ -16,6 +16,8 @@ import { type DataTableColumn } from '@/design-system/organisms'
 import TableWithSettings from '@/design-system/organisms/TableWithSettings.vue'
 import { useAuth } from '@/shared/composables/useAuth'
 import { useRouteAccess } from '@/shared/composables/useRouteAccess'
+import { useAccessDenied } from '@/shared/composables/useAccessDenied'
+import { AccessDeniedModal } from '@/design-system/molecules'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import type { ApiMenuItem } from '@/shared/api/types'
@@ -42,6 +44,13 @@ type TableColumn<T = Record<string, unknown>> = {
 const { fetchUser, isLoadingUser } = useAuth()
 const router = useRouter()
 const { hasAccess } = useRouteAccess()
+const {
+  showAccessDeniedModal,
+  accessDeniedTitle,
+  accessDeniedMessage,
+  openAccessDeniedModal,
+  closeAccessDeniedModal,
+} = useAccessDenied()
 
 // Fetch user info on mount
 onMounted(() => {
@@ -71,7 +80,6 @@ const handleHelpClick = () => {
 }
 
 const currentPage = ref(1)
-
 
 const fetchPermissions = async () => {
   // isLoadingMenus.value = true
@@ -142,7 +150,6 @@ const AccessColumns = ref<DataTableColumn<Access>[]>([
 // const showFilters = ref(false)
 // const searchQuery = ref('')
 
-
 // const handleView = (row: Access) => {
 //   console.log('View user:', row.username)
 //   // TODO: Navigate to view page
@@ -155,7 +162,6 @@ const AccessColumns = ref<DataTableColumn<Access>[]>([
 
 const showDeleteModal = ref(false)
 const userToDelete = ref<Access | null>(null)
-const showAccessDeniedModal = ref(false)
 
 const handleDelete = (row: Access) => {
   userToDelete.value = row
@@ -179,15 +185,11 @@ const handleExport = () => {
   // TODO: Implement export
 }
 
-const handleCreate = async () => {
-  // Check if user has access to the permission list route
-  const routePath = '/permission/list'
-
-  if (hasAccess(routePath)) {
-    router.push(routePath)
+const handleCreate = () => {
+  if (hasAccess('Permissions.Manage')) {
+    router.push({ name: 'permission-create' })
   } else {
-    // Show access denied modal
-    showAccessDeniedModal.value = true
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ایجاد دسترسی جدید را ندارید' })
   }
 }
 
@@ -366,19 +368,19 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
     @notification-click="handleNotificationClick"
     @help-click="handleHelpClick"
   >
-    <div class="space-y-4 sm:space-y-6">
+    <div class="space-y-4 sm:space-y-6 min-w-0 overflow-x-auto">
       <!-- Breadcrumb -->
       <div class="hidden sm:block">
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
       <!-- Card with Filters and Table -->
-      <Card variant="elevated" padding="none">
+      <Card variant="elevated" padding="none" class="min-w-0">
         <!-- Header -->
         <template #header>
           <div class="p-4 sm:p-6">
             <div
-              class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6"
+              class="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6"
             >
               <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                 لیست دسترسی‌ها
@@ -397,8 +399,6 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
 
             <!-- Search and Actions Row (Always Visible) -->
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-
-
               <!-- Action Buttons -->
               <div class="flex items-center gap-2 sm:gap-3">
                 <BaseButton
@@ -415,10 +415,8 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
           </div>
         </template>
 
-
-
         <!-- Table Section -->
-        <div class="border-t border-border-default p-3 sm:p-4 md:p-6 overflow-x-auto">
+        <div class="border-t border-border-default p-3 sm:p-4 md:p-6 overflow-x-auto min-w-0">
           <TableWithSettings
             :columns="tableColumns"
             :data="mockUsers"
@@ -426,7 +424,6 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
             @column-visibility-change="handleColumnVisibilityChange"
           />
         </div>
-
       </Card>
     </div>
 
@@ -469,30 +466,11 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
     </Modal>
 
     <!-- Access Denied Modal -->
-    <Modal v-model="showAccessDeniedModal" title="عدم دسترسی" size="sm" :close-on-backdrop="true">
-      <div class="space-y-4">
-        <div class="flex items-start gap-3">
-          <div
-            class="flex-shrink-0 w-10 h-10 rounded-full bg-warning-100 dark:bg-warning-900/30 flex items-center justify-center"
-          >
-            <BaseIcon name="AlertCircle" :size="20" class="text-warning-600" />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm font-medium text-foreground mb-1">
-              شما دسترسی لازم برای ایجاد دسترسی جدید را ندارید
-            </p>
-            <p class="text-xs text-muted-foreground">
-              برای دسترسی به این بخش، با مدیر سیستم تماس بگیرید.
-            </p>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex items-center justify-end">
-          <BaseButton variant="outline" @click="showAccessDeniedModal = false"> بستن </BaseButton>
-        </div>
-      </template>
-    </Modal>
+    <AccessDeniedModal
+      v-model="showAccessDeniedModal"
+      :title="accessDeniedTitle"
+      :message="accessDeniedMessage"
+    />
   </DashboardLayout>
 </template>
 

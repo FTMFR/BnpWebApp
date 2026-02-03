@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { useAuthStore, type AuthUser } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permission'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import type { MySessionsResponse, Session } from '@/shared/api/types'
@@ -47,6 +48,8 @@ export function useAuth() {
       // Set token and publicId, but don't fetch user yet
       // User fetching will be handled in LoginForm after session check
       authStore.setAuth(loginData.Token, loginData.PublicId)
+      const permissionStore = usePermissionsStore()
+      await permissionStore.fetchPermissions()
     },
     onError: (error: unknown) => {
       console.error('Login error:', error)
@@ -99,6 +102,7 @@ export function useAuth() {
       console.error('Logout API error:', error)
     } finally {
       authStore.clear()
+      usePermissionsStore().clearPermissions()
       router.push('/login')
     }
   }

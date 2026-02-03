@@ -73,15 +73,15 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
     class="sticky top-0 z-sticky bg-card-background border-b-2 border-border-default shadow-lg w-full"
   >
     <div
-      class="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-6 py-3 sm:py-4 w-full"
+      class="flex items-center justify-between gap-4 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-6 py-3 sm:py-4 w-full"
     >
       <!-- سمت راست: لوگو + دکمه toggle سایدبار (دسکتاپ) + جستجو -->
-      <div class="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 flex-shrink-0">
+      <div class="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-w-0 flex-1">
         <!-- Desktop Sidebar Toggle Button -->
         <button
           v-if="toggleSidebarCollapse"
           @click="toggleSidebarCollapse"
-          class="group hidden lg:flex w-9 h-9 rounded-lg bg-card-background border border-border-default flex items-center justify-center cursor-pointer transition-all hover:bg-primary-100 dark:hover:bg-primary-900/20 hover:border-primary-400 dark:hover:border-primary-700 flex-shrink-0"
+          class="group hidden md:flex w-9 h-9 rounded-lg bg-card-background border border-border-default flex items-center justify-center cursor-pointer transition-all hover:bg-primary-100 dark:hover:bg-primary-900/20 hover:border-primary-400 dark:hover:border-primary-700 flex-shrink-0"
           aria-label="Toggle Sidebar"
         >
           <BaseIcon
@@ -93,7 +93,10 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
         </button>
 
         <!-- Logo Section -->
-        <RouterLink to="/dashboard" class="flex items-center gap-2 sm:gap-3 group !bg-transparent">
+        <RouterLink
+          to="/dashboard"
+          class="flex items-center gap-2 sm:gap-3 group !bg-transparent min-w-0 flex-1 sm:flex-initial"
+        >
           <div
             class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0"
           >
@@ -131,7 +134,7 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
       </div>
 
       <!-- سمت چپ: تم تاگل + اعلانات + پروفایل -->
-      <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+      <div class="flex items-center gap-3 sm:gap-2 flex-shrink-0">
         <button
           @click="toggleTheme"
           class="group w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-card-background border border-border-default flex items-center justify-center cursor-pointer transition-all shadow-sm hover:bg-primary-100 dark:hover:bg-primary-900/20 hover:border-primary-400 dark:hover:border-primary-700 hover:scale-105"
@@ -152,7 +155,7 @@ const toggleSidebarCollapse = inject<(() => void) | undefined>('toggleSidebarCol
 
         <button
           v-if="showHelp"
-          class="group hidden sm:flex p-2 hover:bg-primary-100 dark:hover:bg-gray-300/20 rounded-lg transition-colors"
+          class="group flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-lg border border-border-default bg-card-background shadow-sm transition-all hover:bg-primary-100 dark:hover:bg-primary-900/20 hover:border-primary-400 dark:hover:border-primary-700 sm:border-0 sm:bg-transparent sm:shadow-none sm:p-2"
           @click="emit('help-click')"
           aria-label="Help"
         >

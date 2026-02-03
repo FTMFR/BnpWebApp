@@ -36,7 +36,13 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <Card :back-route="routeBack" :title="title" :description="description" variant="elevated" padding="none">
+  <Card
+    :back-route="routeBack"
+    :title="title"
+    :description="description"
+    variant="elevated"
+    padding="none"
+  >
     <template #header></template>
 
     <form @submit.prevent="handleSubmit">
@@ -45,9 +51,7 @@ const handleCancel = () => {
       </div>
 
       <div class="flex items-center justify-end gap-3 pt-4 sm:pt-6">
-        <!-- default cancel -->
         <button type="button" class="hidden" @click="handleCancel" />
-
         <slot name="footer" />
       </div>
     </form>

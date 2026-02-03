@@ -39,7 +39,7 @@ const handleHelpClick = () => {
     @notification-click="handleNotificationClick"
     @help-click="handleHelpClick"
   >
-    <div class="flex items-center justify-center min-h-[60vh] p-4 sm:p-6">
+    <div class="flex items-center justify-center min-h-[60vh] p-4 sm:p-6 min-w-0 overflow-x-auto">
       <div class="text-center max-w-md">
         <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-muted-foreground mb-2 sm:mb-3">
           صفحه غیرفعال

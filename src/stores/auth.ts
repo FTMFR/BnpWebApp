@@ -25,6 +25,8 @@ export const STORAGE_KEYS = {
   publicId: 'auth_public_id',
 } as const
 
+/** Set when password was changed; 401 handler clears auth and redirects without calling refresh/logout. Cleared in clear(). */
+
 export const useAuthStore = defineStore('auth', () => {
   const Token = ref<string | null>(null)
   const publicId = ref<string | null>(null)

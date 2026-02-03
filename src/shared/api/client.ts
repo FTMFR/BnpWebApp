@@ -4,6 +4,7 @@ import { endpoints } from './endpoints';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import { useSessionModalStore } from '@/stores/sessionModal';
+import { usePermissionsStore } from '@/stores/permission';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? '/api' : '/api');
@@ -41,12 +42,7 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${authStore.Token}`;
     }
 
-    // Enable credentials for refresh endpoint to send httpOnly cookies
-    // if (config.url?.includes('/Auth/refresh')) {
-    //   config.withCredentials = true;
-    // }
-
-    // config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    config.headers['X-Requested-With'] = 'XMLHttpRequest';
     config.headers['Accept'] = 'application/json';
 
     return config;
@@ -77,6 +73,19 @@ apiClient.interceptors.response.use(
       let shouldShowToast = false;
       let toastMessage = '';
 
+      // Token invalidated by password change: clear locally and redirect without calling refresh/logout (they would 401)
+      if (status === 401 && typeof sessionStorage !== 'undefined') {
+        const authStore = useAuthStore();
+        const permissionStore = usePermissionsStore();
+        const sessionModalStore = useSessionModalStore();
+        authStore.clear();
+        permissionStore.clearPermissions();
+        sessionModalStore.closeModal();
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
 
       if (status === 401 && originalRequest && originalRequest.url?.includes('/Auth/refresh')) {
         const errorMessage = data?.message || '';
@@ -84,13 +93,9 @@ apiClient.interceptors.response.use(
           errorMessage.includes('یافت نشد') || errorMessage.includes('Refresh Token');
 
         if (isRefreshTokenNotFound) {
-          // Refresh token cookie not found, but token might still be valid
-          // Don't logout, just reject the request silently
-          // User can continue with current token until it expires
           return Promise.reject(error);
         }
 
-        // For other 401 errors on refresh, logout user
         const authStore = useAuthStore();
         try {
           await apiClient.post(endpoints.auth.logout);
@@ -131,7 +136,7 @@ apiClient.interceptors.response.use(
 
 
           try {
-            const refreshResponse = await apiClient.post(endpoints.auth.refresh);
+            await apiClient.post(endpoints.auth.refresh);
 
             processQueue(null);
             return apiClient.request(originalRequest);
@@ -142,14 +147,10 @@ apiClient.interceptors.response.use(
               errorMessage.includes('Refresh Token');
 
             if (isRefreshTokenNotFound) {
-              // Cookie not found, but current token might still be valid
-              // Don't logout, just fail the refresh attempt
-              // Original request will fail, but user won't be logged out
               processQueue(refreshError);
               return Promise.reject(refreshError);
             }
 
-            // For other errors, proceed with normal logout
             processQueue(refreshError);
             const authStore = useAuthStore();
 
@@ -171,6 +172,25 @@ apiClient.interceptors.response.use(
           } finally {
             isRefreshing = false;
           }
+        }
+      }
+
+      if (status === 401) {
+        const isLoginRequest = originalRequest?.url?.includes('/Auth/login');
+        const isRefreshRequest = originalRequest?.url?.includes('/Auth/refresh');
+        const isLogoutRequest = originalRequest?.url?.includes('/Auth/logout');
+        if (!isLoginRequest && !isRefreshRequest && !isLogoutRequest && window.location.pathname !== '/login') {
+          const authStore = useAuthStore();
+          try {
+            await apiClient.post(endpoints.auth.logout);
+          } catch (logoutError) {
+            // Logout often returns 401 when token is already invalid; we still clear and redirect
+            console.error('Logout API error:', logoutError);
+          }
+          authStore.clear();
+          toastStore.showToast('نشست منقضی شده است. لطفاً دوباره وارد شوید.', 'error', 5000);
+          window.location.href = '/login';
+          return Promise.reject(error);
         }
       }
 

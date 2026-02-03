@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { setupAuthGuard } from './guards/auth'
+import { setupPermissionGuard } from './guards/permission'
 import { setupMenuPermissionGuard } from './guards/menu-permission'
 import LoginPage from '@/pages/auth/LoginPage.vue'
 import DashboardPage from '@/pages/dashboard/DashboardPage.vue'
@@ -80,9 +81,11 @@ const router = createRouter({
       path: '/users/:id',
       name: 'user-update',
       component: () => import('@/pages/users/UserViewPage.vue'),
-      // meta: {
-      //   permissions: ['Users.Update']
-      // }
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        permissions: ['Users.Update'],
+      },
     },
     {
       path: '/grp/list',
@@ -91,6 +94,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Groups.Read'],
       },
     },
     {
@@ -100,6 +104,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Groups.Create'],
       },
     },
     {
@@ -109,6 +114,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Groups.Update'],
       },
     },
     {
@@ -118,6 +124,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Menus.Read'],
       },
     },
     {
@@ -136,6 +143,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Menus.Update'],
       },
     },
     {
@@ -145,12 +153,32 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Permissions.Read'],
+      },
+    },
+    {
+      path: '/Permission/Assign',
+      name: 'permission-group-access',
+      component: () => import('@/pages/access/GroupAccessPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        permissions: ['Permissions.Read'],
       },
     },
     {
       path: '/profile',
       name: 'profile',
       component: () => import('@/pages/UserProfile.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard'
+      }
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/pages/SettingsPage.vue'),
       meta: {
         requiresAuth: true,
         layout: 'dashboard'
@@ -189,8 +217,8 @@ const router = createRouter({
   ],
 })
 
-// Setup guards
 setupAuthGuard(router)
+setupPermissionGuard(router)
 setupMenuPermissionGuard(router)
 
 export default router

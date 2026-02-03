@@ -9,10 +9,12 @@ import Modal from '@/design-system/molecules/Modal.vue'
 import BaseDropdown, { type DropdownItem } from '@/design-system/molecules/BaseDropdown.vue'
 import TableWithSettings from '@/design-system/organisms/TableWithSettings.vue'
 import { useAuth } from '@/shared/composables/useAuth'
-// import { useRouteAccess } from '@/shared/composables/useRouteAccess'
+import { useRouteAccess } from '@/shared/composables/useRouteAccess'
+import { useAccessDenied } from '@/shared/composables/useAccessDenied'
+import { AccessDeniedModal } from '@/design-system/molecules'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
-// import { useUserInfo } from '@/shared/composables/useUserInfo'
+import { extractExportArray } from '@/shared/utils/exportToExcel'
 import { useToastStore } from '@/stores/toast'
 import PasswordChangeModal from '@/design-system/organisms/PasswordChangeModal.vue'
 
@@ -72,7 +74,13 @@ type TableColumn<T = Record<string, unknown>> = {
 
 const { fetchUser, isLoadingUser } = useAuth()
 const router = useRouter()
-// const { hasAccess } = useRouteAccess()
+const { hasAccess } = useRouteAccess()
+const { showAccessDeniedModal, accessDeniedTitle, accessDeniedMessage, openAccessDeniedModal } =
+  useAccessDenied()
+
+const canExportUsers = computed(() => hasAccess('Users.Export'))
+const canDeleteUsers = computed(() => hasAccess('Users.Delete'))
+
 const users = ref<User[]>([])
 
 const isLoadingUsers = ref(false)
@@ -186,6 +194,10 @@ const userColumns = ref<DataTableColumn<User>[]>([
 // const showFilters = ref(false)
 
 const handleEdit = (row: User) => {
+  if (!hasAccess('Users.Update')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ویرایش کاربر را ندارید' })
+    return
+  }
   router.push(`/users/${row.PublicId}`)
 }
 
@@ -197,11 +209,19 @@ const currentPublicId = ref<string | null>(null)
 const toastStore = useToastStore()
 
 const handleDelete = (row: User) => {
+  if (!hasAccess('Users.Delete')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای حذف کاربر را ندارید' })
+    return
+  }
   userToDelete.value = row
   showDeleteModal.value = true
 }
 
 const handleCreate = () => {
+  if (!hasAccess('Users.Create')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ایجاد کاربر جدید را ندارید' })
+    return
+  }
   router.push('/users/create')
 }
 
@@ -259,8 +279,12 @@ const convertToTableColumns = (cols: DataTableColumn<User>[]): TableColumn<User>
         const menuItems: DropdownItem[] = [
           { label: 'ویرایش', value: 'edit' },
           { label: 'تغییر رمز عبور کاربر', value: 'changePass' },
-          { divider: true, label: '', value: '' },
-          { label: 'حذف', value: 'delete' },
+          ...(canDeleteUsers.value
+            ? ([
+                { divider: true, label: '', value: '' },
+                { label: 'حذف', value: 'delete' },
+              ] as DropdownItem[])
+            : []),
         ]
 
         const handleAction = (item: DropdownItem) => {
@@ -407,25 +431,29 @@ const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
   }
 }
 
-// Handle export request from TableWithSettings
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- columns passed by TableWithSettings for future use
+// TableWithSettings emits (data, columns); we fetch from API instead of using them
 const handleExportRequest = async (
-  data: Record<string, unknown>[],
+  _data: Record<string, unknown>[],
   _columns: TableColumn<User>[],
 ) => {
+  void _data
+  void _columns
+  if (!hasAccess('Users.Export')) {
+    openAccessDeniedModal({ message: 'شما دسترسی لازم برای خروجی Excel کاربران را ندارید' })
+    return
+  }
   try {
-    // Call API with export data
-    const response = await apiClient.post<Record<string, unknown>[]>(endpoints.users.export, data)
-
-    // Set processed data - component will watch this and trigger export
-    processedExportData.value = response.data
-
+    const response = await apiClient.get(endpoints.users.export)
+    const list = extractExportArray(response.data)
+    if (list.length === 0) {
+      toastStore.showToast('داده‌ای برای خروجی یافت نشد.', 'warning', 3000)
+      return
+    }
+    processedExportData.value = list.map((row) => ({ ...row }))
     toastStore.showToast('داده‌ها با موفقیت آماده خروجی شدند.', 'success', 3000)
-
-    // Reset after a short delay to allow export to complete
     setTimeout(() => {
       processedExportData.value = null
-    }, 1000)
+    }, 1500)
   } catch (error: unknown) {
     console.error('Export failed:', error)
     toastStore.showToast('مشکلی در آماده‌سازی خروجی رخ داده است.', 'error', 3000)
@@ -449,18 +477,20 @@ const handleClosePasswordModal = () => {
     @notification-click="handleNotificationClick"
     @help-click="handleHelpClick"
   >
-    <div class="space-y-4 sm:space-y-6">
-      <!-- Breadcrumb -->
-      <div class="hidden sm:block">
+    <div class="space-y-4 min-[931px]:space-y-6 min-w-0 overflow-x-auto">
+      <!-- Breadcrumb: hidden until 931px so 930px looks like smaller screen -->
+      <div class="hidden min-[931px]:block">
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
       <!-- Card with Filters and Table -->
-      <Card title="لیست کاربران" variant="elevated" padding="none">
+      <Card title="لیست کاربران" variant="elevated" padding="none" class="min-w-0">
         <!-- Header -->
         <template #header>
-          <div class="py-4 sm:py-6">
-            <div class="flex flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div class="py-4 min-[931px]:py-6">
+            <div
+              class="flex flex-row flex-wrap items-start min-[931px]:items-center justify-between gap-3 min-[931px]:gap-4"
+            >
               <!-- Create Button - Only show if user has permission -->
               <BaseButton
                 variant="outline"
@@ -468,8 +498,8 @@ const handleClosePasswordModal = () => {
                 class="border-2 border-success-500 text-success-600"
               >
                 <BaseIcon name="Plus" :size="16" />
-                <span class="hidden sm:inline">ایجاد کاربر جدید</span>
-                <span class="sm:hidden">ایجاد</span>
+                <span class="hidden min-[931px]:inline">ایجاد کاربر جدید</span>
+                <span class="min-[931px]:hidden">ایجاد</span>
               </BaseButton>
             </div>
           </div>
@@ -564,8 +594,10 @@ const handleClosePasswordModal = () => {
           </div>
         </Transition> -->
 
-        <!-- Table Section -->
-        <div class="border-t border-border-default py-3 sm:py-4 md:py-6 overflow-x-auto">
+        <!-- Table Section: smaller padding until 931px -->
+        <div
+          class="border-t border-border-default py-3 min-[931px]:py-4 min-[931px]:py-6 overflow-x-auto min-w-0"
+        >
           <CustomLoader v-if="isLoadingUsers" size="lg" class="mx-auto my-10" />
           <TableWithSettings
             v-else
@@ -573,7 +605,7 @@ const handleClosePasswordModal = () => {
             :data="users"
             :raw-data="fullApiData"
             :searchable="true"
-            :exportable="true"
+            :exportable="canExportUsers"
             :export-endpoint="endpoints.users.export"
             :export-data="processedExportData || undefined"
             @column-order-change="handleColumnOrderChange"
@@ -628,30 +660,11 @@ const handleClosePasswordModal = () => {
       @close="handleClosePasswordModal"
     />
     <!-- Access Denied Modal -->
-    <!-- <Modal v-model="showAccessDeniedModal" title="عدم دسترسی" size="sm" :close-on-backdrop="true">
-      <div class="space-y-4">
-        <div class="flex items-start gap-3">
-          <div
-            class="flex-shrink-0 w-10 h-10 rounded-full bg-warning-100 dark:bg-warning-900/30 flex items-center justify-center"
-          >
-            <BaseIcon name="AlertCircle" :size="20" class="text-warning-600" />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm font-medium text-foreground mb-1">
-              شما دسترسی لازم برای ایجاد کاربر جدید را ندارید
-            </p>
-            <p class="text-xs text-muted-foreground">
-              برای دسترسی به این بخش، با مدیر سیستم تماس بگیرید.
-            </p>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex items-center justify-end">
-          <BaseButton variant="outline" @click="showAccessDeniedModal = false"> بستن </BaseButton>
-        </div>
-      </template>
-    </Modal> -->
+    <AccessDeniedModal
+      v-model="showAccessDeniedModal"
+      :title="accessDeniedTitle"
+      :message="accessDeniedMessage"
+    />
   </DashboardLayout>
 </template>
 

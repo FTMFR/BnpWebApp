@@ -49,6 +49,13 @@ export interface ResetUserPassRequest {
   MustChangePassword?: boolean
 }
 
+/** Request body for current user changing their own password (Auth/change-password). */
+export interface ChangeMyPasswordRequest {
+  CurrentPassword: string
+  NewPassword: string
+  ConfirmNewPassword: string
+}
+
 export interface CreateUserResponse {
   success: boolean
   message?: string
@@ -80,6 +87,34 @@ export interface MySessionsResponse {
   CurrentSessionCount: number
   totalCount: number
   maxConcurrentSessions: number
+}
+
+// ============================================
+// Group Access Tree (Permission/group/{id}/access-tree)
+// ============================================
+
+export interface GroupAccessPermission {
+  PermissionId: number
+  PermissionName: string
+  Resource: string
+  Action: string
+  HasAccess: boolean
+}
+
+export interface GroupAccessMenu {
+  MenuId: number
+  MenuTitle: string
+  MenuPath: string
+  IsMenu: boolean
+  HasAccess: boolean
+  Permissions: GroupAccessPermission[]
+  Children: GroupAccessMenu[]
+}
+
+export interface GroupAccessTreeResponse {
+  GroupId: number
+  GroupTitle: string
+  Menus: GroupAccessMenu[]
 }
 
 

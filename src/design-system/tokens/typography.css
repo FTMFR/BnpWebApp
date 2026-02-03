@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap');
 
 :root {
-  /* Font Size */
+  /* Font Size – set by media queries below for responsive scaling */
   --font-size: 16px;
 
   /* Font Weights */
@@ -25,26 +25,46 @@ html {
   font-size: var(--font-size);
 }
 
+/* Responsive typography for main content (dashboard layout) */
+@media (max-width: 639px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
 /**
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ * Sizes use rem so they scale with responsive html font-size.
  */
 :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
   h1 {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 2vw + 1rem, 1.5rem);
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    line-height: 1.4;
   }
 
   h2 {
-    font-size: 1.25rem;
+    font-size: clamp(1.125rem, 1.5vw + 0.75rem, 1.25rem);
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    line-height: 1.4;
   }
 
   h3 {
-    font-size: 1.125rem;
+    font-size: clamp(1rem, 1vw + 0.75rem, 1.125rem);
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    line-height: 1.4;
   }
 
   h4 {
@@ -54,27 +74,26 @@ html {
   }
 
   p {
-    font-size: 1rem;
+    font-size: 1em;
     font-weight: var(--font-weight-normal);
-    line-height: 1.5;
+    line-height: 1.6;
   }
 
   label {
-    font-size: 1rem;
+    font-size: 1em;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   button {
-    font-size: 1rem;
+    font-size: 1em;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   input {
-    font-size: 1rem;
+    font-size: 1em;
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
 }
-

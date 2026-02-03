@@ -84,7 +84,7 @@ interface MenuItemWithMeta extends MenuItem {
 const findClosestVisibleParent = (
   path: string,
   items: MenuItemWithMeta[],
-  parents: MenuItemWithMeta[] = []
+  parents: MenuItemWithMeta[] = [],
 ): MenuItem | null => {
   for (const item of items) {
     if (item.href && path === item.href) {
@@ -114,12 +114,12 @@ watch(
     if (items.length > 0) {
       // First try to find in visible menu items
       let matchedItem = findMenuItemByPath(path, items)
-      
+
       // If not found in visible items, search full tree for closest visible parent
       if (!matchedItem && fullTree && fullTree.length > 0) {
         matchedItem = findClosestVisibleParent(path, fullTree)
       }
-      
+
       if (matchedItem && activeMenu.value !== matchedItem.id) {
         activeMenu.value = matchedItem.id
       }
@@ -216,11 +216,26 @@ const handleMobileClose = () => {
   }
 }
 
+/** Find the path (ids from root to item) for a given item id; returns [] if not found */
+const findPathToItem = (targetId: string, items: MenuItem[], path: string[] = []): string[] => {
+  for (const item of items) {
+    const currentPath = [...path, item.id]
+    if (item.id === targetId) return currentPath
+    if (item.children?.length) {
+      const found = findPathToItem(targetId, item.children, currentPath)
+      if (found.length) return found
+    }
+  }
+  return []
+}
+
+/** Accordion: opening one dropdown closes others. Only one branch expanded at a time. */
 const toggleSubmenu = (itemId: string) => {
   if (expandedMenus.value.includes(itemId)) {
     expandedMenus.value = expandedMenus.value.filter((id) => id !== itemId)
   } else {
-    expandedMenus.value.push(itemId)
+    const path = findPathToItem(itemId, menuItems.value)
+    expandedMenus.value = path.length ? path : [itemId]
   }
 }
 
@@ -280,11 +295,11 @@ const getBadgeVariant = (
 <template>
   <aside
     :class="[
-      'bg-card-background flex flex-col overflow-hidden box-border',
+      'bg-card-background flex flex-col box-border',
       variant === 'sheet'
-        ? 'flex-1 min-h-0 border-t border-border-default'
+        ? 'min-h-0 w-full flex-none border-t border-border-default'
         : [
-            'border-l-2 border-border-default shadow-xl transition-all duration-300 fixed right-0 top-0 lg:top-[73px] bottom-0 z-fixed lg:z-50',
+            'overflow-hidden border-l-2 border-border-default shadow-xl transition-all duration-300 fixed right-0 top-0 md:top-[73px] bottom-0 z-fixed md:z-50',
             isCollapsed ? 'w-[5.5rem]' : 'w-64',
           ],
     ]"
@@ -292,14 +307,17 @@ const getBadgeVariant = (
     <!-- Mobile Close Button (sidebar mode only; sheet has its own close in wrapper) -->
     <div
       v-if="variant === 'sidebar'"
-      class="flex items-center justify-end py-2 px-3 flex-shrink-0 border-b border-border-default/30 lg:hidden"
+      class="flex items-center justify-end py-2 px-3 flex-shrink-0 border-b border-border-default/30 md:hidden"
     >
       <BaseButton variant="ghost" size="sm" @click="handleMobileClose" aria-label="Close Menu">
         <BaseIcon name="X" :size="16" :stroke-width="2" />
       </BaseButton>
     </div>
 
-    <div class="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
+    <div
+      class="p-3 sm:p-4 overflow-x-hidden"
+      :class="[variant === 'sheet' ? 'min-h-0' : 'flex-1 min-h-0 overflow-y-auto']"
+    >
       <div v-if="isLoadingMenu" class="flex flex-col items-center justify-center gap-4 py-8">
         <CustomLoader size="md" />
         <p class="text-sm text-muted-foreground">در حال بارگذاری منوها...</p>

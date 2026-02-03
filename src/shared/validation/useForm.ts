@@ -21,14 +21,22 @@ export function useForm<T extends Record<string, unknown>>(options: UseFormOptio
 
   const validate = (): boolean => {
     try {
-      schema.parse(values);
+      // Normalize: coerce undefined/null to '' so Zod never returns generic "Required"
+      const toParse = { ...values } as Record<string, unknown>;
+      Object.keys(toParse).forEach((key) => {
+        const v = toParse[key];
+        if (v === undefined || v === null) {
+          toParse[key] = '';
+        }
+      });
+      schema.parse(toParse);
 
       Object.keys(errors).forEach((key) => {
         errors[key] = undefined;
       });
       return true;
     } catch (error) {
-      console.error('Zod Validation Error:', error);
+      console.error('zod validation error:', error);
       if (error instanceof Error && 'issues' in error) {
         const zodError = error as ZodError;
         zodError.issues.forEach((issue) => {
@@ -78,14 +86,22 @@ export function useForm<T extends Record<string, unknown>>(options: UseFormOptio
     if (onSubmit) {
       isSubmitting.value = true;
       try {
-        await onSubmit({ ...values } as T);
+        // Pass a copy with undefined/null coerced to '' so API always receives strings
+        const payload = { ...values } as Record<string, unknown>;
+        Object.keys(payload).forEach((key) => {
+          const v = payload[key];
+          if (v === undefined || v === null) {
+            payload[key] = '';
+          }
+        });
+        await onSubmit(payload as T);
       } catch (error) {
-        console.error('❌ Error during onSubmit:', error);
+        console.error('onSubmit error:', error);
       } finally {
         isSubmitting.value = false;
       }
     } else {
-      console.warn('⚠️ No onSubmit handler provided.');
+      console.warn('No onSubmit handler provided.');
     }
   };
 
