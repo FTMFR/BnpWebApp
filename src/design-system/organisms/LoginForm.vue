@@ -95,7 +95,7 @@
         :aria-label="isLoggingIn ? 'در حال پردازش ورود به سیستم' : 'ورود به سیستم'"
       >
         <span class="relative z-10 flex items-center justify-center gap-3">
-          <span v-if="!isLoggingIn" class="flex items-center justify-center gap-3" aria-hidden="true">
+          <span class="flex items-center justify-center gap-3" aria-hidden="true">
             ورود به سیستم
             <BaseIcon
               name="ArrowLeft"
@@ -104,8 +104,6 @@
               icon-class="transition-transform duration-300 ease-in-out group-hover:translate-x-1"
             />
           </span>
-          <span v-else aria-hidden="true">در حال پردازش</span>
-
         </span>
         <div
           class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full transition-transform duration-1000 ease-in-out group-hover:translate-x-full"
@@ -176,6 +174,15 @@ const {
       if (loginResponse?.RequiresMfa && loginResponse.MfaToken) {
         sessionStorage.setItem('mfa_token', loginResponse.MfaToken)
         sessionStorage.setItem('mfa_userName', values.userName)
+        if (loginResponse.CaptchaId != null) {
+          sessionStorage.setItem('mfa_captcha_id', loginResponse.CaptchaId)
+        }
+        if (loginResponse.CaptchaImage != null) {
+          sessionStorage.setItem('mfa_captcha_image', loginResponse.CaptchaImage)
+        }
+        if (loginResponse.OtpExpirySeconds != null) {
+          sessionStorage.setItem('mfa_otp_expiry_seconds', String(loginResponse.OtpExpirySeconds))
+        }
 
         router.push({
           path: '/mfa/verify',
@@ -226,7 +233,6 @@ async function fetchUserAfterLogin() {
 }
 
 async function handleSubmit() {
-  // if (isLoggingIn.value) return
   try {
     await formHandleSubmit()
   } catch (error) {
@@ -253,6 +259,6 @@ const handleCloseModal = () => {
 }
 
 const handleContinue = () => {
-  showSessionsModal.value = true
+  showSessionsModal.value = false
 }
 </script>

@@ -73,6 +73,13 @@ apiClient.interceptors.response.use(
       let shouldShowToast = false;
       let toastMessage = '';
 
+      // Login failed (wrong username/password): show API message and reject (401 or 400)
+      if ((status === 401 || status === 400) && originalRequest?.url?.includes('/Auth/login')) {
+        const loginErrorMessage = data?.message || data?.error || 'خطایی در ورود به سیستم رخ داده است';
+        toastStore.showToast(loginErrorMessage, 'error', 5000);
+        return Promise.reject(error);
+      }
+
       // Token invalidated by password change: clear locally and redirect without calling refresh/logout (they would 401)
       if (status === 401 && typeof sessionStorage !== 'undefined') {
         const authStore = useAuthStore();

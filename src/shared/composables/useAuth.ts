@@ -3,9 +3,16 @@ import { useRouter } from 'vue-router'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { useAuthStore, type AuthUser } from '@/stores/auth'
 import { usePermissionsStore } from '@/stores/permission'
+import { useToastStore } from '@/stores/toast'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import type { MySessionsResponse, Session } from '@/shared/api/types'
+import { AxiosError } from 'axios'
+
+export interface LogoutAllResponse {
+  Success: boolean
+  Message: string
+}
 
 export interface LoginCredentials {
   UserName: string
@@ -107,6 +114,26 @@ export function useAuth() {
     }
   }
 
+  const logoutAll = async () => {
+    const toastStore = useToastStore()
+    try {
+      const response = await apiClient.post<LogoutAllResponse>(endpoints.auth.logoutAll)
+      const message = response.data?.Message || 'از همه دستگاه‌ها خارج شدید.'
+      toastStore.showToast(message, 'success', 5000)
+    } catch (error) {
+      console.error('LogoutAll API error:', error)
+      const msg =
+        error instanceof AxiosError
+          ? (error.response?.data as { Message?: string })?.Message || 'خروج از همه دستگاه‌ها ناموفق بود.'
+          : 'خروج از همه دستگاه‌ها ناموفق بود.'
+      toastStore.showToast(msg, 'error', 6000)
+    } finally {
+      authStore.clear()
+      usePermissionsStore().clearPermissions()
+      router.push('/login')
+    }
+  }
+
   return {
     user: computed(() => authStore.user),
     publicId: computed(() => authStore.publicId),
@@ -117,6 +144,7 @@ export function useAuth() {
     loginAsync: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isLoading,
     logout,
+    logoutAll,
 
     isLoadingUser: computed(() => userQuery.isLoading.value || userQuery.isLoading.value),
     fetchUser: userQuery.refetch,

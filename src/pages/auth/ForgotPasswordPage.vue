@@ -53,7 +53,7 @@
       <div
         v-if="errorMessage"
         id="forgot-password-error"
-        class="flex items-center gap-3 p-3.5 px-4 bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 dark:border-red-500/40 rounded-xl text-danger-500 dark:text-danger-400 text-sm font-medium mt-2 animate-[slideIn_0.3s_ease-out]"
+        class="flex items-center gap-3 p-3.5 px-4 bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 dark:border-red-500/40 rounded-xl text-danger-500 dark:text-danger-400 text-sm sm:text-base font-medium mt-2 animate-[slideIn_0.3s_ease-out] break-words min-w-0"
         role="alert"
         aria-live="polite"
       >
@@ -63,13 +63,13 @@
           :stroke-width="2"
           icon-class="flex-shrink-0 text-danger-500 dark:text-danger-400"
         />
-        <span>{{ errorMessage }}</span>
+        <span class="min-w-0 break-words">{{ errorMessage }}</span>
       </div>
 
       <div
         v-if="successMessage"
         id="forgot-password-success"
-        class="flex items-center gap-3 p-3.5 px-4 bg-green-500/10 dark:bg-green-500/15 border border-green-500/30 dark:border-green-500/40 rounded-xl text-green-600 dark:text-green-400 text-sm font-medium mt-2 animate-[slideIn_0.3s_ease-out]"
+        class="flex items-center gap-3 p-3.5 px-4 bg-green-500/10 dark:bg-green-500/15 border border-green-500/30 dark:border-green-500/40 rounded-xl text-green-600 dark:text-green-400 text-sm sm:text-base font-medium mt-2 animate-[slideIn_0.3s_ease-out] break-words min-w-0"
         role="alert"
         aria-live="polite"
       >
@@ -79,7 +79,7 @@
           :stroke-width="2"
           icon-class="flex-shrink-0 text-green-600 dark:text-green-400"
         />
-        <span>{{ successMessage }}</span>
+        <span class="min-w-0 break-words">{{ successMessage }}</span>
       </div>
 
       <button

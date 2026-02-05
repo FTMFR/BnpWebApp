@@ -27,7 +27,7 @@
 
         <div
           v-if="errorMessage"
-          class="flex items-center gap-3 p-3.5 px-4 bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 dark:border-red-500/40 rounded-xl text-danger-500 dark:text-danger-400 text-sm font-medium mb-6"
+          class="flex items-center gap-3 p-3.5 px-4 bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 dark:border-red-500/40 rounded-xl text-danger-500 dark:text-danger-400 text-sm sm:text-base font-medium mb-6 break-words min-w-0"
           role="alert"
         >
           <BaseIcon
@@ -36,12 +36,12 @@
             :stroke-width="2"
             icon-class="flex-shrink-0 text-danger-500 dark:text-danger-400"
           />
-          <span>{{ errorMessage }}</span>
+          <span class="min-w-0">{{ errorMessage }}</span>
         </div>
 
         <div
           v-if="successMessage"
-          class="flex items-center gap-3 p-3.5 px-4 bg-green-500/10 dark:bg-green-500/15 border border-green-500/30 dark:border-green-500/40 rounded-xl text-green-600 dark:text-green-400 text-sm font-medium mb-6"
+          class="flex items-center gap-3 p-3.5 px-4 bg-green-500/10 dark:bg-green-500/15 border border-green-500/30 dark:border-green-500/40 rounded-xl text-green-600 dark:text-green-400 text-sm sm:text-base font-medium mb-6 break-words min-w-0"
           role="alert"
         >
           <BaseIcon
@@ -50,7 +50,7 @@
             :stroke-width="2"
             icon-class="flex-shrink-0 text-green-600 dark:text-green-400"
           />
-          <span>{{ successMessage }}</span>
+          <span class="min-w-0">{{ successMessage }}</span>
         </div>
 
         <!-- MFA Status -->
@@ -77,7 +77,7 @@
             <label class="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                v-model="mfaEnabled"
+                :checked="mfaEnabled"
                 @change="handleToggleMfa"
                 :disabled="isLoading || isToggling"
                 class="sr-only peer"
@@ -88,6 +88,186 @@
             </label>
           </div>
         </div>
+
+        <!-- Enable MFA: current password modal -->
+        <Modal
+          v-model="showEnablePasswordModal"
+          title="فعال‌سازی تایید دو مرحله‌ای"
+          size="sm"
+          :close-on-backdrop="false"
+        >
+          <p class="text-sm text-muted-foreground mb-4">
+            برای فعال‌سازی تایید دو مرحله‌ای، رمز عبور فعلی خود را وارد کنید.
+          </p>
+          <form @submit.prevent="submitEnableMfa" class="space-y-4">
+            <FormField
+              v-model="enableCurrentPassword"
+              label="رمز عبور فعلی"
+              type="password"
+              placeholder="رمز عبور فعلی را وارد کنید"
+              :error-message="enablePasswordError || undefined"
+              autocomplete="current-password"
+            />
+          </form>
+          <template #footer>
+            <div class="flex justify-end gap-3">
+              <BaseButton variant="outline" @click="cancelEnableMfa">انصراف</BaseButton>
+              <BaseButton
+                variant="default"
+                :disabled="isToggling || !enableCurrentPassword.trim()"
+                @click="submitEnableMfa"
+              >
+                {{ isToggling ? 'در حال ارسال...' : 'فعال‌سازی' }}
+              </BaseButton>
+            </div>
+          </template>
+        </Modal>
+
+        <!-- Disable MFA: current password modal -->
+        <Modal
+          v-model="showDisablePasswordModal"
+          title="غیرفعال‌سازی تایید دو مرحله‌ای"
+          size="sm"
+          :close-on-backdrop="false"
+        >
+          <p class="text-sm text-muted-foreground mb-4">
+            برای غیرفعال‌سازی، رمز عبور فعلی خود را وارد کنید.
+          </p>
+          <form @submit.prevent="submitDisableMfa" class="space-y-4">
+            <FormField
+              v-model="disableCurrentPassword"
+              label="رمز عبور فعلی"
+              type="password"
+              placeholder="رمز عبور فعلی را وارد کنید"
+              :error-message="disablePasswordError || undefined"
+              autocomplete="current-password"
+            />
+          </form>
+          <template #footer>
+            <div class="flex justify-end gap-3">
+              <BaseButton variant="outline" @click="cancelDisableMfa">انصراف</BaseButton>
+              <BaseButton
+                variant="default"
+                class="bg-danger-600 hover:bg-danger-700 text-white"
+                :disabled="isToggling || !disableCurrentPassword.trim()"
+                @click="submitDisableMfa"
+              >
+                {{ isToggling ? 'در حال ارسال...' : 'غیرفعال‌سازی' }}
+              </BaseButton>
+            </div>
+          </template>
+        </Modal>
+
+        <!-- Recovery codes (after enable) -->
+        <Modal
+          v-model="showRecoveryCodesModal"
+          title="کدهای بازیابی"
+          size="md"
+          :close-on-backdrop="false"
+        >
+          <p class="text-sm text-foreground mb-3">{{ recoveryCodesMessage }}</p>
+          <p class="text-xs text-muted-foreground mb-3">
+            این کدها را در جای امن ذخیره کنید. هر کد فقط یک بار قابل استفاده است.
+          </p>
+          <div
+            class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-border-default font-mono text-sm space-y-2 max-h-64 overflow-y-auto"
+          >
+            <div
+              v-for="(code, i) in recoveryCodes"
+              :key="i"
+              class="flex items-center justify-between gap-2"
+            >
+              <span>{{ code }}</span>
+              <BaseButton
+                variant="ghost"
+                size="sm"
+                class="shrink-0"
+                @click="copySingleCode(code)"
+              >
+                کپی
+              </BaseButton>
+            </div>
+          </div>
+          <template #footer>
+            <div class="flex justify-end gap-3">
+              <BaseButton variant="default" @click="copyAllRecoveryCodes">
+                کپی همه
+              </BaseButton>
+              <BaseButton variant="outline" @click="closeRecoveryCodesModal">بستن</BaseButton>
+            </div>
+          </template>
+        </Modal>
+
+        <!-- Regenerate recovery codes modal -->
+        <Modal
+          v-model="showRegenerateModal"
+          title="بازیابی کدهای بازیابی"
+          size="sm"
+          :close-on-backdrop="false"
+        >
+          <p class="text-sm text-muted-foreground mb-4">
+            برای تولید مجدد کدهای بازیابی، رمز عبور فعلی خود را وارد کنید. کدهای قبلی دیگر معتبر نخواهند بود.
+          </p>
+          <form @submit.prevent="submitRegenerateCodes" class="space-y-4">
+            <FormField
+              v-model="regenerateCurrentPassword"
+              label="رمز عبور فعلی"
+              type="password"
+              placeholder="رمز عبور فعلی را وارد کنید"
+              :error-message="regeneratePasswordError || undefined"
+              autocomplete="current-password"
+            />
+          </form>
+          <template #footer>
+            <div class="flex justify-end gap-3">
+              <BaseButton variant="outline" @click="closeRegenerateModal">انصراف</BaseButton>
+              <BaseButton
+                variant="default"
+                :disabled="isRegenerating || !regenerateCurrentPassword.trim()"
+                @click="submitRegenerateCodes"
+              >
+                {{ isRegenerating ? 'در حال ارسال...' : 'تولید مجدد کدها' }}
+              </BaseButton>
+            </div>
+          </template>
+        </Modal>
+
+        <!-- Regenerate recovery codes (new codes display) -->
+        <Modal
+          v-model="showRegeneratedCodesModal"
+          title="کدهای بازیابی جدید"
+          size="md"
+          :close-on-backdrop="false"
+        >
+          <p class="text-sm text-foreground mb-3">{{ regeneratedCodesMessage }}</p>
+          <div
+            v-if="regeneratedCodes.length"
+            class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-border-default font-mono text-sm space-y-2 max-h-64 overflow-y-auto"
+          >
+            <div
+              v-for="(code, i) in regeneratedCodes"
+              :key="i"
+              class="flex items-center justify-between gap-2"
+            >
+              <span>{{ code }}</span>
+              <BaseButton variant="ghost" size="sm" class="shrink-0" @click="copySingleCode(code)">
+                کپی
+              </BaseButton>
+            </div>
+          </div>
+          <template #footer>
+            <div class="flex justify-end gap-3">
+              <BaseButton
+                v-if="regeneratedCodes.length"
+                variant="default"
+                @click="copyAllRegeneratedCodes"
+              >
+                کپی همه
+              </BaseButton>
+              <BaseButton variant="outline" @click="closeRegeneratedCodesModal">بستن</BaseButton>
+            </div>
+          </template>
+        </Modal>
 
         <!-- Info Box -->
         <div
@@ -112,6 +292,22 @@
           </div>
         </div>
 
+        <!-- Regenerate recovery codes section (when MFA enabled) -->
+        <div
+          v-if="mfaEnabled"
+          class="p-4 sm:p-5 bg-slate-50/80 dark:bg-slate-800/80 rounded-lg sm:rounded-xl border border-border-default mb-6"
+        >
+          <h3 class="text-sm sm:text-base font-semibold text-foreground mb-2">
+            بازیابی کدهای بازیابی
+          </h3>
+          <p class="text-xs sm:text-sm text-muted-foreground mb-4">
+            در صورت از دست دادن کدهای بازیابی می‌توانید کدهای جدید تولید کنید. کدهای قبلی دیگر معتبر نخواهند بود.
+          </p>
+          <BaseButton variant="outline" size="sm" @click="openRegenerateModal">
+            تولید مجدد کدها
+          </BaseButton>
+        </div>
+
         <div class="flex items-center gap-3 pt-3 sm:pt-4 border-t border-border-default">
           <router-link
             to="/dashboard"
@@ -127,24 +323,64 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { BaseIcon } from '@/design-system/atoms'
+import { BaseIcon, BaseButton } from '@/design-system/atoms'
+import Modal from '@/design-system/molecules/Modal.vue'
+import FormField from '@/design-system/molecules/FormField.vue'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
+import { useToastStore } from '@/stores/toast'
 import type { AxiosError } from 'axios'
 
-const mfaEnabled = ref(true)
+const toastStore = useToastStore()
+const mfaEnabled = ref(false)
 const isLoading = ref(false)
 const isToggling = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// Enable MFA modal
+const showEnablePasswordModal = ref(false)
+const enableCurrentPassword = ref('')
+const enablePasswordError = ref('')
+
+// Disable MFA modal
+const showDisablePasswordModal = ref(false)
+const disableCurrentPassword = ref('')
+const disablePasswordError = ref('')
+
+// Recovery codes (after enable)
+const showRecoveryCodesModal = ref(false)
+const recoveryCodesMessage = ref('')
+const recoveryCodes = ref<string[]>([])
+
+// Regenerate recovery codes
+const showRegenerateModal = ref(false)
+const regenerateCurrentPassword = ref('')
+const regeneratePasswordError = ref('')
+const isRegenerating = ref(false)
+const showRegeneratedCodesModal = ref(false)
+const regeneratedCodesMessage = ref('')
+const regeneratedCodes = ref<string[]>([])
+
+interface MfaStatusResponse {
+  enabled?: boolean
+  IsEnabled?: boolean
+}
+
+interface MfaEnableResponse {
+  Success?: boolean
+  Message?: string
+  RecoveryCodes?: string[]
+}
 
 async function loadMfaStatus() {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    const response = await apiClient.get<{ enabled: boolean }>(endpoints.auth.mfa.status)
-    mfaEnabled.value = response.data.enabled
+    const response = await apiClient.get<MfaStatusResponse>(endpoints.auth.mfa.status)
+    const data = response.data
+    mfaEnabled.value = data.IsEnabled ?? data.enabled ?? false
   } catch (error) {
     errorMessage.value = getErrorMessage(error)
   } finally {
@@ -152,43 +388,182 @@ async function loadMfaStatus() {
   }
 }
 
-async function handleToggleMfa() {
-  if (isToggling.value) return
-
-  isToggling.value = true
+function handleToggleMfa() {
+  if (isLoading.value || isToggling.value) return
   errorMessage.value = ''
-  successMessage.value = ''
+  if (mfaEnabled.value) {
+    // User turned ON -> show enable modal (current password)
+    showEnablePasswordModal.value = true
+    enableCurrentPassword.value = ''
+    enablePasswordError.value = ''
+  } else {
+    // User turned OFF -> show disable modal (current password)
+    showDisablePasswordModal.value = true
+    disableCurrentPassword.value = ''
+    disablePasswordError.value = ''
+  }
+}
 
+async function submitEnableMfa() {
+  if (!enableCurrentPassword.value.trim()) {
+    enablePasswordError.value = 'رمز عبور فعلی الزامی است.'
+    return
+  }
+  enablePasswordError.value = ''
+  isToggling.value = true
   try {
-    if (mfaEnabled.value) {
-      await apiClient.post(endpoints.auth.mfa.enable)
-      successMessage.value = 'تایید دو مرحله‌ای با موفقیت فعال شد.'
-    } else {
-      await apiClient.post(endpoints.auth.mfa.disable)
-      successMessage.value = 'تایید دو مرحله‌ای با موفقیت غیرفعال شد.'
-    }
-
-    // Clear success message after 3 seconds
+    const response = await apiClient.post<MfaEnableResponse>(endpoints.auth.mfa.enable, {
+      CurrentPassword: enableCurrentPassword.value,
+    })
+    const data = response.data
+    showEnablePasswordModal.value = false
+    enableCurrentPassword.value = ''
+    mfaEnabled.value = true
+    recoveryCodesMessage.value = data.Message ?? 'MFA با موفقیت فعال شد. کدهای بازیابی را در جای امن ذخیره کنید.'
+    recoveryCodes.value = data.RecoveryCodes ?? []
+    showRecoveryCodesModal.value = true
+    successMessage.value = 'تایید دو مرحله‌ای با موفقیت فعال شد.'
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
   } catch (error) {
-    // Revert the toggle on error
-    mfaEnabled.value = !mfaEnabled.value
-    errorMessage.value = getErrorMessage(error)
+    enablePasswordError.value = getErrorMessage(error)
   } finally {
     isToggling.value = false
   }
 }
 
+function cancelEnableMfa() {
+  showEnablePasswordModal.value = false
+  enableCurrentPassword.value = ''
+  enablePasswordError.value = ''
+  mfaEnabled.value = false
+}
+
+async function submitDisableMfa() {
+  if (!disableCurrentPassword.value.trim()) {
+    disablePasswordError.value = 'رمز عبور فعلی الزامی است.'
+    return
+  }
+  disablePasswordError.value = ''
+  isToggling.value = true
+  try {
+    await apiClient.post(endpoints.auth.mfa.disable, {
+      CurrentPassword: disableCurrentPassword.value,
+    })
+    showDisablePasswordModal.value = false
+    disableCurrentPassword.value = ''
+    mfaEnabled.value = false
+    successMessage.value = 'تایید دو مرحله‌ای با موفقیت غیرفعال شد.'
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+  } catch (error) {
+    disablePasswordError.value = getErrorMessage(error)
+  } finally {
+    isToggling.value = false
+  }
+}
+
+function cancelDisableMfa() {
+  showDisablePasswordModal.value = false
+  disableCurrentPassword.value = ''
+  disablePasswordError.value = ''
+  mfaEnabled.value = true
+}
+
+function closeRecoveryCodesModal() {
+  showRecoveryCodesModal.value = false
+  recoveryCodes.value = []
+}
+
+function copyAllRecoveryCodes() {
+  if (recoveryCodes.value.length === 0) return
+  const text = recoveryCodes.value.join('\n')
+  copyToClipboard(text)
+  toastStore.showToast('کدهای بازیابی کپی شدند', 'success', 3000)
+}
+
+function copySingleCode(code: string) {
+  copyToClipboard(code)
+  toastStore.showToast('کد کپی شد', 'success', 2000)
+}
+
+function copyToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text)
+  } else {
+    const el = document.createElement('textarea')
+    el.value = text
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+  }
+}
+
+function openRegenerateModal() {
+  showRegenerateModal.value = true
+  regenerateCurrentPassword.value = ''
+  regeneratePasswordError.value = ''
+}
+
+function closeRegenerateModal() {
+  showRegenerateModal.value = false
+  regenerateCurrentPassword.value = ''
+  regeneratePasswordError.value = ''
+}
+
+async function submitRegenerateCodes() {
+  if (!regenerateCurrentPassword.value.trim()) {
+    regeneratePasswordError.value = 'رمز عبور فعلی الزامی است.'
+    return
+  }
+  regeneratePasswordError.value = ''
+  isRegenerating.value = true
+  try {
+    const response = await apiClient.post<{ Message?: string; RecoveryCodes?: string[] }>(
+      endpoints.auth.mfa.regenerateRecoveryCodes,
+      {
+        CurrentPassword: regenerateCurrentPassword.value,
+      },
+    )
+    const data = response.data
+    closeRegenerateModal()
+    regeneratedCodesMessage.value = data.Message ?? 'کدهای بازیابی با موفقیت تولید شدند.'
+    regeneratedCodes.value = data.RecoveryCodes ?? []
+    showRegeneratedCodesModal.value = true
+    toastStore.showToast('کدهای بازیابی با موفقیت تولید شدند', 'success', 3000)
+  } catch (error) {
+    regeneratePasswordError.value = getErrorMessage(error)
+  } finally {
+    isRegenerating.value = false
+  }
+}
+
+function closeRegeneratedCodesModal() {
+  showRegeneratedCodesModal.value = false
+  regeneratedCodes.value = []
+}
+
+function copyAllRegeneratedCodes() {
+  if (regeneratedCodes.value.length === 0) return
+  const text = regeneratedCodes.value.join('\n')
+  copyToClipboard(text)
+  toastStore.showToast('کدهای بازیابی کپی شدند', 'success', 3000)
+}
+
 function getErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'response' in error) {
-    const axiosError = error as AxiosError<{ message?: string; error?: string }>
+    const axiosError = error as AxiosError<{ message?: string; Message?: string; error?: string }>
 
     if (axiosError.response?.data) {
       const data = axiosError.response.data
 
       if (typeof data === 'object') {
+        if ('Message' in data && typeof data.Message === 'string') {
+          return data.Message
+        }
         if ('message' in data && typeof data.message === 'string') {
           return data.message
         }

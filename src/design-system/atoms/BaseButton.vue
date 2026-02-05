@@ -54,8 +54,7 @@ const buttonClasses = computed(() => {
       'bg-success text-success-foreground hover:bg-success/90 hover:shadow-md active:scale-[0.98]',
     accent:
       'bg-accent text-accent-foreground hover:bg-accent/90 hover:shadow-md active:scale-[0.98]',
-    primary:
-      'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md active:scale-[0.98]',
+    primary: 'bg-primary text-white hover:bg-primary/90 hover:shadow-md active:scale-[0.98]',
     danger:
       'bg-destructive text-white hover:bg-destructive/90 hover:shadow-md focus-visible:ring-destructive active:scale-[0.98]',
     warning: 'bg-warning-500 text-white hover:bg-warning-600 hover:shadow-md active:scale-[0.98]',

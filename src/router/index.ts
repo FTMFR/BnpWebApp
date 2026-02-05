@@ -26,24 +26,24 @@ const router = createRouter({
         layout: 'auth',
       },
     },
-    // {
-    //   path: '/mfa/verify',
-    //   name: 'mfa-verify',
-    //   component: () => import('@/pages/auth/MfaVerifyPage.vue'),
-    //   meta: {
-    //     requiresAuth: false,
-    //     layout: 'auth',
-    //   },
-    // },
-    // {
-    //   path: '/mfa/setup',
-    //   name: 'mfa-setup',
-    //   component: () => import('@/pages/auth/MfaSetupPage.vue'),
-    //   meta: {
-    //     requiresAuth: true,
-    //     layout: 'dashboard',
-    //   },
-    // },
+    {
+      path: '/mfa/verify',
+      name: 'mfa-verify',
+      component: () => import('@/pages/auth/MfaVerifyPage.vue'),
+      meta: {
+        requiresAuth: false,
+        layout: 'auth',
+      },
+    },
+    {
+      path: '/mfa/setup',
+      name: 'mfa-setup',
+      component: () => import('@/pages/auth/MfaSetupPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
     {
       path: '/',
       redirect: '/dashboard',
@@ -182,6 +182,56 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         layout: 'dashboard'
+      }
+    },
+    {
+      path: '/security/settings',
+      name: 'security-settings',
+      component: () => import('@/pages/security/SecuritySettingsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'تنظیمات امنیتی'
+      }
+    },
+    {
+      path: '/auditlog/list',
+      name: 'auditlog-list',
+      component: () => import('@/pages/auditlog/AuditLogListPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'مشاهده لاگ‌ها'
+      }
+    },
+    {
+      path: '/version/info',
+      name: 'version-info',
+      component: () => import('@/pages/version/VersionInfoPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'اطلاعات سیستم'
+      }
+    },
+    {
+      path: '/dataexport/settings',
+      name: 'dataexport-settings',
+      component: () => import('@/pages/dataexport/DataExportSettingsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'تنظیمات خروجی'
+      }
+    },
+    {
+      path: '/shobe/list',
+      name: 'shobe-list',
+      component: () => import('@/pages/shobe/ShobeListPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'لیست شعب'
       }
     },
     {

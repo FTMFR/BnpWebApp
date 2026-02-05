@@ -103,10 +103,7 @@ function onPermissionToggle(permission: GroupAccessPermission, parentMenu: Group
         v-for="perm in menu.Permissions"
         :key="perm.PermissionId"
         class="access-row flex items-center gap-3 py-2 pr-4 min-w-0"
-      >
-
-
-      </div>
+      ></div>
 
       <!-- Children (recursive): pass ancestors (root → current) and current menu as parent -->
       <GroupAccessTreeNodes

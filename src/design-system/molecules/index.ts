@@ -11,6 +11,7 @@ export { default as Modal } from './Modal.vue';
 export { default as AccessDeniedModal } from './AccessDeniedModal.vue';
 export { default as Dropdown } from './BaseDropdown.vue';
 export { default as Tabs } from './BaseTabs.vue';
+export { default as Accordion } from './BaseAccordion.vue';
 export { default as Breadcrumb } from './Breadcrumb.vue';
 export { default as Pagination } from './Pagination.vue';
 
@@ -18,5 +19,6 @@ export type { CardProps } from './Card.vue';
 export type { ModalProps } from './Modal.vue';
 export type { DropdownProps, DropdownItem } from './BaseDropdown.vue';
 export type { TabsProps, TabItem } from './BaseTabs.vue';
+export type { AccordionProps, AccordionItem } from './BaseAccordion.vue';
 export type { BreadcrumbProps, BreadcrumbItem } from './Breadcrumb.vue';
-export type { PaginationProps } from './Pagination.vue';
+export type { PaginationProps, ApiPagination } from './Pagination.vue';

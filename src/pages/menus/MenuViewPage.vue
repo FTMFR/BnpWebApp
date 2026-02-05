@@ -155,17 +155,23 @@ onMounted(async () => {
 
 <template>
   <DashboardLayout>
-    <div class="space-y-4 sm:space-y-6">
+    <div class="space-y-4 sm:space-y-6 min-w-0 overflow-x-auto">
       <!-- Breadcrumb -->
       <div class="hidden sm:block">
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
-      <Card title="جزئیات منو" backRoute="/menu/list" variant="elevated" padding="none">
+      <Card
+        title="جزئیات منو"
+        backRoute="/menu/list"
+        variant="elevated"
+        padding="none"
+        class="min-w-0"
+      >
         <template #header>
           <div class="p-4 sm:p-6">
             <div
-              class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4"
+              class="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4"
             >
               <div class="flex gap-3">
                 <BaseButton v-if="!isEditable" variant="outline" @click="toggleEdit">
@@ -194,8 +200,12 @@ onMounted(async () => {
           <CustomLoader size="lg" />
         </div>
 
-        <form v-else @submit.prevent="handleSubmit" class="p-4 sm:p-6 w-full space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form
+          v-else
+          @submit.prevent="handleSubmit"
+          class="p-4 sm:p-6 w-full space-y-6 min-w-0 break-words"
+        >
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
             <FormField
               :model-value="formData.Title"
               @update:model-value="handleTitleInput"

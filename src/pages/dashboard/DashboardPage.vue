@@ -78,19 +78,27 @@ const handleHelpClick = () => {
     @notification-click="handleNotificationClick"
     @help-click="handleHelpClick"
   >
-    <div class="space-y-4 sm:space-y-6">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-foreground mb-2">
+    <div class="space-y-4 sm:space-y-6 min-w-0 max-w-full">
+      <div
+        class="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between md:gap-6 flex-wrap"
+      >
+        <div class="min-w-0 max-w-full flex-shrink">
+          <h1
+            class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-1 sm:mb-2 break-words"
+          >
             خوش آمدید، {{ userInfo.firstName }} {{ userInfo.lastName }} 👋
           </h1>
-          <p class="text-muted-foreground mt-4">این خلاصه‌ای از فعالیت‌های امروز شماست</p>
+          <p class="text-xs sm:text-sm md:text-base text-muted-foreground mt-2 sm:mt-4">
+            این خلاصه‌ای از فعالیت‌های امروز شماست
+          </p>
         </div>
-        <div class="flex items-center gap-3">
+        <div
+          class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 min-w-0 max-w-full w-full md:w-auto md:max-w-none"
+        >
           <button
-            class="flex items-center gap-2 px-4 py-2 bg-white text-black border border-border rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-colors"
+            class="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-white dark:bg-card-background text-foreground border border-border-default rounded-lg hover:bg-muted/50 hover:border-border-default transition-colors text-xs sm:text-sm md:text-base min-w-0 shrink"
           >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="size-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -98,13 +106,13 @@ const handleHelpClick = () => {
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <span>امروز: {{ getCurrentJalaliDate() }}</span>
+            <span class="min-w-0 break-words">امروز: {{ getCurrentJalaliDate() }}</span>
           </button>
           <button
-            class="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
+            class="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors text-xs sm:text-sm md:text-base min-w-0 shrink"
           >
-            <span>درخواست وام جدید</span>
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span class="min-w-0 break-words">درخواست وام جدید</span>
+            <svg class="size-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"

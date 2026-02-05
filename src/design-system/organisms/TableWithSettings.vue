@@ -31,6 +31,8 @@
     sortable?: boolean
     visible?: boolean
     render?: (row: T, index?: number) => VNode | string | number
+    /** When true, expanded mobile row shows raw value (full text) instead of render output */
+    showFullValueInExpanded?: boolean
   }
 
   interface TableWithSettingsProps<T = Record<string, unknown>> {
@@ -44,13 +46,16 @@
     exportable?: boolean
     exportEndpoint?: string
     exportData?: Record<string, unknown>[] // Processed data from API for export
+    /** When true, shows a filter button beside the search box; filter fields are provided via #filters slot */
+    filterable?: boolean
   }
 
   const props = withDefaults(defineProps<TableWithSettingsProps<T>>(), {
     className: '',
     searchable: true,
     exportable: true,
-    rawData: () => []
+    rawData: () => [],
+    filterable: false,
   })
 
   const emit = defineEmits<{
@@ -65,6 +70,7 @@
     direction: 'asc' | 'desc'
   } | null>(null)
   const isSettingsOpen = ref(false)
+  const showFilters = ref(false)
   const expandedRows = ref<number[]>([])
   const tableContainerRef = ref<HTMLElement | null>(null)
   const hasOverflow = ref(false)
@@ -168,7 +174,7 @@
     localColumns.value = newColumns
     emit('column-order-change', newColumns)
       props.onColumnOrderChange?.(newColumns)
-    } 
+    }
   }
 
   // Move column down
@@ -274,23 +280,38 @@
 
   <template>
     <div :class="['space-y-3 min-[931px]:space-y-4', className]">
-      <!-- Header: compact until 931px so 930px matches smaller screen style -->
+      <!-- Optional filter panel (slot content from parent); shown when filterable and toggled on -->
+      <Transition name="slide-down">
+        <div v-show="filterable && showFilters" class="rounded-lg border border-border-default bg-secondary/10 dark:bg-card-background p-4">
+          <slot name="filters" />
+        </div>
+      </Transition>
+
       <div class="flex flex-col min-[931px]:flex-row items-start min-[931px]:items-center w-full justify-between gap-3 min-[931px]:gap-2 pb-2">
         <div class="flex flex-1 items-center gap-3 w-full min-[931px]:w-auto">
-          <h3 class="text-base min-[931px]:text-lg font-semibold text-foreground whitespace-nowrap">نتایج جستجو</h3>
+          <BaseButton
+            v-if="filterable"
+            variant="outline"
+            size="sm"
+            :class="['flex items-center gap-2 border-2 shrink-0', showFilters ? 'border-primary-500 text-primary-600 bg-primary-50 dark:bg-primary-900/20' : 'border-border hover:bg-secondary-300']"
+            @click="showFilters = !showFilters"
+          >
+            <BaseIcon name="Filter" :size="16" />
+            <span class="hidden min-[931px]:inline">فیلتر</span>
+          </BaseButton>
           <div v-if="searchable" class="relative w-full min-[931px]:max-w-xs">
-                <BaseIcon
-                  name="Search"
-                  :size="16"
-                  :stroke-width="2"
-                  icon-class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10"
-                />
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="جستجو..."
-                  class="w-full pr-10 pl-4 py-2 bg-secondary/20 dark:bg-card-background dark:border-border-default border border-border-default/50 rounded-lg focus:bg-background dark:focus:bg-card-background focus:dark:border-primary-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 placeholder:text-muted-foreground/60 dark:placeholder:text-muted-foreground/70 text-foreground dark:text-foreground text-sm"
-                  />
+              <BaseIcon
+                name="Search"
+                :size="16"
+                :stroke-width="2"
+                icon-class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10"
+              />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="جستجو..."
+                class="w-full pr-10 pl-4 py-2 bg-secondary/20 dark:bg-card-background dark:border-border-default border border-border-default/50 rounded-lg focus:bg-background dark:focus:bg-card-background focus:dark:border-primary-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 placeholder:text-muted-foreground/60 dark:placeholder:text-muted-foreground/70 text-foreground dark:text-foreground text-sm"
+              />
           </div>
           <BaseButton
           v-if="exportable"
@@ -412,6 +433,9 @@
           </div>
         </template>
       </Dialog>
+
+      <!-- Section title: right above the table -->
+      <h3 class="text-base min-[931px]:text-lg font-semibold text-foreground pb-1">نتایج جستجو</h3>
 
       <!-- Table with Expandable Rows -->
       <div ref="tableContainerRef" class="border-2 border-border rounded-lg overflow-x-auto">
@@ -560,32 +584,34 @@
               <Transition name="expand">
                 <tr
                   v-if="expandedRows.includes(rowIndex)"
-                  class="min-[931px]:hidden bg-primary-100/40 dark:bg-primary-900/20 border-l-4 border-primary-500"
+                  class="min-[931px]:hidden border-b-2 border-border"
                 >
                   <td
                     :colspan="primaryColumns.length + (actionsColumn ? 1 : 0) + 1"
-                    class="p-4 bg-card-background"
+                    class="p-0 align-top"
                   >
-                    <div class="space-y-3">
-                      <div class="flex items-center gap-2 mb-2 pb-2 border-b-2 border-primary-200">
-                        <BaseIcon name="Info" :size="16" class="text-primary-600" />
-                        <span class="text-xs font-bold text-primary-700">جزئیات بیشتر</span>
+                    <div class="mx-2 mb-2 rounded-lg border-2 border-border bg-background dark:bg-card-background shadow-sm overflow-hidden">
+                      <div class="flex items-center gap-2 px-3 py-2 border-b-2 border-border bg-primary-50 dark:bg-primary-900/30">
+                        <BaseIcon name="Info" :size="16" class="text-primary-600 shrink-0" />
+                        <span class="text-xs font-bold text-primary-700 dark:text-primary-300">جزئیات بیشتر</span>
                       </div>
-                      <div
-                        v-for="column in secondaryColumns"
-                        :key="column.id"
-                        class="flex items-start justify-between gap-3 pb-3 border-b border-border-default last:border-0 last:pb-0 bg-secondary/20 dark:bg-secondary/10 p-2 rounded"
-                      >
-                        <span class="text-xs font-semibold text-muted-foreground min-w-[90px] flex-shrink-0">
-                          {{ column.title }}:
-                        </span>
-                        <div class="text-xs text-foreground text-right flex-1 min-w-0 break-words">
-                          <template v-if="column.render">
-                            <RenderCell
-                              :render-fn="() => renderCellContent(column, row, rowIndex)"
-                            />
-                          </template>
-                          <span v-else class="break-words">{{ (row as Record<string, unknown>)[column.id] || '-' }}</span>
+                      <div class="divide-y divide-border">
+                        <div
+                          v-for="column in secondaryColumns"
+                          :key="column.id"
+                          class="flex items-start justify-between gap-3 px-3 py-2.5 min-h-[2.25rem]"
+                        >
+                          <span class="text-xs font-semibold text-muted-foreground min-w-[90px] flex-shrink-0">
+                            {{ column.title }}:
+                          </span>
+                          <div class="text-xs text-foreground text-right flex-1 min-w-0 break-words">
+                            <template v-if="column.render">
+                              <RenderCell
+                                :render-fn="() => renderCellContent(column, row, rowIndex)"
+                              />
+                            </template>
+                            <span v-else class="break-words">{{ (row as Record<string, unknown>)[column.id] || '-' }}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -616,5 +642,20 @@
   .expand-leave-from {
     max-height: 1000px;
     opacity: 1;
+  }
+
+  .slide-down-enter-active,
+  .slide-down-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .slide-down-enter-from,
+  .slide-down-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  .slide-down-enter-to,
+  .slide-down-leave-from {
+    opacity: 1;
+    transform: translateY(0);
   }
   </style>

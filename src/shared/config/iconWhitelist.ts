@@ -88,6 +88,7 @@ export const ICON_WHITELIST = [
   'Mail',
   'MessageSquare',
   'Phone',
+  'PhoneOff',
   'Send',
   'Reply',
   

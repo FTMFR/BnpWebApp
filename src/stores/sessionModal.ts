@@ -47,7 +47,7 @@ export const useSessionModalStore = defineStore('sessionModal', () => {
   const revokeSession = async (sessionPublicId: string): Promise<boolean> => {
     revokingSessionId.value = sessionPublicId
     try {
-      await apiClient.post(endpoints.session.revokeSession(sessionPublicId))
+      await apiClient.delete(endpoints.session.revokeSession(sessionPublicId))
       // Refresh sessions after revoke
       const updatedSessions = await fetchSessions()
 

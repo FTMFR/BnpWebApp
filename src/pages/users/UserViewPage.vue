@@ -203,7 +203,11 @@ const breadcrumbItems = computed(() => [
           <CustomLoader size="lg" />
         </div>
 
-        <form v-else @submit.prevent="handleSubmit" class="p-4 sm:p-6 w-full space-y-6 min-w-0 break-words">
+        <form
+          v-else
+          @submit.prevent="handleSubmit"
+          class="p-4 sm:p-6 w-full space-y-6 min-w-0 break-words"
+        >
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
             <FormField
               :model-value="user?.UserName ?? ''"
@@ -237,7 +241,7 @@ const breadcrumbItems = computed(() => [
             />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
             <FormField
               label="تلفن همراه"
               type="tel"
@@ -253,7 +257,7 @@ const breadcrumbItems = computed(() => [
             />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0 opacity-60">
             <!-- <FormField
               label="وضعیت"
               type="text"

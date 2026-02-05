@@ -96,7 +96,7 @@ const handleNotificationClick = (notification: Notification) => {
     </div>
 
     <!-- Notifications List -->
-    <div class="space-y-2 max-h-96 overflow-y-auto">
+    <div class="notifications-scroll scrollbar-thin space-y-2 max-h-96 overflow-y-auto">
       <!-- Unread Notifications -->
       <div v-if="unreadNotifications.length > 0" class="space-y-2">
         <div
@@ -167,4 +167,31 @@ const handleNotificationClick = (notification: Notification) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.notifications-scroll {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Fade edges: content fades at top and bottom */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 1.5rem,
+    black calc(100% - 1.5rem),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 1.5rem,
+    black calc(100% - 1.5rem),
+    transparent 100%
+  );
+  mask-size: 100% 100%;
+  mask-position: 0 0;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-position: 0 0;
+}
+</style>
 

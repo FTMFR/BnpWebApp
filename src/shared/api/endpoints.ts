@@ -32,6 +32,23 @@ export const endpoints = {
   },
 
   // ============================================
+  // Data Export
+  // ============================================
+  dataExport: {
+    settings: `${API_BASE_URL}/DataExport/settings`,
+    rules: `${API_BASE_URL}/DataExport/rules`,
+    ruleById: (id: string) => `${API_BASE_URL}/DataExport/rules/${id}`,
+    masking: `${API_BASE_URL}/DataExport/masking`,
+    maskingById: (id: string) => `${API_BASE_URL}/DataExport/masking/${id}`,
+    sensitivityLevels: `${API_BASE_URL}/DataExport/sensitivity-levels`,
+    sensitivityLevelByEntity: (entityType: string, entityId: string) =>
+      `${API_BASE_URL}/DataExport/sensitivity-levels/${entityType}/${entityId}`,
+    auditLog: `${API_BASE_URL}/DataExport/audit-log`,
+    statistics: `${API_BASE_URL}/DataExport/statistics`,
+    test: `${API_BASE_URL}/DataExport/test`,
+  },
+
+  // ============================================
   // Audit Log
   // ============================================
   auditLog: {
@@ -160,6 +177,14 @@ export const endpoints = {
   },
 
   // ============================================
+  // Shobe (Branches)
+  // ============================================
+  shobe: {
+    list: `${API_BASE_URL}/Shobe`,
+    byId: (publicId: string) => `${API_BASE_URL}/Shobe/${publicId}`,
+  },
+
+  // ============================================
   // Seed (Development)
   // ============================================
   seed: {
@@ -195,6 +220,13 @@ export const endpoints = {
     lockoutStatus: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/lockout-status`,
     resetPassword: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/reset-password`,
     forcePasswordChange: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/force-password-change`,
+  },
+
+  // ============================================
+  // Version
+  // ============================================
+  version: {
+    info: `${API_BASE_URL}/Version/info`,
   },
 
   // ============================================

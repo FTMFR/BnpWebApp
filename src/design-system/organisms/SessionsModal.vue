@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
 import type { MySessionsResponse, Session } from '@/shared/api/types'
 import BaseButton from '../atoms/BaseButton.vue'
-import router from '@/router'
 import { getDeviceInfo } from '@/shared/utils/deviceInfo'
+import { nextTick } from 'vue'
 
 interface Props {
   modelValue: boolean
@@ -15,9 +16,12 @@ const props = withDefaults(defineProps<Props>(), {
   revokingSessionId: null,
 })
 
+const route = useRoute()
+
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   close: []
+  continue: []
   'revoke-session': [sessionPublicId: string]
 }>()
 
@@ -25,11 +29,17 @@ const handleRevokeSession = (sessionPublicId: string) => {
   emit('revoke-session', sessionPublicId)
 }
 
-const handleContinue = () => {
+const handleContinue = async () => {
   if (props.sessionsInfo?.isMaxSessionsReached) {
     return
   }
-  router.push('/dashboard')
+  emit('continue')
+  emit('update:modelValue', false)
+  emit('close')
+  await nextTick()
+  if (route.path === '/login') {
+    window.location.replace('/dashboard')
+  }
 }
 
 const handleClose = () => {

@@ -175,7 +175,11 @@ const breadcrumbItems = computed(() => [
           <CustomLoader size="lg" />
         </div>
 
-        <form v-else @submit.prevent="handleSubmit" class="p-4 sm:p-6 w-full space-y-6 min-w-0 break-words">
+        <form
+          v-else
+          @submit.prevent="handleSubmit"
+          class="p-4 sm:p-6 w-full space-y-6 min-w-0 break-words"
+        >
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
             <FormField
               v-model="formData.Title"

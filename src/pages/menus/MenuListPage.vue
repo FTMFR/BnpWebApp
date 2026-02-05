@@ -92,25 +92,33 @@ watch(
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
-      <!-- Card with Filters and Table -->
+      <!-- Card with Header and Content -->
       <Card title="لیست منوها" variant="elevated" padding="none" class="min-w-0">
         <!-- Header -->
         <template #header>
-          <div class="p-4 sm:p-6 pl-0 flex justify-between items-center flex-wrap gap-2">
-            <BaseButton
-              variant="outline"
-              @click="handleCreate"
-              class="border-success-500 text-success-600"
+          <div class="py-4 min-[931px]:py-6">
+            <div
+              class="flex flex-row flex-wrap items-start min-[931px]:items-center justify-between gap-3 min-[931px]:gap-4"
             >
-              <BaseIcon name="Plus" :size="16" />
-              <span class="hidden sm:inline">ایجاد منو جدید</span>
-            </BaseButton>
+              <BaseButton
+                variant="outline"
+                @click="handleCreate"
+                class="border-2 border-success-500 text-success-600"
+              >
+                <BaseIcon name="Plus" :size="16" />
+                <span class="hidden min-[931px]:inline">ایجاد منو جدید</span>
+                <span class="min-[931px]:hidden">ایجاد</span>
+              </BaseButton>
+            </div>
           </div>
         </template>
 
-        <div class="overflow-x-auto min-w-0">
+        <!-- Content Section -->
+        <div
+          class="border-t border-border-default py-3 min-[931px]:py-4 min-[931px]:py-6 overflow-x-auto min-w-0"
+        >
           <CustomLoader v-if="isLoadingMenus" size="lg" class="mx-auto my-10" />
-          <div class="groups-tree-card">
+          <div v-else class="groups-tree-card">
             <BaseTreeSelect
               :nodes="menus"
               v-model="selectedMenu"
@@ -126,6 +134,7 @@ watch(
               </template>
             </BaseTreeSelect>
           </div>
+        </div>
         </div>
       </Card>
     </div>

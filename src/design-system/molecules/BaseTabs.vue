@@ -55,22 +55,26 @@ const tabClasses = (item: TabItem) => {
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="w-full min-w-0">
     <div
-      class="flex border-b border-border-default"
+      class="flex flex-nowrap overflow-x-auto border-b border-border-default scrollbar-thin pb-px -mb-px"
       :class="{ 'border-b-0': variant === 'pills', 'gap-2': variant === 'pills' }"
+      role="tablist"
     >
       <button
+        type="button"
         v-for="item in items"
         :key="item.id"
-        :class="tabClasses(item)"
+        :class="[tabClasses(item), 'whitespace-nowrap flex-shrink-0']"
         :disabled="item.disabled"
+        role="tab"
+        :aria-selected="activeTab === item.id"
         @click="activeTab = item.id"
       >
         {{ item.label }}
       </button>
     </div>
-    <div class="mt-4">
+    <div class="mt-4 min-w-0">
       <slot :active-tab="activeTab" />
     </div>
   </div>

@@ -4,18 +4,32 @@
       <div
         class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white flex-shrink-0"
       >
-        <BaseIcon name="ShieldCheck" :size="20" :stroke-width="2.5" icon-class="text-white sm:w-6 sm:h-6" />
+        <BaseIcon
+          name="ShieldCheck"
+          :size="20"
+          :stroke-width="2.5"
+          icon-class="text-white sm:w-6 sm:h-6"
+        />
       </div>
       <div class="min-w-0">
         <h2 class="text-lg sm:text-xl font-semibold text-foreground m-0 truncate">سیستم مالی</h2>
-        <p class="text-xs sm:text-sm font-normal text-muted-foreground m-0 truncate">مدیریت هوشمند دارایی</p>
+        <p class="text-xs sm:text-sm font-normal text-muted-foreground m-0 truncate">
+          مدیریت هوشمند دارایی
+        </p>
       </div>
     </div>
 
     <div class="mb-6 sm:mb-8">
       <div class="flex items-center gap-2 mb-2 sm:mb-3">
-        <BaseIcon name="ShieldCheck" :size="18" :stroke-width="2" icon-class="text-primary-500 sm:w-5 sm:h-5" />
-        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground m-0">تایید دو مرحله‌ای</h1>
+        <BaseIcon
+          name="ShieldCheck"
+          :size="18"
+          :stroke-width="2"
+          icon-class="text-primary-500 sm:w-5 sm:h-5"
+        />
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground m-0">
+          تایید دو مرحله‌ای
+        </h1>
       </div>
       <p class="text-xs sm:text-sm md:text-base font-normal text-muted-foreground m-0">
         <span v-if="maskedMobileNumber">
@@ -48,7 +62,10 @@
             @paste="handlePaste($event)"
           />
         </div>
-        <p v-if="errorMessage" class="text-sm text-danger-500 mt-1 text-right">
+        <p
+          v-if="errorMessage"
+          class="text-sm sm:text-base text-danger-500 mt-1 text-right break-words min-w-0"
+        >
           {{ errorMessage }}
         </p>
       </div>
@@ -67,7 +84,10 @@
                 'border-danger-500': captchaError,
               }"
             />
-            <p v-if="captchaError" class="text-xs sm:text-sm text-danger-500 mt-1 text-right">
+            <p
+              v-if="captchaError"
+              class="text-xs sm:text-sm text-danger-500 mt-1 text-right break-words min-w-0"
+            >
               {{ captchaError }}
             </p>
           </div>
@@ -208,11 +228,32 @@ function setInputRef(el: HTMLInputElement | ComponentPublicInstance | null, inde
   }
 }
 
+/** Set captcha from login response (sessionStorage). Returns true if captcha was set. */
+function useStoredCaptcha(): boolean {
+  const id = sessionStorage.getItem('mfa_captcha_id')
+  const image = sessionStorage.getItem('mfa_captcha_image')
+  if (id && image) {
+    captchaId.value = id
+    // Backend may return raw base64 or already data URL
+    captchaImage.value = image.startsWith('data:') ? image : `data:image/png;base64,${image}`
+    captchaError.value = ''
+    return true
+  }
+  return false
+}
+
 async function loadCaptcha() {
   try {
-    const response = await apiClient.get<{ id: string; image: string }>(endpoints.auth.captcha)
-    captchaId.value = response.data.id
-    captchaImage.value = `data:image/png;base64,${response.data.image}`
+    const response = await apiClient.get<
+      { id?: string; image?: string; CaptchaId?: string; CaptchaImage?: string }
+    >(endpoints.auth.captcha)
+    const data = response.data
+    const id = data.CaptchaId ?? data.id ?? null
+    const rawImage = data.CaptchaImage ?? data.image ?? null
+    if (id) captchaId.value = id
+    if (rawImage) {
+      captchaImage.value = rawImage.startsWith('data:') ? rawImage : `data:image/png;base64,${rawImage}`
+    }
     captchaError.value = ''
   } catch (error) {
     console.error('Failed to load captcha:', error)
@@ -322,7 +363,7 @@ function handlePaste(event: ClipboardEvent) {
 }
 
 onMounted(async () => {
-  // Get masked mobile number from query params
+  // Get masked mobile number from query params (from login redirect)
   maskedMobileNumber.value = (route.query.maskedMobile as string) || null
 
   // Get MFA token from sessionStorage
@@ -333,11 +374,16 @@ onMounted(async () => {
     return
   }
 
-  // Load CAPTCHA
-  await loadCaptcha()
+  // Use captcha from login response first; only fetch when refreshing or not present
+  const hadStoredCaptcha = useStoredCaptcha()
+  if (!hadStoredCaptcha) {
+    await loadCaptcha()
+  }
 
-  // Start cooldown timer
-  startCooldown(60)
+  // Cooldown: use OtpExpirySeconds from login response if stored, else 60
+  const expirySeconds = sessionStorage.getItem('mfa_otp_expiry_seconds')
+  const cooldownSeconds = expirySeconds ? Math.max(0, parseInt(expirySeconds, 10)) : 60
+  startCooldown(Number.isNaN(cooldownSeconds) ? 60 : cooldownSeconds)
 
   // Focus first input
   nextTick(() => {
@@ -373,7 +419,7 @@ async function resendOtp() {
 
   try {
     await apiClient.post(endpoints.auth.mfa.resendOtp, {
-      mfaToken: mfaToken.value,
+      MfaToken: mfaToken.value,
     })
     startCooldown(60)
     // Clear OTP inputs
@@ -393,12 +439,15 @@ async function resendOtp() {
 
 function getErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'response' in error) {
-    const axiosError = error as AxiosError<{ message?: string; error?: string }>
+    const axiosError = error as AxiosError<{ message?: string; Message?: string; error?: string }>
 
     if (axiosError.response?.data) {
       const data = axiosError.response.data
 
       if (typeof data === 'object') {
+        if ('Message' in data && typeof data.Message === 'string') {
+          return data.Message
+        }
         if ('message' in data && typeof data.message === 'string') {
           return data.message
         }
@@ -440,15 +489,18 @@ async function handleSubmit() {
       Token: string
       PublicId: string
     }>(endpoints.auth.mfa.verify, {
-      mfaToken: mfaToken.value,
-      otpCode: otpCode,
+      MfaToken: mfaToken.value,
+      OtpCode: otpCode,
       CaptchaId: captchaId.value,
       CaptchaValue: captchaValue.value,
     })
 
-    // Clear MFA token from sessionStorage
+    // Clear MFA-related data from sessionStorage
     sessionStorage.removeItem('mfa_token')
     sessionStorage.removeItem('mfa_userName')
+    sessionStorage.removeItem('mfa_captcha_id')
+    sessionStorage.removeItem('mfa_captcha_image')
+    sessionStorage.removeItem('mfa_otp_expiry_seconds')
 
     // Fetch user data and set auth
     try {

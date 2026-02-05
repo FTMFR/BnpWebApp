@@ -79,7 +79,7 @@ const cardClasses = computed(() => {
 
       <slot name="header" />
     </div>
-    <form >
+    <form @submit.prevent>
       <div>
         <slot />
       </div>

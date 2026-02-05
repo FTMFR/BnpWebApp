@@ -20,7 +20,7 @@ const modes: { value: ThemeMode; label: string; icon: 'Sun' | 'Moon' }[] = [
 
 <template>
   <DashboardLayout>
-    <div class="space-y-4 sm:space-y-6">
+    <div class="space-y-4 sm:space-y-6 min-w-0 overflow-x-auto">
       <div class="hidden sm:block">
         <Breadcrumb :items="breadcrumbItems" />
       </div>
@@ -30,14 +30,19 @@ const modes: { value: ThemeMode; label: string; icon: 'Sun' | 'Moon' }[] = [
         description="تنظیمات نمایش و ظاهر برنامه"
         variant="elevated"
         padding="none"
+        class="min-w-0"
       >
         <template #header></template>
-        <div class="p-4 sm:p-6 space-y-6">
+        <div class="p-4 sm:p-6 space-y-6 min-w-0">
           <!-- Display mode (theme) -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div>
-              <h3 class="text-sm font-semibold text-foreground">حالت نمایش</h3>
-              <p class="text-xs text-muted-foreground mt-0.5">تم روشن یا تاریک برای رابط کاربری</p>
+          <div
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 flex-wrap"
+          >
+            <div class="min-w-0">
+              <h3 class="text-sm sm:text-base font-semibold text-foreground">حالت نمایش</h3>
+              <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                تم روشن یا تاریک برای رابط کاربری
+              </p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <button

@@ -10,7 +10,7 @@ import { useAuth } from '@/shared/composables/useAuth'
 import { useSessionModalStore } from '@/stores/sessionModal'
 
 const router = useRouter()
-const { logout } = useAuth()
+const { logout, logoutAll } = useAuth()
 const sessionModalStore = useSessionModalStore()
 
 const emit = defineEmits<{
@@ -18,11 +18,15 @@ const emit = defineEmits<{
 }>()
 
 const showLogoutModal = ref(false)
+const showLogoutAllModal = ref(false)
 const showPasswordModal = ref(false)
+const isLogoutAllLoading = ref(false)
 
 const handleMenuItemSelect = (item: DropdownItem) => {
   if (item.value === 'logout') {
     showLogoutModal.value = true
+  } else if (item.value === 'logout-all') {
+    showLogoutAllModal.value = true
   } else if (item.value === 'change-password') {
     showPasswordModal.value = true
   } else if (item.value === 'sessions') {
@@ -42,6 +46,20 @@ const cancelLogout = () => {
   showLogoutModal.value = false
 }
 
+const confirmLogoutAll = async () => {
+  isLogoutAllLoading.value = true
+  try {
+    await logoutAll()
+    showLogoutAllModal.value = false
+  } finally {
+    isLogoutAllLoading.value = false
+  }
+}
+
+const cancelLogoutAll = () => {
+  showLogoutAllModal.value = false
+}
+
 const menuItems: DropdownItem[] = [
   {
     label: 'پروفایل من',
@@ -56,6 +74,12 @@ const menuItems: DropdownItem[] = [
     iconName: 'Settings',
   },
   {
+    label: 'تنظیمات تایید دو مرحله‌ای',
+    value: 'mfa-setup',
+    href: '/mfa/setup',
+    iconName: 'ShieldCheck',
+  },
+  {
     label: 'تغییر رمز عبور',
     value: 'change-password',
     iconName: 'Lock',
@@ -64,6 +88,11 @@ const menuItems: DropdownItem[] = [
     label: 'جلسات من',
     value: 'sessions',
     iconName: 'Layout',
+  },
+  {
+    label: 'خروج از همه دستگاه‌ها',
+    value: 'logout-all',
+    iconName: 'PhoneOff',
   },
   {
     label: 'خروج',
@@ -88,14 +117,14 @@ const menuItems: DropdownItem[] = [
           item.divider ? 'border-t border-border-default my-1' : '',
           item.disabled
             ? 'opacity-50 cursor-not-allowed'
-            : item.value === 'logout'
+            : item.value === 'logout' || item.value === 'logout-all'
               ? 'hover:bg-danger-50 text-danger-600'
               : 'hover:bg-secondary text-foreground',
         ]"
         @click="select(item)"
       >
         <BaseIcon
-          v-if="item.value == 'logout'"
+          v-if="item.value === 'logout' || item.value === 'logout-all'"
           :name="item.iconName ?? 'X'"
           href
           icon-class="text-danger-600"
@@ -136,6 +165,51 @@ const menuItems: DropdownItem[] = [
           @click="confirmLogout"
         >
           خروج
+        </BaseButton>
+      </div>
+    </template>
+  </Modal>
+
+  <!-- Logout from all devices modal (like Sessions modal) -->
+  <Modal
+    v-model="showLogoutAllModal"
+    title="خروج از همه دستگاه‌ها"
+    size="md"
+    :close-on-backdrop="false"
+  >
+    <div class="px-6 mb-2 py-4 border-b border-border-default">
+      <h3 class="text-lg font-semibold text-foreground">خروج از همه دستگاه‌ها</h3>
+    </div>
+    <div class="space-y-4">
+      <div class="flex items-start gap-3">
+        <div
+          class="flex-shrink-0 w-10 h-10 rounded-full bg-danger-200 dark:bg-danger-900/30 flex items-center justify-center"
+        >
+          <BaseIcon name="PhoneOff" :size="20" class="text-danger-600" />
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-foreground mb-1">
+            آیا از خروج از همه دستگاه‌ها و جلسات مطمئن هستید؟
+          </p>
+          <p class="text-xs text-muted-foreground">
+            با تأیید، از تمام دستگاه‌ها و جلسات فعال خارج می‌شوید و باید دوباره وارد سیستم شوید.
+          </p>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex items-center justify-end gap-3">
+        <BaseButton variant="outline" :disabled="isLogoutAllLoading" @click="cancelLogoutAll">
+          انصراف
+        </BaseButton>
+        <BaseButton
+          variant="default"
+          class="bg-danger-600 hover:bg-danger-700 text-white"
+          :loading="isLogoutAllLoading"
+          :disabled="isLogoutAllLoading"
+          @click="confirmLogoutAll"
+        >
+          تأیید و خروج از همه
         </BaseButton>
       </div>
     </template>

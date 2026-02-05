@@ -325,7 +325,7 @@ provide('toggleSidebarCollapse', toggleSidebarCollapse)
       </div>
     </Transition>
 
-    <!-- Desktop: sidebar (fixed right) – md and up, same as lg -->
+    <!-- Desktop: sidebar (fixed right) – md and up -->
     <Sidebar
       :menu-items="menuItems"
       :active-menu-item-id="activeMenu"
@@ -349,11 +349,11 @@ provide('toggleSidebarCollapse', toggleSidebarCollapse)
 
     <main
       :class="[
-        'flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 md:p-6 transition-all duration-300 md:pl-6 main-mobile-pb md:pb-6 main-content',
+        'flex-1 min-h-0 min-w-0 overflow-auto p-4 sm:p-5 md:p-6 transition-all duration-300 md:pl-6 main-mobile-pb md:pb-6 main-content',
         isSidebarCollapsed ? 'md:pr-[7rem]' : 'md:pr-[18rem]',
       ]"
     >
-      <div class="main-content-inner">
+      <div class="main-content-inner min-w-0 max-w-full w-full">
         <slot />
       </div>
     </main>
@@ -396,10 +396,15 @@ provide('toggleSidebarCollapse', toggleSidebarCollapse)
   }
 }
 
-/* Main content area: scroll-y so long forms are reachable; bottom padding keeps form above bottom bar */
+/* Main content area: scroll in both directions; header and bottom bar stay fixed */
 main {
-  overflow-y: auto;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.main-content-inner {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Menu sheet: vertical scroll when content overflows */
