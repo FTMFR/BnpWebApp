@@ -25,24 +25,33 @@ const router = createRouter({
         layout: 'auth',
       },
     },
-    // {
-    //   path: '/mfa/verify',
-    //   name: 'mfa-verify',
-    //   component: () => import('@/pages/auth/MfaVerifyPage.vue'),
-    //   meta: {
-    //     requiresAuth: false,
-    //     layout: 'auth',
-    //   },
-    // },
-    // {
-    //   path: '/mfa/setup',
-    //   name: 'mfa-setup',
-    //   component: () => import('@/pages/auth/MfaSetupPage.vue'),
-    //   meta: {
-    //     requiresAuth: true,
-    //     layout: 'dashboard',
-    //   },
-    // },
+    {
+      path: '/mfa/verify',
+      name: 'mfa-verify',
+      component: () => import('@/pages/auth/MfaVerifyPage.vue'),
+      meta: {
+        requiresAuth: false,
+        layout: 'auth',
+      },
+    },
+    {
+      path: '/mfa/setup',
+      name: 'mfa-setup',
+      component: () => import('@/pages/auth/MfaSetupPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
+    {
+      path: '/change-password',
+      name: 'change-password',
+      component: () => import('@/pages/auth/ChangePasswordPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+      },
+    },
     {
       path: '/',
       redirect: '/dashboard',

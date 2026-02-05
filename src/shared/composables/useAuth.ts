@@ -103,6 +103,17 @@ export function useAuth() {
     }
   }
 
+  const logoutAll = async () => {
+    try {
+      await apiClient.post(endpoints.auth.logoutAll)
+    } catch (error) {
+      console.error('Logout-all API error:', error)
+    } finally {
+      authStore.clear()
+      router.push('/login')
+    }
+  }
+
   return {
     user: computed(() => authStore.user),
     publicId: computed(() => authStore.publicId),
@@ -113,6 +124,7 @@ export function useAuth() {
     loginAsync: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isLoading,
     logout,
+    logoutAll,
 
     isLoadingUser: computed(() => userQuery.isLoading.value || userQuery.isLoading.value),
     fetchUser: userQuery.refetch,
