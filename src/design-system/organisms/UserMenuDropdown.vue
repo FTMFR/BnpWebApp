@@ -8,17 +8,20 @@ import Modal from '../molecules/Modal.vue'
 import { useAuth } from '@/shared/composables/useAuth'
 
 const router = useRouter()
-const { logout, publicId } = useAuth()
+const { logout, logoutAll } = useAuth()
 
 const emit = defineEmits<{
   close: []
 }>()
 
 const showLogoutModal = ref(false)
+const showLogoutAllModal = ref(false)
 
 const handleMenuItemSelect = (item: DropdownItem) => {
   if (item.value === 'logout') {
     showLogoutModal.value = true
+  } else if (item.value === 'logout-all') {
+    showLogoutAllModal.value = true
   } else if (item.href) {
     router.push(item.href)
   }
@@ -30,8 +33,17 @@ const confirmLogout = () => {
   showLogoutModal.value = false
 }
 
+const confirmLogoutAll = () => {
+  logoutAll()
+  showLogoutAllModal.value = false
+}
+
 const cancelLogout = () => {
   showLogoutModal.value = false
+}
+
+const cancelLogoutAll = () => {
+  showLogoutAllModal.value = false
 }
 
 const menuItems: DropdownItem[] = [
@@ -58,6 +70,11 @@ const menuItems: DropdownItem[] = [
     value: 'sessions',
     href: '/sessions',
     iconName: 'Layout',
+  },
+  {
+    label: 'خروج از همه نشست‌ها',
+    value: 'logout-all',
+    iconName: 'LogOut',
   },
   {
     label: 'خروج',
@@ -124,6 +141,42 @@ const menuItems: DropdownItem[] = [
           @click="confirmLogout"
         >
           خروج
+        </BaseButton>
+      </div>
+    </template>
+  </Modal>
+
+  <!-- Logout All Confirmation Modal -->
+  <Modal
+    v-model="showLogoutAllModal"
+    title="تأیید خروج از همه نشست‌ها"
+    size="sm"
+    :close-on-backdrop="false"
+  >
+    <div class="space-y-4">
+      <div class="flex items-start gap-3">
+        <div
+          class="flex-shrink-0 w-10 h-10 rounded-full bg-danger-200 dark:bg-danger-900/30 flex items-center justify-center"
+        >
+          <BaseIcon name="AlertTriangle" :size="20" class="text-danger-600" />
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-foreground mb-1">از همه نشست‌ها خارج شوید؟</p>
+          <p class="text-xs text-muted-foreground">
+            تمام دستگاه‌های فعال خارج می‌شوند و باید دوباره وارد شوید.
+          </p>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex items-center justify-end gap-3">
+        <BaseButton variant="outline" @click="cancelLogoutAll"> انصراف </BaseButton>
+        <BaseButton
+          variant="default"
+          class="bg-danger-600 hover:bg-danger-700 text-white"
+          @click="confirmLogoutAll"
+        >
+          خروج از همه نشست‌ها
         </BaseButton>
       </div>
     </template>

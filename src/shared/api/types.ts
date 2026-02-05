@@ -82,4 +82,53 @@ export interface MySessionsResponse {
   maxConcurrentSessions: number
 }
 
+export interface ChangePasswordRequest {
+  CurrentPassword: string
+  NewPassword?: string
+}
+
+export interface PasswordPolicyResponse {
+  minLength?: number
+  MinLength?: number
+  maxLength?: number
+  MaxLength?: number
+  requireUppercase?: boolean
+  RequireUppercase?: boolean
+  requireLowercase?: boolean
+  RequireLowercase?: boolean
+  requireDigit?: boolean
+  RequireDigit?: boolean
+  requireNonAlphanumeric?: boolean
+  RequireNonAlphanumeric?: boolean
+  requiredUniqueChars?: number
+  RequiredUniqueChars?: number
+}
+
+export interface MfaStatusResponse {
+  enabled?: boolean
+  Enabled?: boolean
+  isEnabled?: boolean
+  IsEnabled?: boolean
+}
+
+export interface MfaSetupResponse {
+  recoveryCodes?: string[]
+  RecoveryCodes?: string[]
+  qrCodeImage?: string
+  QrCodeImage?: string
+  qrCodeImageUrl?: string
+  QrCodeImageUrl?: string
+  manualEntryKey?: string
+  ManualEntryKey?: string
+  sharedKey?: string
+  SharedKey?: string
+}
+
+export interface MfaResponse {
+  success?: boolean
+  Success?: boolean
+  message?: string
+  Message?: string
+}
+
 
