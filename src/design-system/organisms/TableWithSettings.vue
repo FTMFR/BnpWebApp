@@ -132,7 +132,9 @@
   // Prepare export data
   const prepareExportData = (): Record<string, unknown>[] => {
     const dataToExport = props.rawData && props.rawData.length > 0 ? props.rawData : props.data
-    const columnsToExport = localColumns.value.filter(col => col.visible !== false && col.id !== 'actions')
+    const columnsToExport = localColumns.value.filter(
+      col => col.visible !== false && col.id !== 'actions' && !col.id.startsWith('_'),
+    )
     return dataToExport.map(row => {
       const newRow: Record<string, unknown> = {}
       columnsToExport.forEach(col => {
@@ -144,7 +146,9 @@
 
   const handleExport = () => {
     const exportData = prepareExportData()
-    const columnsToExport = localColumns.value.filter(col => col.visible !== false && col.id !== 'actions')
+    const columnsToExport = localColumns.value.filter(
+      col => col.visible !== false && col.id !== 'actions' && !col.id.startsWith('_'),
+    )
     if (props.exportEndpoint) {
       emit('export-request', exportData, columnsToExport)
     } else {

@@ -74,12 +74,6 @@ const menuItems: DropdownItem[] = [
     iconName: 'Settings',
   },
   {
-    label: 'تنظیمات تایید دو مرحله‌ای',
-    value: 'mfa-setup',
-    href: '/mfa/setup',
-    iconName: 'ShieldCheck',
-  },
-  {
     label: 'تغییر رمز عبور',
     value: 'change-password',
     iconName: 'Lock',

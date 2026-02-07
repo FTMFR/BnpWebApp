@@ -19,31 +19,35 @@
       </div>
     </div>
 
-    <div class="mb-6 sm:mb-8">
-      <div class="flex items-center gap-2 mb-2 sm:mb-3">
-        <BaseIcon
-          name="ShieldCheck"
-          :size="18"
-          :stroke-width="2"
-          icon-class="text-primary-500 sm:w-5 sm:h-5"
-        />
-        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground m-0">
-          تایید دو مرحله‌ای
-        </h1>
+    <div class="w-full max-w-full min-w-0">
+      <div class="mb-6 sm:mb-8">
+        <div class="flex items-center gap-2 mb-2 sm:mb-3">
+          <BaseIcon
+            name="ShieldCheck"
+            :size="18"
+            :stroke-width="2"
+            icon-class="text-primary-500 sm:w-5 sm:h-5"
+          />
+          <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground m-0">
+            تایید دو مرحله‌ای
+          </h1>
+        </div>
+        <p class="text-xs sm:text-sm md:text-base font-normal text-muted-foreground m-0">
+          <span v-if="maskedMobileNumber">
+            کد تایید به شماره <span dir="ltr" class="inline-block">{{ maskedMobileNumber }}</span> ارسال شده است
+          </span>
+          <span v-else>کد تایید ارسال شده را وارد کنید</span>
+        </p>
       </div>
-      <p class="text-xs sm:text-sm md:text-base font-normal text-muted-foreground m-0">
-        <span v-if="maskedMobileNumber">
-          کد تایید به شماره {{ maskedMobileNumber }} ارسال شده است
-        </span>
-        <span v-else>کد تایید ارسال شده را وارد کنید</span>
-      </p>
-    </div>
 
-    <form @submit.prevent="handleSubmit" class="flex flex-col gap-4 sm:gap-5" novalidate>
-      <!-- OTP Inputs (6 separate boxes) -->
-      <div class="flex flex-col gap-3">
+      <form @submit.prevent="handleSubmit" class="flex flex-col gap-4 sm:gap-5" novalidate>
+      <!-- OTP Inputs (6 boxes, same width as title row above) -->
+      <div class="flex flex-col gap-3 w-full max-w-full min-w-0 overflow-hidden">
         <label class="text-sm font-medium text-foreground text-right">کد تایید</label>
-        <div class="flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap">
+        <div
+          dir="ltr"
+          class="flex w-full max-w-full min-w-0 gap-1.5 sm:gap-2 flex-nowrap overflow-hidden"
+        >
           <input
             v-for="(digit, index) in otpDigits"
             :key="index"
@@ -53,7 +57,7 @@
             inputmode="numeric"
             pattern="[0-9]*"
             maxlength="1"
-            class="w-10 h-12 sm:w-12 sm:h-14 md:w-14 md:h-16 text-center text-lg sm:text-xl md:text-2xl font-bold bg-input-background border-2 border-border-default rounded-lg sm:rounded-xl transition-all outline-none text-foreground focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+            class="flex-1 min-w-0 max-w-[3.5rem] h-12 sm:h-14 text-center text-lg sm:text-xl font-bold bg-input-background border-2 border-border-default rounded-lg sm:rounded-xl transition-all outline-none text-foreground focus:border-primary-500 focus:ring-2 focus:ring-primary-200 basis-0"
             :class="{
               'border-danger-500': errorMessage && otpDigits[index],
             }"
@@ -70,11 +74,11 @@
         </p>
       </div>
 
-      <!-- CAPTCHA Section -->
-      <div class="flex flex-col gap-3">
-        <label class="text-sm font-medium text-foreground text-right">کد امنیتی</label>
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div class="flex-1">
+      <!-- CAPTCHA Section – only when login/resend response included CaptchaId and CaptchaImage -->
+      <div v-if="captchaRequired" class="flex flex-col gap-3">
+        <label class="text-sm font-medium text-foreground text-center">کد امنیتی</label>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div class="w-full sm:max-w-[200px] md:max-w-[220px] flex flex-col items-center">
             <input
               v-model="captchaValue"
               type="text"
@@ -86,15 +90,14 @@
             />
             <p
               v-if="captchaError"
-              class="text-xs sm:text-sm text-danger-500 mt-1 text-right break-words min-w-0"
+              class="text-xs sm:text-sm text-danger-500 mt-1 text-center break-words min-w-0 w-full"
             >
               {{ captchaError }}
             </p>
           </div>
-          <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2">
             <div
-              class="w-full sm:w-28 md:w-32 h-11 sm:h-12 bg-input-background border border-border-default rounded-lg sm:rounded-xl flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary-500 transition-colors"
-              @click="refreshCaptcha"
+              class="w-24 h-11 sm:w-28 sm:h-12 md:w-32 md:h-12 bg-input-background border border-border-default rounded-lg sm:rounded-xl flex items-center justify-center overflow-hidden shrink-0"
             >
               <img
                 v-if="captchaImage"
@@ -102,7 +105,7 @@
                 alt="کد امنیتی"
                 class="w-full h-full object-contain"
               />
-              <div v-else class="flex items-center justify-center">
+              <div v-else class="flex items-center justify-center p-2">
                 <BaseIcon
                   name="RefreshCw"
                   :size="20"
@@ -113,10 +116,17 @@
             </div>
             <button
               type="button"
-              @click="refreshCaptcha"
-              class="text-xs text-primary-500 hover:text-primary-600 transition-colors bg-transparent border-0 cursor-pointer p-1"
+              @click.prevent="refreshCaptcha"
+              class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-input-background border border-border-default hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors cursor-pointer shrink-0"
+              :disabled="isRefreshingCaptcha"
+              aria-label="دریافت کد امنیتی جدید"
             >
-              بروزرسانی
+              <BaseIcon
+                name="RefreshCw"
+                :size="20"
+                :stroke-width="2"
+                :icon-class="isRefreshingCaptcha ? 'text-muted-foreground animate-spin' : 'text-primary-500'"
+              />
             </button>
           </div>
         </div>
@@ -140,7 +150,7 @@
 
       <button
         type="submit"
-        :disabled="isVerifying || !isOtpComplete || !captchaValue"
+        :disabled="isVerifying || !isOtpComplete || (captchaRequired && !captchaValue)"
         class="w-full max-w-full h-12 sm:h-14 md:h-16 bg-gradient-to-br from-primary-500 to-primary-600 text-white border-0 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg cursor-pointer transition-all duration-300 ease-in-out mt-4 sm:mt-6 md:mt-8 relative box-border overflow-hidden hover:not(:disabled):from-primary-600 hover:not(:disabled):to-primary-700 disabled:opacity-70 disabled:cursor-not-allowed"
         :aria-label="isVerifying ? 'در حال تایید' : 'تایید'"
       >
@@ -165,24 +175,23 @@
       <div class="flex items-center justify-center pt-2">
         <button
           type="button"
-          @click="resendOtp"
+          @click.prevent.stop="onResendOtpClick"
           :disabled="isResending || resendCooldown > 0"
           class="text-sm font-semibold text-primary-500 bg-transparent border-0 cursor-pointer p-1 transition-colors hover:text-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span v-if="resendCooldown > 0">ارسال مجدد ({{ resendCooldown }})</span>
+          <span v-if="resendCooldown > 0">ارسال مجدد (<span dir="rtl" class="inline-block">{{ resendCooldown }} ثانیه</span>)</span>
           <span v-else>ارسال مجدد کد</span>
         </button>
       </div>
 
-      <div class="flex items-center justify-center pt-2">
-        <router-link
-          to="/login"
-          class="text-sm font-semibold text-muted-foreground bg-transparent border-0 cursor-pointer p-1 transition-colors no-underline hover:text-foreground"
-        >
-          بازگشت به صفحه ورود
-        </router-link>
-      </div>
+      <router-link
+        to="/login"
+        class="w-full max-w-full h-12 sm:h-14 md:h-16 flex items-center justify-center gap-2 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg cursor-pointer transition-all duration-300 ease-in-out border-2 border-border-default bg-transparent text-muted-foreground no-underline mt-4 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-foreground hover:border-primary-500/50"
+      >
+        بازگشت به صفحه ورود
+      </router-link>
     </form>
+    </div>
   </AuthLayout>
 </template>
 
@@ -210,11 +219,13 @@ const resendCooldown = ref(0)
 const maskedMobileNumber = ref<string | null>(null)
 const mfaToken = ref<string | null>(null)
 
-// CAPTCHA
+// CAPTCHA – when login/resend response has CaptchaId/CaptchaImage null, captcha is not shown and submit is OTP-only
+const captchaRequired = ref(false)
 const captchaId = ref<string | null>(null)
 const captchaImage = ref<string | null>(null)
 const captchaValue = ref('')
 const captchaError = ref('')
+const isRefreshingCaptcha = ref(false)
 
 let cooldownInterval: NodeJS.Timeout | null = null
 
@@ -228,13 +239,12 @@ function setInputRef(el: HTMLInputElement | ComponentPublicInstance | null, inde
   }
 }
 
-/** Set captcha from login response (sessionStorage). Returns true if captcha was set. */
+/** Use captcha from sessionStorage (login response by default; overwritten by captcha API when user clicks regenerate). */
 function useStoredCaptcha(): boolean {
   const id = sessionStorage.getItem('mfa_captcha_id')
   const image = sessionStorage.getItem('mfa_captcha_image')
   if (id && image) {
     captchaId.value = id
-    // Backend may return raw base64 or already data URL
     captchaImage.value = image.startsWith('data:') ? image : `data:image/png;base64,${image}`
     captchaError.value = ''
     return true
@@ -244,12 +254,17 @@ function useStoredCaptcha(): boolean {
 
 async function loadCaptcha() {
   try {
-    const response = await apiClient.get<
-      { id?: string; image?: string; CaptchaId?: string; CaptchaImage?: string }
-    >(endpoints.auth.captcha)
+    const response = await apiClient.get<{
+      id?: string
+      image?: string
+      captchaId?: string
+      captchaImage?: string
+      CaptchaId?: string
+      CaptchaImage?: string
+    }>(endpoints.auth.captcha)
     const data = response.data
-    const id = data.CaptchaId ?? data.id ?? null
-    const rawImage = data.CaptchaImage ?? data.image ?? null
+    const id = data.captchaId ?? data.CaptchaId ?? data.id ?? null
+    const rawImage = data.captchaImage ?? data.CaptchaImage ?? data.image ?? null
     if (id) captchaId.value = id
     if (rawImage) {
       captchaImage.value = rawImage.startsWith('data:') ? rawImage : `data:image/png;base64,${rawImage}`
@@ -260,10 +275,18 @@ async function loadCaptcha() {
   }
 }
 
+// Step 4: refresh captcha — GET captcha API only (no resend-otp)
 async function refreshCaptcha() {
   captchaValue.value = ''
   captchaError.value = ''
-  await loadCaptcha()
+  isRefreshingCaptcha.value = true
+  try {
+    await loadCaptcha()
+    if (captchaId.value) sessionStorage.setItem('mfa_captcha_id', captchaId.value)
+    if (captchaImage.value) sessionStorage.setItem('mfa_captcha_image', captchaImage.value)
+  } finally {
+    isRefreshingCaptcha.value = false
+  }
 }
 
 function getOtpCode(): string {
@@ -287,15 +310,17 @@ function handleOtpInput(index: number, event: Event) {
     })
   }
 
-  // Auto-submit when complete
+  // When OTP complete: focus captcha input if required, else focus submit button
   if (value && index === 5 && isOtpComplete.value) {
     nextTick(() => {
-      // Focus on captcha input
-      const captchaInput = document.querySelector(
-        'input[type="text"][placeholder*="کد نمایش"]',
-      ) as HTMLInputElement
-      if (captchaInput) {
-        captchaInput.focus()
+      if (captchaRequired.value) {
+        const captchaInput = document.querySelector(
+          'input[type="text"][placeholder*="کد نمایش"]',
+        ) as HTMLInputElement
+        if (captchaInput) captchaInput.focus()
+      } else {
+        const submitBtn = document.querySelector('button[type="submit"]') as HTMLButtonElement
+        if (submitBtn) submitBtn.focus()
       }
     })
   }
@@ -338,14 +363,17 @@ function handlePaste(event: ClipboardEvent) {
     }
   })
 
-  // If 6 digits were pasted, focus on captcha input
+  // If 6 digits were pasted, focus captcha input (if required) or submit button
   if (digits.length === 6) {
     nextTick(() => {
-      const captchaInput = document.querySelector(
-        'input[type="text"][placeholder*="کد نمایش"]',
-      ) as HTMLInputElement
-      if (captchaInput) {
-        captchaInput.focus()
+      if (captchaRequired.value) {
+        const captchaInput = document.querySelector(
+          'input[type="text"][placeholder*="کد نمایش"]',
+        ) as HTMLInputElement
+        if (captchaInput) captchaInput.focus()
+      } else {
+        const submitBtn = document.querySelector('button[type="submit"]') as HTMLButtonElement
+        if (submitBtn) submitBtn.focus()
       }
     })
   } else {
@@ -362,11 +390,13 @@ function handlePaste(event: ClipboardEvent) {
   }
 }
 
-onMounted(async () => {
-  // Get masked mobile number from query params (from login redirect)
-  maskedMobileNumber.value = (route.query.maskedMobile as string) || null
+// MFA flow: (1) Login returns RequiresMfa + MfaToken + CaptchaId + CaptchaImage + OtpExpirySeconds.
+// (2) This page shows OTP inputs + captcha from login only — no API call.
+// (3) Resend OTP: call resend-otp API; response has new CaptchaId/CaptchaImage, OtpExpirySeconds — update UI.
+// (4) Refresh captcha: call GET /api/Auth/captcha only when user clicks refresh.
 
-  // Get MFA token from sessionStorage
+onMounted(() => {
+  maskedMobileNumber.value = sessionStorage.getItem('mfa_masked_mobile')
   mfaToken.value = sessionStorage.getItem('mfa_token')
 
   if (!mfaToken.value) {
@@ -374,23 +404,18 @@ onMounted(async () => {
     return
   }
 
-  // Use captcha from login response first; only fetch when refreshing or not present
-  const hadStoredCaptcha = useStoredCaptcha()
-  if (!hadStoredCaptcha) {
-    await loadCaptcha()
-  }
+  // Step 2: display captcha from login response only when CaptchaId/CaptchaImage were present
+  useStoredCaptcha()
+  captchaRequired.value = !!(sessionStorage.getItem('mfa_captcha_id'))
 
-  // Cooldown: use OtpExpirySeconds from login response if stored, else 60
+  // Cooldown from login response (OtpExpirySeconds) so user sees when resend is available
   const expirySeconds = sessionStorage.getItem('mfa_otp_expiry_seconds')
   const cooldownSeconds = expirySeconds ? Math.max(0, parseInt(expirySeconds, 10)) : 60
   startCooldown(Number.isNaN(cooldownSeconds) ? 60 : cooldownSeconds)
 
-  // Focus first input
   nextTick(() => {
     const firstInput = otpInputRefs.value[0] as HTMLInputElement
-    if (firstInput) {
-      firstInput.focus()
-    }
+    if (firstInput) firstInput.focus()
   })
 })
 
@@ -411,24 +436,62 @@ function startCooldown(seconds: number) {
   }, 1000)
 }
 
+interface ResendOtpResponse {
+  Success?: boolean
+  Message?: string
+  OtpExpirySeconds?: number
+  MaskedMobileNumber?: string
+  CaptchaId?: string
+  CaptchaImage?: string
+}
+
+function onResendOtpClick(event: MouseEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  resendOtp()
+}
+
 async function resendOtp() {
   if (isResending.value || resendCooldown.value > 0) return
 
   isResending.value = true
   errorMessage.value = ''
+  captchaValue.value = ''
 
   try {
-    await apiClient.post(endpoints.auth.mfa.resendOtp, {
+    const { data } = await apiClient.post<ResendOtpResponse>(endpoints.auth.mfa.resendOtp, {
       MfaToken: mfaToken.value,
     })
-    startCooldown(60)
-    // Clear OTP inputs
+
+    // Step 3: update captcha and cooldown from resend response; hide captcha if response has null null
+    if (data.CaptchaId != null && data.CaptchaImage != null) {
+      captchaRequired.value = true
+      captchaId.value = data.CaptchaId
+      sessionStorage.setItem('mfa_captcha_id', data.CaptchaId)
+      const img = data.CaptchaImage.startsWith('data:') ? data.CaptchaImage : `data:image/png;base64,${data.CaptchaImage}`
+      captchaImage.value = img
+      sessionStorage.setItem('mfa_captcha_image', img)
+    } else {
+      captchaRequired.value = false
+      captchaId.value = null
+      captchaImage.value = null
+      sessionStorage.removeItem('mfa_captcha_id')
+      sessionStorage.removeItem('mfa_captcha_image')
+    }
+    if (data.MaskedMobileNumber != null) {
+      maskedMobileNumber.value = data.MaskedMobileNumber
+      sessionStorage.setItem('mfa_masked_mobile', data.MaskedMobileNumber)
+    }
+    const cooldownSeconds = data.OtpExpirySeconds != null ? Math.max(0, data.OtpExpirySeconds) : 60
+    if (data.OtpExpirySeconds != null) {
+      sessionStorage.setItem('mfa_otp_expiry_seconds', String(data.OtpExpirySeconds))
+    }
+    startCooldown(cooldownSeconds)
+
     otpDigits.value = ['', '', '', '', '', '']
     nextTick(() => {
       const firstInput = otpInputRefs.value[0] as HTMLInputElement
-      if (firstInput) {
-        firstInput.focus()
-      }
+      if (firstInput) firstInput.focus()
     })
   } catch (error) {
     errorMessage.value = getErrorMessage(error)
@@ -466,15 +529,15 @@ function getErrorMessage(error: unknown): string {
 }
 
 async function handleSubmit() {
-  if (isVerifying.value || !isOtpComplete.value || !captchaValue.value) return
-
-  if (!mfaToken.value) {
-    router.push('/login')
+  if (isVerifying.value || !isOtpComplete.value) return
+  if (captchaRequired.value && !captchaValue.value) return
+  if (captchaRequired.value && !captchaId.value) {
+    captchaError.value = 'لطفاً کد امنیتی را وارد کنید.'
     return
   }
 
-  if (!captchaId.value) {
-    captchaError.value = 'لطفاً کد امنیتی را وارد کنید.'
+  if (!mfaToken.value) {
+    router.push('/login')
     return
   }
 
@@ -483,39 +546,48 @@ async function handleSubmit() {
   isVerifying.value = true
 
   try {
-    const otpCode = getOtpCode()
+    const code = getOtpCode()
+    const body: Record<string, string> = {
+      MfaToken: mfaToken.value,
+      Otp: code,
+      OtpCode: code,
+      Code: code,
+    }
+    if (captchaRequired.value && captchaId.value != null) {
+      body.CaptchaId = captchaId.value
+      body.CaptchaValue = captchaValue.value
+      body.CaptchaCode = captchaValue.value
+    }
 
     const response = await apiClient.post<{
       Token: string
       PublicId: string
-    }>(endpoints.auth.mfa.verify, {
-      MfaToken: mfaToken.value,
-      OtpCode: otpCode,
-      CaptchaId: captchaId.value,
-      CaptchaValue: captchaValue.value,
-    })
+    }>(endpoints.auth.mfa.verify, body)
 
     // Clear MFA-related data from sessionStorage
     sessionStorage.removeItem('mfa_token')
     sessionStorage.removeItem('mfa_userName')
+    sessionStorage.removeItem('mfa_otp_expiry_seconds')
     sessionStorage.removeItem('mfa_captcha_id')
     sessionStorage.removeItem('mfa_captcha_image')
-    sessionStorage.removeItem('mfa_otp_expiry_seconds')
+    sessionStorage.removeItem('mfa_masked_mobile')
 
-    // Fetch user data and set auth
+    // Store token in session (sessionStorage) and optionally user data
     try {
       const userResponse = await apiClient.get(endpoints.users.byId(response.data.PublicId))
       authStore.setAuth(response.data.Token, response.data.PublicId, userResponse.data)
     } catch (error) {
       console.error('Failed to fetch user profile:', error)
+      // Still store token so user is logged in; user can be loaded later
+      authStore.setAuth(response.data.Token, response.data.PublicId)
     }
 
+    // Redirect to dashboard (or query.redirect if present)
     const redirectPath = route.query.redirect as string | undefined
-    router.push(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/')
+    router.push(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/dashboard')
   } catch (error) {
     errorMessage.value = getErrorMessage(error)
-    // Refresh captcha on error
-    await refreshCaptcha()
+    if (captchaRequired.value) await refreshCaptcha()
     // Clear OTP on error
     otpDigits.value = ['', '', '', '', '', '']
     nextTick(() => {

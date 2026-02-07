@@ -18,6 +18,8 @@ export interface AuthUser {
   PasswordLastChangedAt: string | null
   LastLoginAt: string | null
   MustChangePassword: boolean
+  /** Roles from verify / user API (e.g. ["Admin"]). Used for UI like Help center admin section. */
+  Roles?: string[]
 }
 
 export const STORAGE_KEYS = {

@@ -36,15 +36,6 @@ const router = createRouter({
       },
     },
     {
-      path: '/mfa/setup',
-      name: 'mfa-setup',
-      component: () => import('@/pages/auth/MfaSetupPage.vue'),
-      meta: {
-        requiresAuth: true,
-        layout: 'dashboard',
-      },
-    },
-    {
       path: '/',
       redirect: '/dashboard',
     },
@@ -129,11 +120,13 @@ const router = createRouter({
     },
     {
       path: '/menu/create',
-      name: 'menu-create-404',
-      component: () => import('@/pages/NotFoundPage.vue'),
+      name: 'menu-create',
+      component: () => import('@/pages/menus/MenuCreatePage.vue'),
       meta: {
         requiresAuth: true,
         layout: 'dashboard',
+        permissions: ['Menus.Create'],
+
       },
     },
     {
@@ -181,7 +174,8 @@ const router = createRouter({
       component: () => import('@/pages/SettingsPage.vue'),
       meta: {
         requiresAuth: true,
-        layout: 'dashboard'
+        layout: 'dashboard',
+        permissions: ['Security.Read'],
       }
     },
     {
@@ -232,6 +226,36 @@ const router = createRouter({
         requiresAuth: true,
         layout: 'dashboard',
         title: 'لیست شعب'
+      }
+    },
+    {
+      path: '/shobe/create',
+      name: 'shobe-create',
+      component: () => import('@/pages/shobe/ShobeCreatePage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'ایجاد شعبه'
+      }
+    },
+    {
+      path: '/shobe/settings',
+      name: 'shobe-settings',
+      component: () => import('@/pages/shobe/ShobeSettingsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'تنظیمات شعب'
+      }
+    },
+    {
+      path: '/shobe/:id',
+      name: 'shobe-view',
+      component: () => import('@/pages/shobe/ShobeViewPage.vue'),
+      meta: {
+        requiresAuth: true,
+        layout: 'dashboard',
+        title: 'ویرایش شعبه'
       }
     },
     {

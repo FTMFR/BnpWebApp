@@ -631,7 +631,7 @@ watch(activeTab, (tab) => {
                     </label>
                   </div>
                   <div class="pt-2">
-                    <BaseButton :disabled="settingsSaving" @click="saveSettings">
+                    <BaseButton class="text-white" :disabled="settingsSaving" @click="saveSettings">
                       {{ settingsSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات' }}
                     </BaseButton>
                   </div>
@@ -664,7 +664,7 @@ watch(activeTab, (tab) => {
           <div v-if="currentTab === 'rules'" class="min-w-0 space-y-4">
             <Card variant="elevated" padding="none" class="min-w-0">
               <div class="p-4 sm:p-6 flex justify-end">
-                <BaseButton @click="openRuleCreate">افزودن قانون</BaseButton>
+                <BaseButton class="text-white" @click="openRuleCreate">افزودن قانون</BaseButton>
               </div>
               <div v-if="rulesLoading" class="flex items-center justify-center min-h-[200px]">
                 <CustomLoader size="lg" />
@@ -694,7 +694,7 @@ watch(activeTab, (tab) => {
                 </div>
                 <div class="flex gap-2 justify-end pt-2">
                   <BaseButton variant="ghost" @click="ruleModalOpen = false">انصراف</BaseButton>
-                  <BaseButton @click="saveRule">ذخیره</BaseButton>
+                  <BaseButton class="text-white" @click="saveRule">ذخیره</BaseButton>
                 </div>
               </div>
             </Modal>
@@ -704,7 +704,7 @@ watch(activeTab, (tab) => {
           <div v-if="currentTab === 'masking'" class="min-w-0 space-y-4">
             <Card variant="elevated" padding="none" class="min-w-0">
               <div class="p-4 sm:p-6 flex justify-end">
-                <BaseButton @click="openMaskingCreate">افزودن قانون پوشش</BaseButton>
+                <BaseButton class="text-white" @click="openMaskingCreate">افزودن قانون پوشش</BaseButton>
               </div>
               <div v-if="maskingLoading" class="flex items-center justify-center min-h-[200px]">
                 <CustomLoader size="lg" />
@@ -734,7 +734,7 @@ watch(activeTab, (tab) => {
                 </div>
                 <div class="flex gap-2 justify-end pt-2">
                   <BaseButton variant="ghost" @click="maskingModalOpen = false">انصراف</BaseButton>
-                  <BaseButton @click="saveMasking">ذخیره</BaseButton>
+                  <BaseButton class="text-white" @click="saveMasking">ذخیره</BaseButton>
                 </div>
               </div>
             </Modal>
@@ -746,7 +746,7 @@ watch(activeTab, (tab) => {
               <div class="flex flex-wrap gap-4 items-end">
                 <FormField v-model="entityLookup.entityType" label="نوع موجودیت" type="text" class="min-w-[120px]" />
                 <FormField v-model="entityLookup.entityId" label="شناسه موجودیت" type="text" class="min-w-[120px]" />
-                <BaseButton :disabled="entityLookupLoading" @click="fetchSensitivityByEntity">
+                <BaseButton class="text-white" :disabled="entityLookupLoading" @click="fetchSensitivityByEntity">
                   {{ entityLookupLoading ? 'در حال جستجو...' : 'جستجو' }}
                 </BaseButton>
               </div>
@@ -851,54 +851,62 @@ watch(activeTab, (tab) => {
 
           <!-- Statistics tab -->
           <div v-if="currentTab === 'statistics'" class="min-w-0 space-y-4">
-            <div v-if="statisticsLoading" class="flex items-center justify-center min-h-[320px]">
-              <CustomLoader size="lg" />
-            </div>
-            <template v-else-if="statisticsError">
-              <Card variant="elevated" padding="md" class="min-w-0">
-                <p class="text-muted-foreground text-center py-8">{{ statisticsError }}</p>
-              </Card>
-            </template>
-            <template v-else-if="statistics">
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card variant="elevated" padding="md" class="min-w-0">
-                  <p class="text-xs text-muted-foreground">کل خروجی‌ها</p>
-                  <p class="text-2xl font-semibold">{{ (statistics.totalExports ?? 0).toLocaleString('fa-IR') }}</p>
-                </Card>
-                <Card variant="elevated" padding="md" class="min-w-0">
-                  <p class="text-xs text-muted-foreground">موفق</p>
-                  <p class="text-2xl font-semibold text-green-600">{{ (statistics.successCount ?? 0).toLocaleString('fa-IR') }}</p>
-                </Card>
-                <Card variant="elevated" padding="md" class="min-w-0">
-                  <p class="text-xs text-muted-foreground">ناموفق</p>
-                  <p class="text-2xl font-semibold text-red-600">{{ (statistics.failureCount ?? 0).toLocaleString('fa-IR') }}</p>
-                </Card>
-                <Card variant="elevated" padding="md" class="min-w-0">
-                  <p class="text-xs text-muted-foreground">رکوردهای خروجی شده</p>
-                  <p class="text-2xl font-semibold">{{ (statistics.totalRecordsExported ?? 0).toLocaleString('fa-IR') }}</p>
-                </Card>
+            <Card title="آمار" variant="elevated" padding="none" class="min-w-0">
+              <div class="p-4 sm:p-6">
+                <div v-if="statisticsLoading" class="flex items-center justify-center min-h-[320px]">
+                  <CustomLoader size="lg" />
+                </div>
+                <template v-else-if="statisticsError">
+                  <p class="text-muted-foreground text-center py-8">{{ statisticsError }}</p>
+                </template>
+                <template v-else-if="statistics">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                      <p class="text-xs text-muted-foreground">کل خروجی‌ها</p>
+                      <p class="text-2xl font-semibold">{{ (statistics.totalExports ?? 0).toLocaleString('fa-IR') }}</p>
+                    </div>
+                    <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                      <p class="text-xs text-muted-foreground">موفق</p>
+                      <p class="text-2xl font-semibold text-green-600">{{ (statistics.successCount ?? 0).toLocaleString('fa-IR') }}</p>
+                    </div>
+                    <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                      <p class="text-xs text-muted-foreground">ناموفق</p>
+                      <p class="text-2xl font-semibold text-red-600">{{ (statistics.failureCount ?? 0).toLocaleString('fa-IR') }}</p>
+                    </div>
+                    <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                      <p class="text-xs text-muted-foreground">رکوردهای خروجی شده</p>
+                      <p class="text-2xl font-semibold">{{ (statistics.totalRecordsExported ?? 0).toLocaleString('fa-IR') }}</p>
+                    </div>
+                  </div>
+                  <div v-if="statisticsSeries.length > 0" class="mt-6">
+                    <p class="text-sm font-semibold mb-4">خروجی به تفکیک فرمت</p>
+                    <VueApexCharts
+                      type="donut"
+                      :options="{ chart: { type: 'donut' }, labels: Object.keys(statistics.exportsByFormat ?? {}), legend: { position: 'bottom' } }"
+                      :series="statisticsSeries"
+                      height="280"
+                    />
+                  </div>
+                </template>
               </div>
-              <Card v-if="statisticsSeries.length > 0" variant="elevated" padding="md" class="min-w-0">
-                <p class="text-sm font-semibold mb-4">خروجی به تفکیک فرمت</p>
-                <VueApexCharts
-                  type="donut"
-                  :options="{ chart: { type: 'donut' }, labels: Object.keys(statistics.exportsByFormat ?? {}), legend: { position: 'bottom' } }"
-                  :series="statisticsSeries"
-                  height="280"
-                />
-              </Card>
-            </template>
+            </Card>
           </div>
 
           <!-- Test tab -->
           <div v-if="currentTab === 'test'" class="min-w-0">
             <Card title="تست خروجی" variant="elevated" padding="md" class="min-w-0">
-              <div class="space-y-4 max-w-md">
-                <FormField v-model="testForm.entityType" label="نوع موجودیت" type="text" />
-                <FormField v-model="testForm.entityId" label="شناسه موجودیت" type="text" />
-                <FormField v-model="testForm.format" label="فرمت" type="text" />
-                <FormField v-model.number="testForm.recordLimit" label="حداکثر رکورد" type="number" />
-                <BaseButton :disabled="testSubmitting" @click="submitTest">
+              <div class="space-y-4 max-w-2xl">
+                <div class="flex flex-col gap-4">
+                  <div class="flex gap-4">
+                    <FormField v-model="testForm.entityType" label="نوع موجودیت" type="text" class="flex-1 min-w-0" />
+                    <FormField v-model="testForm.entityId" label="شناسه موجودیت" type="text" class="flex-1 min-w-0" />
+                  </div>
+                  <div class="flex gap-4">
+                    <FormField v-model="testForm.format" label="فرمت" type="text" class="flex-1 min-w-0" />
+                    <FormField v-model.number="testForm.recordLimit" label="حداکثر رکورد" type="number" class="flex-1 min-w-0" />
+                  </div>
+                </div>
+                <BaseButton class="text-white" :disabled="testSubmitting" @click="submitTest">
                   {{ testSubmitting ? 'در حال اجرا...' : 'اجرای تست' }}
                 </BaseButton>
                 <p v-if="testResult === 'success'" class="text-sm text-green-600">تست با موفقیت انجام شد.</p>

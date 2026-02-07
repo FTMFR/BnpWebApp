@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, watch } from 'vue'
+import BaseIcon from '@/design-system/atoms/BaseIcon.vue'
 
 export interface ModalProps {
   modelValue: boolean
@@ -101,23 +102,16 @@ watch(
               <slot name="header" />
             </div>
             <button
-              class="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+              class="group p-2 hover:bg-primary dark:hover:bg-primary-900/20 hover:text-white rounded-lg transition-colors flex-shrink-0"
               aria-label="بستن"
               @click="close"
             >
-              <svg
-                class="w-5 h-5 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <BaseIcon
+                name="X"
+                :size="20"
+                :stroke-width="2"
+                icon-class="text-muted-foreground group-hover:text-white dark:group-hover:text-white transition-colors"
+              />
             </button>
           </div>
           <div

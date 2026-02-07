@@ -9,8 +9,9 @@ import type { ApiMenuItem } from '@/shared/api/types'
 
 /**
  * Recursively find menu item by path in menu tree
+ * Exported for unit testing.
  */
-function findMenuItemByPath(path: string, items: MenuItem[]): MenuItem | null {
+export function findMenuItemByPath(path: string, items: MenuItem[]): MenuItem | null {
   const normalizedPath = normalizePath(path)
 
   for (const item of items) {
@@ -32,8 +33,9 @@ function findMenuItemByPath(path: string, items: MenuItem[]): MenuItem | null {
 
 /**
  * Check if user has access to a route based on menu items
+ * Exported for unit testing.
  */
-function hasRouteAccess(routePath: string, menuItems: MenuItem[]): boolean {
+export function hasRouteAccess(routePath: string, menuItems: MenuItem[]): boolean {
   if (!routePath || menuItems.length === 0) {
     return false
   }
@@ -83,10 +85,13 @@ async function fetchMenuItems(): Promise<MenuItem[]> {
  */
 export function setupMenuPermissionGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
-    // Route های همیشه قابل دسترس (auth routes, MFA routes, dashboard)
+    // Route های همیشه قابل دسترس (auth routes, MFA routes, dashboard). When RequiresMfa is true
+    // we redirect to /mfa/verify without calling my-tree; my-tree is only fetched after MFA verify.
     const publicRoutes = [
       '/login',
       '/forgot-password',
+      '/mfa/verify',
+      '/mfa/setup',
       '/dashboard',
       '/profile',
       '/settings'

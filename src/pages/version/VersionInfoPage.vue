@@ -1,12 +1,24 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { CustomLoader } from '@/design-system/atoms'
+import { BaseButton, CustomLoader } from '@/design-system/atoms'
 import Breadcrumb from '@/design-system/molecules/Breadcrumb.vue'
 import Card from '@/design-system/molecules/Card.vue'
+import FormField from '@/design-system/molecules/FormField.vue'
 import DashboardLayout from '@/design-system/templates/DashboardLayout.vue'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
+import type {
+  ComputeHashRequest,
+  MetadataSignatureRequest,
+  ProblemDetails,
+  PublicKeyInfoResponse,
+  SignatureStatusResponse,
+  SignatureVerificationRequest,
+  VersionCheckResponse,
+  VersionCurrentResponse,
+} from '@/shared/api/types'
 import { useToastStore } from '@/stores/toast'
+import { AxiosError } from 'axios'
 
 interface VersionBlock {
   Version?: string
@@ -57,6 +69,40 @@ const isLoading = ref(true)
 const loadError = ref<string | null>(null)
 const toastStore = useToastStore()
 
+// Health (GET /health)
+const healthStatus = ref<'در دسترس' | 'غیرفعال' | null>(null)
+const healthLoading = ref(false)
+
+// Signature (GET signature/status, public-key-info)
+const signatureStatus = ref<SignatureStatusResponse | null>(null)
+const signatureStatusError = ref<string | null>(null)
+const publicKeyInfo = ref<PublicKeyInfoResponse | null>(null)
+const publicKeyInfoError = ref<string | null>(null)
+
+// Current version (GET version.current, version.frontend.current)
+const currentBackendVersion = ref<string | null>(null)
+const currentFrontendVersion = ref<string | null>(null)
+const currentVersionLoading = ref(false)
+
+// Version check (optional card)
+const backendCheckVersion = ref('')
+const frontendCheckVersion = ref('')
+const backendCheckResult = ref<string | null>(null)
+const frontendCheckResult = ref<string | null>(null)
+const backendCheckLoading = ref(false)
+const frontendCheckLoading = ref(false)
+
+// Signature POST tools (verify, verify-metadata, compute-hash)
+const verifyBody = ref('{}')
+const verifyResult = ref<string | null>(null)
+const verifyLoading = ref(false)
+const verifyMetadataBody = ref('{}')
+const verifyMetadataResult = ref<string | null>(null)
+const verifyMetadataLoading = ref(false)
+const computeHashBody = ref('{}')
+const computeHashResult = ref<string | null>(null)
+const computeHashLoading = ref(false)
+
 async function fetchInfo() {
   isLoading.value = true
   loadError.value = null
@@ -70,6 +116,222 @@ async function fetchInfo() {
   } finally {
     isLoading.value = false
   }
+}
+
+async function fetchCurrentVersions() {
+  currentVersionLoading.value = true
+  currentBackendVersion.value = null
+  currentFrontendVersion.value = null
+  try {
+    const [backendRes, frontendRes] = await Promise.all([
+      apiClient.get<VersionCurrentResponse>(endpoints.version.current),
+      apiClient.get<VersionCurrentResponse>(endpoints.version.frontend.current),
+    ])
+    const b = backendRes.data
+    currentBackendVersion.value = b?.Version ?? b?.version ?? '—'
+    const f = frontendRes.data
+    currentFrontendVersion.value = f?.Version ?? f?.version ?? '—'
+  } catch {
+    currentBackendVersion.value = null
+    currentFrontendVersion.value = null
+  } finally {
+    currentVersionLoading.value = false
+  }
+}
+
+async function fetchHealth() {
+  healthLoading.value = true
+  healthStatus.value = null
+  try {
+    const response = await apiClient.get(endpoints.health, { timeout: 5000 })
+    healthStatus.value = response.status === 200 ? 'در دسترس' : 'غیرفعال'
+  } catch (err) {
+    const status = err instanceof AxiosError ? err.response?.status : null
+    healthStatus.value = status === 503 ? 'غیرفعال' : 'غیرفعال'
+  } finally {
+    healthLoading.value = false
+  }
+}
+
+async function fetchSignatureStatus() {
+  signatureStatusError.value = null
+  try {
+    const response = await apiClient.get<SignatureStatusResponse>(
+      endpoints.version.signature.status,
+    )
+    signatureStatus.value = response.data
+  } catch {
+    signatureStatus.value = null
+    signatureStatusError.value = '—'
+  }
+}
+
+async function fetchPublicKeyInfo() {
+  publicKeyInfoError.value = null
+  try {
+    const response = await apiClient.get<PublicKeyInfoResponse>(
+      endpoints.version.signature.publicKeyInfo,
+    )
+    publicKeyInfo.value = response.data
+  } catch {
+    publicKeyInfo.value = null
+    publicKeyInfoError.value = '—'
+  }
+}
+
+async function checkBackendVersion() {
+  if (!backendCheckVersion.value.trim()) return
+  backendCheckLoading.value = true
+  backendCheckResult.value = null
+  try {
+    const response = await apiClient.get<VersionCheckResponse>(
+      endpoints.version.check(backendCheckVersion.value.trim()),
+    )
+    const data = response.data
+    const msg = data.Message ?? data.message
+    backendCheckResult.value = msg ?? (response.status === 200 ? 'بررسی انجام شد' : '—')
+  } catch (err) {
+    if (err instanceof AxiosError && err.response?.data) {
+      const data = err.response.data as { message?: string; Message?: string }
+      backendCheckResult.value = data.Message ?? data.message ?? 'خطا در بررسی'
+    } else {
+      backendCheckResult.value = 'خطا در بررسی'
+    }
+  } finally {
+    backendCheckLoading.value = false
+  }
+}
+
+async function checkFrontendVersion() {
+  if (!frontendCheckVersion.value.trim()) return
+  frontendCheckLoading.value = true
+  frontendCheckResult.value = null
+  try {
+    const response = await apiClient.get<VersionCheckResponse>(
+      endpoints.version.frontend.check(frontendCheckVersion.value.trim()),
+    )
+    const data = response.data
+    const msg = data.Message ?? data.message
+    frontendCheckResult.value = msg ?? (response.status === 200 ? 'بررسی انجام شد' : '—')
+  } catch (err) {
+    if (err instanceof AxiosError && err.response?.data) {
+      const data = err.response.data as { message?: string; Message?: string }
+      frontendCheckResult.value = data.Message ?? data.message ?? 'خطا در بررسی'
+    } else {
+      frontendCheckResult.value = 'خطا در بررسی'
+    }
+  } finally {
+    frontendCheckLoading.value = false
+  }
+}
+
+async function submitVerify() {
+  verifyResult.value = null
+  verifyLoading.value = true
+  try {
+    let body: SignatureVerificationRequest
+    try {
+      body = JSON.parse(verifyBody.value) as SignatureVerificationRequest
+    } catch {
+      verifyResult.value = 'JSON نامعتبر است.'
+      verifyLoading.value = false
+      return
+    }
+    const response = await apiClient.post(endpoints.version.signature.verify, body)
+    verifyResult.value =
+      typeof response.data === 'object'
+        ? JSON.stringify(response.data, null, 2)
+        : String(response.data ?? 'موفق')
+  } catch (err) {
+    if (err instanceof AxiosError && err.response?.data) {
+      const data = err.response.data as ProblemDetails
+      verifyResult.value = `خطا (${err.response.status}): ${data.detail ?? data.title ?? JSON.stringify(data)}`
+    } else {
+      verifyResult.value = err instanceof Error ? err.message : 'خطا در ارسال درخواست'
+    }
+  } finally {
+    verifyLoading.value = false
+  }
+}
+
+async function submitVerifyMetadata() {
+  verifyMetadataResult.value = null
+  verifyMetadataLoading.value = true
+  try {
+    let body: MetadataSignatureRequest
+    try {
+      body = JSON.parse(verifyMetadataBody.value) as MetadataSignatureRequest
+    } catch {
+      verifyMetadataResult.value = 'JSON نامعتبر است.'
+      verifyMetadataLoading.value = false
+      return
+    }
+    const response = await apiClient.post(endpoints.version.signature.verifyMetadata, body)
+    verifyMetadataResult.value =
+      typeof response.data === 'object'
+        ? JSON.stringify(response.data, null, 2)
+        : String(response.data ?? 'موفق')
+  } catch (err) {
+    if (err instanceof AxiosError && err.response?.data) {
+      const data = err.response.data as ProblemDetails
+      verifyMetadataResult.value = `خطا (${err.response.status}): ${data.detail ?? data.title ?? JSON.stringify(data)}`
+    } else {
+      verifyMetadataResult.value = err instanceof Error ? err.message : 'خطا در ارسال درخواست'
+    }
+  } finally {
+    verifyMetadataLoading.value = false
+  }
+}
+
+async function submitComputeHash() {
+  computeHashResult.value = null
+  computeHashLoading.value = true
+  try {
+    let body: ComputeHashRequest
+    try {
+      body = JSON.parse(computeHashBody.value) as ComputeHashRequest
+    } catch {
+      computeHashResult.value = 'JSON نامعتبر است.'
+      computeHashLoading.value = false
+      return
+    }
+    const response = await apiClient.post(endpoints.version.signature.computeHash, body)
+    computeHashResult.value =
+      typeof response.data === 'object'
+        ? JSON.stringify(response.data, null, 2)
+        : String(response.data ?? 'موفق')
+  } catch (err) {
+    if (err instanceof AxiosError && err.response?.data) {
+      const data = err.response.data as ProblemDetails
+      computeHashResult.value = `خطا (${err.response.status}): ${data.detail ?? data.title ?? JSON.stringify(data)}`
+    } else {
+      computeHashResult.value = err instanceof Error ? err.message : 'خطا در ارسال درخواست'
+    }
+  } finally {
+    computeHashLoading.value = false
+  }
+}
+
+function signatureStatusText(): string {
+  if (signatureStatusError.value) return signatureStatusError.value
+  const s = signatureStatus.value
+  if (!s) return '—'
+  const status = s.Status ?? s.status
+  const msg = s.Message ?? s.message
+  if (status) return msg ? `${status}: ${msg}` : status
+  return msg ?? '—'
+}
+
+function publicKeyInfoText(): string {
+  if (publicKeyInfoError.value) return publicKeyInfoError.value
+  const p = publicKeyInfo.value
+  if (!p) return '—'
+  const algo = p.Algorithm ?? p.algorithm
+  const thumb = p.Thumbprint ?? p.thumbprint
+  const parts: string[] = []
+  if (algo) parts.push(`الگوریتم: ${algo}`)
+  if (thumb) parts.push(`اثر: ${thumb}`)
+  return parts.length ? parts.join(' | ') : '—'
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -86,8 +348,12 @@ function formatBool(value: boolean): string {
   return value ? 'بله' : 'خیر'
 }
 
-onMounted(() => {
-  fetchInfo()
+onMounted(async () => {
+  await fetchInfo()
+  fetchHealth()
+  fetchCurrentVersions()
+  fetchSignatureStatus()
+  fetchPublicKeyInfo()
 })
 </script>
 
@@ -110,6 +376,63 @@ onMounted(() => {
 
       <template v-else-if="info">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <!-- وضعیت سرویس (Health) -->
+          <Card
+            title="وضعیت سرویس"
+            description="دسترسی به سرویس"
+            variant="elevated"
+            padding="none"
+            class="min-w-0"
+          >
+            <div class="p-4 sm:p-6 space-y-3">
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm items-center">
+                <span class="text-muted-foreground min-w-[7rem]">وضعیت</span>
+                <span v-if="healthLoading" class="text-muted-foreground">در حال بررسی...</span>
+                <span
+                  v-else
+                  :class="[
+                    'font-medium',
+                    healthStatus === 'در دسترس'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-muted-foreground',
+                  ]"
+                >
+                  {{ healthStatus ?? '—' }}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          <!-- نسخه جاری از API (version.current, version.frontend.current) -->
+          <Card
+            title="نسخه جاری از API"
+            description="نسخه بک‌اند و فرانت‌اند از endpointهای current"
+            variant="elevated"
+            padding="none"
+            class="min-w-0"
+          >
+            <div class="p-4 sm:p-6 space-y-3">
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm items-center">
+                <span class="text-muted-foreground min-w-[7rem]">بک‌اند</span>
+                <span v-if="currentVersionLoading" class="text-muted-foreground"
+                  >در حال بارگذاری...</span
+                >
+                <span v-else class="text-foreground font-medium">{{
+                  currentBackendVersion ?? '—'
+                }}</span>
+              </div>
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm items-center">
+                <span class="text-muted-foreground min-w-[7rem]">فرانت‌اند</span>
+                <span v-if="currentVersionLoading" class="text-muted-foreground"
+                  >در حال بارگذاری...</span
+                >
+                <span v-else class="text-foreground font-medium">{{
+                  currentFrontendVersion ?? '—'
+                }}</span>
+              </div>
+            </div>
+          </Card>
+
           <!-- Backend -->
           <Card
             title="بک‌اند"
@@ -254,6 +577,175 @@ onMounted(() => {
               <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 <span class="text-muted-foreground min-w-[7rem]">شناسه کانتینر</span>
                 <span class="text-foreground">{{ info.docker.containerId }}</span>
+              </div>
+            </div>
+          </Card>
+
+          <!-- وضعیت امضای نسخه (Signature status + public key info) -->
+          <Card
+            title="وضعیت امضای نسخه"
+            description="وضعیت و اطلاعات کلید عمومی"
+            variant="elevated"
+            padding="none"
+            class="min-w-0 lg:col-span-2"
+          >
+            <div class="p-4 sm:p-6 space-y-4">
+              <div class="flex flex-col gap-1 text-sm">
+                <span class="text-muted-foreground">وضعیت</span>
+                <span class="text-foreground break-words">{{ signatureStatusText() }}</span>
+              </div>
+              <div class="flex flex-col gap-1 text-sm">
+                <span class="text-muted-foreground">اطلاعات کلید عمومی</span>
+                <span class="text-foreground break-all font-mono text-xs">{{
+                  publicKeyInfoText()
+                }}</span>
+              </div>
+            </div>
+          </Card>
+
+          <!-- بررسی نسخه (Version check: backend + frontend) -->
+          <Card
+            title="بررسی نسخه"
+            description="بررسی همخوانی نسخه بک‌اند و فرانت‌اند"
+            variant="elevated"
+            padding="none"
+            class="min-w-0 lg:col-span-2"
+          >
+            <div class="p-4 sm:p-6 space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                <FormField
+                  v-model="backendCheckVersion"
+                  label="نسخه بک‌اند"
+                  placeholder="مثال: 1.0.0"
+                  class="flex-1 min-w-0"
+                />
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  :disabled="backendCheckLoading || !backendCheckVersion.trim()"
+                  @click="checkBackendVersion"
+                >
+                  {{ backendCheckLoading ? 'در حال بررسی...' : 'بررسی بک‌اند' }}
+                </BaseButton>
+              </div>
+              <p v-if="backendCheckResult" class="text-sm text-foreground">
+                {{ backendCheckResult }}
+              </p>
+              <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                <FormField
+                  v-model="frontendCheckVersion"
+                  label="نسخه فرانت‌اند"
+                  placeholder="مثال: 1.0.0"
+                  class="flex-1 min-w-0"
+                />
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  :disabled="frontendCheckLoading || !frontendCheckVersion.trim()"
+                  @click="checkFrontendVersion"
+                >
+                  {{ frontendCheckLoading ? 'در حال بررسی...' : 'بررسی فرانت‌اند' }}
+                </BaseButton>
+              </div>
+              <p v-if="frontendCheckResult" class="text-sm text-foreground">
+                {{ frontendCheckResult }}
+              </p>
+            </div>
+          </Card>
+
+          <!-- ابزارهای امضا (Signature POST tools) -->
+          <Card
+            title="بررسی امضا"
+            description="POST /api/Version/signature/verify"
+            variant="elevated"
+            padding="none"
+            class="min-w-0 lg:col-span-2"
+          >
+            <div class="p-4 sm:p-6 space-y-3">
+              <label class="block text-sm text-muted-foreground">بدنه درخواست (JSON)</label>
+              <textarea
+                v-model="verifyBody"
+                rows="4"
+                class="w-full rounded-lg border border-border-default bg-input-background px-3 py-2 text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder='{"payload": "..."}'
+              />
+              <BaseButton
+                variant="outline"
+                size="sm"
+                :disabled="verifyLoading"
+                @click="submitVerify"
+              >
+                {{ verifyLoading ? 'در حال ارسال...' : 'بررسی امضا' }}
+              </BaseButton>
+              <div
+                v-if="verifyResult"
+                class="mt-2 p-3 rounded-lg bg-muted/30 text-sm font-mono whitespace-pre-wrap break-words"
+              >
+                {{ verifyResult }}
+              </div>
+            </div>
+          </Card>
+
+          <Card
+            title="بررسی امضای متادیتا"
+            description="POST /api/Version/signature/verify-metadata"
+            variant="elevated"
+            padding="none"
+            class="min-w-0 lg:col-span-2"
+          >
+            <div class="p-4 sm:p-6 space-y-3">
+              <label class="block text-sm text-muted-foreground">بدنه درخواست (JSON)</label>
+              <textarea
+                v-model="verifyMetadataBody"
+                rows="4"
+                class="w-full rounded-lg border border-border-default bg-input-background px-3 py-2 text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="{}"
+              />
+              <BaseButton
+                variant="outline"
+                size="sm"
+                :disabled="verifyMetadataLoading"
+                @click="submitVerifyMetadata"
+              >
+                {{ verifyMetadataLoading ? 'در حال ارسال...' : 'بررسی متادیتا' }}
+              </BaseButton>
+              <div
+                v-if="verifyMetadataResult"
+                class="mt-2 p-3 rounded-lg bg-muted/30 text-sm font-mono whitespace-pre-wrap break-words"
+              >
+                {{ verifyMetadataResult }}
+              </div>
+            </div>
+          </Card>
+
+          <Card
+            title="محاسبه هش"
+            description="POST /api/Version/signature/compute-hash"
+            variant="elevated"
+            padding="none"
+            class="min-w-0 lg:col-span-2"
+          >
+            <div class="p-4 sm:p-6 space-y-3">
+              <label class="block text-sm text-muted-foreground">بدنه درخواست (JSON)</label>
+              <textarea
+                v-model="computeHashBody"
+                rows="4"
+                class="w-full rounded-lg border border-border-default bg-input-background px-3 py-2 text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="{}"
+              />
+              <BaseButton
+                variant="outline"
+                size="sm"
+                :disabled="computeHashLoading"
+                @click="submitComputeHash"
+              >
+                {{ computeHashLoading ? 'در حال ارسال...' : 'محاسبه هش' }}
+              </BaseButton>
+              <div
+                v-if="computeHashResult"
+                class="mt-2 p-3 rounded-lg bg-muted/30 text-sm font-mono whitespace-pre-wrap break-words"
+              >
+                {{ computeHashResult }}
               </div>
             </div>
           </Card>

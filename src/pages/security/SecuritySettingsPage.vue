@@ -9,6 +9,7 @@ import { endpoints } from '@/shared/api/endpoints'
 import { useToastStore } from '@/stores/toast'
 
 // API response types
+// Matches SecuritySettingsDto from GET /api/Security/settings
 interface PasswordPolicy {
   MinimumLength: number
   MaximumLength: number
@@ -17,7 +18,7 @@ interface PasswordPolicy {
   RequireDigit: boolean
   RequireSpecialCharacter: boolean
   SpecialCharacters: string
-  DisallowUsername: boolean
+  DisallowUsername?: boolean
   PasswordHistoryCount: number
   PasswordExpirationDays: number
 }
@@ -171,6 +172,12 @@ onMounted(() => {
                 <p class="text-xs sm:text-sm text-muted-foreground">کاراکتر خاص</p>
                 <p class="text-sm sm:text-base font-semibold text-foreground mt-0.5">
                   {{ yesNo(settings.PasswordPolicy.RequireSpecialCharacter) }}
+                </p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3 sm:p-4">
+                <p class="text-xs sm:text-sm text-muted-foreground">ممنوعیت نام کاربری در رمز</p>
+                <p class="text-sm sm:text-base font-semibold text-foreground mt-0.5">
+                  {{ yesNo(settings.PasswordPolicy.DisallowUsername ?? false) }}
                 </p>
               </div>
               <div

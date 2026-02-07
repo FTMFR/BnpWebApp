@@ -5,39 +5,21 @@ import { CustomLoader, BaseBadge, BaseButton, BaseIcon } from '@/design-system/a
 import Breadcrumb from '@/design-system/molecules/Breadcrumb.vue'
 import Card from '@/design-system/molecules/Card.vue'
 import FormField from '@/design-system/molecules/FormField.vue'
+import Modal from '@/design-system/molecules/Modal.vue'
 import { Accordion } from '@/design-system/molecules'
 import DashboardLayout from '@/design-system/templates/DashboardLayout.vue'
 import TableWithSettings from '@/design-system/organisms/TableWithSettings.vue'
-import apiClient from '@/shared/api/client'
-import { endpoints } from '@/shared/api/endpoints'
-import { useToastStore } from '@/stores/toast'
+import { formatPersianDateTime } from '@/shared/utils/utils'
 import Pagination from '@/design-system/molecules/Pagination.vue'
-
-interface AuditLogItem {
-  Id: number
-  EventDateTime: string
-  EventType: string
-  EntityId: number | null
-  EntityType: string | null
-  IsSuccess: boolean
-  ErrorMessage: string | null
-  IpAddress: string | null
-  UserName: string | null
-  UserId: string | null
-  OperatingSystem: string | null
-  UserAgent: string | null
-  Description: string | null
-}
-
-interface AuditLogResponse {
-  Items: AuditLogItem[]
-  TotalCount: number
-  PageNumber: number
-  PageSize: number
-  TotalPages: number
-  HasPreviousPage: boolean
-  HasNextPage: boolean
-}
+import {
+  useAuditLogById,
+  useAuditLogSearch,
+  useAuditLogAdvanced,
+  useAuditLogToday,
+  useAuditLogFailed,
+  useAuditLogSummary,
+  type AuditLogItem,
+} from './composables'
 
 type TableColumn<T = Record<string, unknown>> = {
   id: string
@@ -47,62 +29,70 @@ type TableColumn<T = Record<string, unknown>> = {
   render?: (row: T, index?: number) => VNode | string | number
 }
 
-const PAGE_SIZE = 20
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const
-const DEFAULT_SEARCH_PAGE_SIZE = 10
 
-// Tab: جستجو بر اساس شناسه (Search by ID)
-const activeTab = ref('searchById')
-const searchByIdInput = ref('')
-const byIdLoading = ref(false)
-const byIdError = ref<string | null>(null)
-const byIdResult = ref<AuditLogItem | null>(null)
+const activeTab = ref('todayLogs')
 
-// Tab: جستجوی پیشرفته (Advanced Search)
-const advancedPageNumber = ref(1)
-const advancedItems = ref<AuditLogItem[]>([])
-const advancedTotalCount = ref(0)
-const advancedTotalPages = ref(0)
-const advancedLoading = ref(false)
-const advancedError = ref<string | null>(null)
-const auditFilters = ref({
-  FromDate: '',
-  ToDate: '',
-  EventType: '',
-  UserName: '',
-  IpAddress: '',
-  IsSuccess: '' as '' | 'true' | 'false',
-  EntityType: '',
-})
+const { searchByIdInput, byIdLoading, byIdError, byIdResult, fetchById, clearByIdSearch } =
+  useAuditLogById()
 
-// Tab: لاگ‌های امروز (Today's Logs)
-const todayPageNumber = ref(1)
-const todayItems = ref<AuditLogItem[]>([])
-const todayTotalCount = ref(0)
-const todayTotalPages = ref(0)
-const todayLoading = ref(false)
-const todayError = ref<string | null>(null)
+const {
+  searchTerm,
+  searchTermError,
+  searchPageNumber,
+  searchPageSize,
+  searchItems,
+  searchTotalCount,
+  searchTotalPages,
+  searchLoading,
+  searchError,
+  fetchSearch,
+  runSearch,
+  hasValidSearchTerm,
+  onSearchPageChange,
+} = useAuditLogSearch()
 
-// Tab: لاگ‌های ورود ناموفق (Failed Login Logs)
-const failedPageNumber = ref(1)
-const failedItems = ref<AuditLogItem[]>([])
-const failedTotalCount = ref(0)
-const failedTotalPages = ref(0)
-const failedLoading = ref(false)
-const failedError = ref<string | null>(null)
+const {
+  advancedPageNumber,
+  advancedItems,
+  advancedTotalCount,
+  advancedTotalPages,
+  advancedLoading,
+  advancedError,
+  auditFilters,
+  eventTypes,
+  eventTypesLoading,
+  fetchAdvanced,
+  applyFilters,
+  clearFilters,
+  fetchEventTypes,
+  onAdvancedPageChange,
+} = useAuditLogAdvanced()
 
-// Tab: جستجوی متنی (Text Search – GET /api/AuditLog/search)
-const searchTerm = ref('')
-const searchTermError = ref<string | null>(null)
-const searchPageNumber = ref(1)
-const searchPageSize = ref(DEFAULT_SEARCH_PAGE_SIZE)
-const searchItems = ref<AuditLogItem[]>([])
-const searchTotalCount = ref(0)
-const searchTotalPages = ref(0)
-const searchLoading = ref(false)
-const searchError = ref<string | null>(null)
+const {
+  todayPageNumber,
+  todayItems,
+  todayTotalCount,
+  todayTotalPages,
+  todayLoading,
+  todayError,
+  fetchToday,
+  onTodayPageChange,
+} = useAuditLogToday()
 
-const toastStore = useToastStore()
+const {
+  failedPageNumber,
+  failedItems,
+  failedTotalCount,
+  failedTotalPages,
+  failedLoading,
+  failedError,
+  fetchFailedLogins,
+  onFailedPageChange,
+} = useAuditLogFailed()
+
+const { summaryTodayCount, summaryFailedCount, summaryLoading, fetchSummaryCounts } =
+  useAuditLogSummary()
 
 const tabItems = [
   { id: 'searchById', label: 'جستجو بر اساس شناسه' },
@@ -116,189 +106,6 @@ const breadcrumbItems = [
   { label: 'خانه', href: '/dashboard' },
   { label: 'مشاهده لاگ‌ها', href: '/auditlog/list' },
 ]
-
-// —— Search by ID (GET /api/AuditLog/{id}) ——
-async function fetchById() {
-  const id = searchByIdInput.value?.trim()
-  if (!id) {
-    toastStore.showToast('شناسه را وارد کنید.', 'warning')
-    return
-  }
-  const numId = parseInt(id, 10)
-  if (Number.isNaN(numId) || numId < 1) {
-    toastStore.showToast('شناسه معتبر نیست.', 'warning')
-    return
-  }
-  byIdLoading.value = true
-  byIdError.value = null
-  byIdResult.value = null
-  try {
-    const response = await apiClient.get(endpoints.auditLog.byId(numId))
-    const data = response.data as Record<string, unknown>
-    byIdResult.value = data as unknown as AuditLogItem
-  } catch (err) {
-    console.error('Failed to fetch audit log by id:', err)
-    byIdError.value = 'لاگی با این شناسه یافت نشد.'
-    toastStore.showToast(byIdError.value, 'error')
-  } finally {
-    byIdLoading.value = false
-  }
-}
-
-function clearByIdSearch() {
-  searchByIdInput.value = ''
-  byIdError.value = null
-  byIdResult.value = null
-}
-
-// —— Advanced Search (GET /api/AuditLog with filters) ——
-async function fetchAdvanced() {
-  advancedLoading.value = true
-  advancedError.value = null
-  try {
-    const params: Record<string, string | number | boolean> = {
-      PageNumber: advancedPageNumber.value,
-      PageSize: PAGE_SIZE,
-    }
-    const f = auditFilters.value
-    if (f.FromDate) params.FromDate = f.FromDate
-    if (f.ToDate) params.ToDate = f.ToDate
-    if (f.EventType) params.EventType = f.EventType
-    if (f.UserName) params.UserName = f.UserName
-    if (f.IpAddress) params.IpAddress = f.IpAddress
-    if (f.EntityType) params.EntityType = f.EntityType
-    if (f.IsSuccess === 'true') params.IsSuccess = true
-    if (f.IsSuccess === 'false') params.IsSuccess = false
-
-    const response = await apiClient.get<AuditLogResponse>(endpoints.auditLog.list, { params })
-    advancedItems.value = response.data.Items ?? []
-    advancedTotalCount.value = response.data.TotalCount ?? 0
-    advancedTotalPages.value = response.data.TotalPages ?? 1
-  } catch (err) {
-    console.error('Failed to fetch audit log (advanced):', err)
-    advancedError.value = 'بارگذاری لاگ‌ها ناموفق بود.'
-    toastStore.showToast(advancedError.value, 'error')
-    advancedItems.value = []
-    advancedTotalCount.value = 0
-    advancedTotalPages.value = 1
-  } finally {
-    advancedLoading.value = false
-  }
-}
-
-function applyFilters() {
-  advancedPageNumber.value = 1
-  fetchAdvanced()
-}
-
-function clearFilters() {
-  auditFilters.value = {
-    FromDate: '',
-    ToDate: '',
-    EventType: '',
-    UserName: '',
-    IpAddress: '',
-    IsSuccess: '',
-    EntityType: '',
-  }
-  advancedPageNumber.value = 1
-  fetchAdvanced()
-}
-
-// —— Text Search (GET /api/AuditLog/search) ——
-const SEARCH_TERM_REQUIRED_MESSAGE = 'عبارت جستجو را وارد کنید.'
-
-function hasValidSearchTerm(): boolean {
-  return !!searchTerm.value?.trim()
-}
-
-async function fetchSearch() {
-  if (!hasValidSearchTerm()) return
-  searchLoading.value = true
-  searchError.value = null
-  try {
-    const params: Record<string, string | number> = {
-      searchTerm: searchTerm.value!.trim(),
-      pageNumber: searchPageNumber.value,
-      pageSize: searchPageSize.value,
-    }
-    const response = await apiClient.get<AuditLogResponse>(endpoints.auditLog.search, { params })
-    searchItems.value = response.data.Items ?? []
-    searchTotalCount.value = response.data.TotalCount ?? 0
-    searchTotalPages.value = response.data.TotalPages ?? 1
-  } catch (err) {
-    console.error('Failed to fetch audit log (search):', err)
-    searchError.value = 'بارگذاری نتایج جستجو ناموفق بود.'
-    toastStore.showToast(searchError.value, 'error')
-    searchItems.value = []
-    searchTotalCount.value = 0
-    searchTotalPages.value = 1
-  } finally {
-    searchLoading.value = false
-  }
-}
-
-function runSearch() {
-  searchTermError.value = null
-  if (!hasValidSearchTerm()) {
-    searchTermError.value = SEARCH_TERM_REQUIRED_MESSAGE
-    toastStore.showToast(SEARCH_TERM_REQUIRED_MESSAGE, 'warning')
-    return
-  }
-  searchPageNumber.value = 1
-  fetchSearch()
-}
-
-function onSearchPageSizeChange() {
-  searchPageNumber.value = 1
-  if (activeTab.value === 'textSearch' && hasValidSearchTerm()) fetchSearch()
-}
-
-// —— Today's Logs (GET /api/AuditLog/today) ——
-async function fetchToday() {
-  todayLoading.value = true
-  todayError.value = null
-  try {
-    const response = await apiClient.get<AuditLogResponse>(endpoints.auditLog.today, {
-      params: { pageNumber: todayPageNumber.value, pageSize: PAGE_SIZE },
-    })
-    todayItems.value = response.data.Items ?? []
-    todayTotalCount.value = response.data.TotalCount ?? 0
-    todayTotalPages.value = response.data.TotalPages ?? 1
-  } catch (err) {
-    console.error('Failed to fetch today logs:', err)
-    todayError.value = 'بارگذاری لاگ‌های امروز ناموفق بود.'
-    toastStore.showToast(todayError.value, 'error')
-    todayItems.value = []
-    todayTotalCount.value = 0
-    todayTotalPages.value = 1
-  } finally {
-    todayLoading.value = false
-  }
-}
-
-// —— Failed Logins (GET /api/AuditLog/failed-logins) ——
-async function fetchFailedLogins() {
-  failedLoading.value = true
-  failedError.value = null
-  try {
-    const response = await apiClient.get<AuditLogResponse>(endpoints.auditLog.failedLogins, {
-      params: { pageNumber: failedPageNumber.value, pageSize: PAGE_SIZE },
-    })
-    failedItems.value = response.data.Items ?? []
-    failedTotalCount.value = response.data.TotalCount ?? 0
-    failedTotalPages.value = response.data.TotalPages ?? 1
-  } catch (err) {
-    console.error('Failed to fetch failed logins:', err)
-    failedError.value = 'بارگذاری لاگ‌های ورود ناموفق ناموفق بود.'
-    toastStore.showToast(failedError.value, 'error')
-    failedItems.value = []
-    failedTotalCount.value = 0
-    failedTotalPages.value = 1
-  } finally {
-    failedLoading.value = false
-  }
-}
 
 watch(activeTab, (tab) => {
   if (tab === 'todayLogs') fetchToday()
@@ -335,70 +142,66 @@ watch(searchPageSize, () => {
 })
 
 onMounted(() => {
+  fetchEventTypes()
+  fetchSummaryCounts()
   if (activeTab.value === 'advancedSearch') fetchAdvanced()
   else if (activeTab.value === 'todayLogs') fetchToday()
   else if (activeTab.value === 'failedLogins') fetchFailedLogins()
   else if (activeTab.value === 'textSearch' && searchTerm.value?.trim()) fetchSearch()
 })
 
-function onAdvancedPageChange(page: number) {
-  advancedPageNumber.value = page
-}
-function onTodayPageChange(page: number) {
-  todayPageNumber.value = page
-}
-function onFailedPageChange(page: number) {
-  failedPageNumber.value = page
-}
-function onSearchPageChange(page: number) {
-  searchPageNumber.value = page
-}
-
-const tableColumns = computed<TableColumn<AuditLogItem>[]>(() => [
+const tableColumns = computed<TableColumn<Record<string, unknown>>[]>(() => [
   {
     id: 'EventDateTime',
     title: 'زمان',
     sortable: false,
     visible: true,
-    render: (row) => row.EventDateTime ?? '-',
+    render: (row) => formatAuditDate((row as unknown as AuditLogItem).EventDateTime),
   },
   {
     id: 'EventType',
     title: 'نوع رویداد',
     sortable: false,
     visible: true,
-    render: (row) => row.EventType ?? '-',
+    render: (row) => (row as unknown as AuditLogItem).EventType ?? '-',
   },
   {
     id: 'EntityType',
     title: 'نوع موجودیت',
     sortable: false,
     visible: true,
-    render: (row) => row.EntityType ?? '-',
+    render: (row) => (row as unknown as AuditLogItem).EntityType ?? '-',
   },
   {
     id: 'IsSuccess',
     title: 'وضعیت',
     sortable: false,
     visible: true,
-    render: (row) =>
-      h(BaseBadge, { variant: row.IsSuccess ? 'success' : 'danger', size: 'sm' }, () =>
-        row.IsSuccess ? 'موفق' : 'ناموفق',
-      ),
+    render: (row) => {
+      const r = row as unknown as AuditLogItem
+      return h(BaseBadge, { variant: r.IsSuccess ? 'success' : 'danger', size: 'sm' }, () =>
+        r.IsSuccess ? 'موفق' : 'ناموفق',
+      )
+    },
   },
   {
     id: 'UserName',
     title: 'کاربر',
     sortable: false,
     visible: true,
-    render: (row) => row.UserName ?? '-',
+    render: (row) => (row as unknown as AuditLogItem).UserName ?? '-',
   },
   {
     id: 'IpAddress',
     title: 'آدرس IP',
     sortable: false,
     visible: true,
-    render: (row) => h('span', { dir: 'ltr', class: 'font-mono text-sm' }, row.IpAddress ?? '-'),
+    render: (row) =>
+      h(
+        'span',
+        { dir: 'ltr', class: 'font-mono text-sm' },
+        (row as unknown as AuditLogItem).IpAddress ?? '-',
+      ),
   },
   {
     id: 'Description',
@@ -406,7 +209,7 @@ const tableColumns = computed<TableColumn<AuditLogItem>[]>(() => [
     sortable: false,
     visible: true,
     render: (row) => {
-      const desc = row.Description ?? '-'
+      const desc = (row as unknown as AuditLogItem).Description ?? '-'
       const text = typeof desc === 'string' && desc.length > 60 ? `${desc.slice(0, 60)}…` : desc
       return h(
         'span',
@@ -415,9 +218,46 @@ const tableColumns = computed<TableColumn<AuditLogItem>[]>(() => [
       )
     },
   },
+  {
+    id: '_detail',
+    title: 'جزئیات',
+    sortable: false,
+    visible: true,
+    render: (row) =>
+      h(
+        BaseButton,
+        {
+          variant: 'ghost',
+          size: 'sm',
+          onClick: () => openDetail(row as unknown as AuditLogItem),
+        },
+        () => 'جزئیات',
+      ),
+  },
 ])
 
-const byIdTableData = computed(() => (byIdResult.value ? [byIdResult.value] : []))
+// —— Row detail modal ——
+const selectedLog = ref<AuditLogItem | null>(null)
+const detailOpen = ref(false)
+
+function formatAuditDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-'
+  try {
+    return formatPersianDateTime(dateStr)
+  } catch {
+    return dateStr
+  }
+}
+
+function openDetail(log: AuditLogItem) {
+  selectedLog.value = log
+  detailOpen.value = true
+}
+
+function closeDetail() {
+  detailOpen.value = false
+  selectedLog.value = null
+}
 </script>
 
 <template>
@@ -428,303 +268,474 @@ const byIdTableData = computed(() => (byIdResult.value ? [byIdResult.value] : []
       </div>
 
       <Card title="مشاهده لاگ‌ها" variant="elevated" padding="none" class="min-w-0">
-        <Accordion v-model="activeTab" :items="tabItems">
-          <template #searchById>
-            <div class="space-y-4">
-              <div class="flex flex-wrap items-end gap-3">
-                <FormField
-                  v-model="searchByIdInput"
-                  label="شناسه لاگ"
-                  type="text"
-                  placeholder="مثال: ۱۲۳۴۵"
-                  class="max-w-[200px]"
-                />
-                <BaseButton
-                  variant="primary"
-                  :disabled="byIdLoading"
-                  @click="fetchById"
-                >
-                  <BaseIcon v-if="byIdLoading" name="Loader2" :size="16" class="animate-spin" />
-                  <BaseIcon v-else name="Search" :size="16" />
-                  جستجو
-                </BaseButton>
-                <BaseButton variant="outline" @click="clearByIdSearch">
-                  <BaseIcon name="RefreshCw" :size="16" />
-                  پاک کردن
-                </BaseButton>
-              </div>
-              <CustomLoader v-if="byIdLoading" size="lg" class="mx-auto my-10" />
-              <p v-else-if="byIdError" class="text-muted-foreground text-center py-8 px-4">
-                {{ byIdError }}
-              </p>
-              <template v-else-if="byIdResult">
-                <TableWithSettings
-                  :columns="tableColumns"
-                  :data="byIdTableData"
-                  :searchable="false"
-                  :exportable="false"
-                  :filterable="false"
-                  class="w-full"
-                />
-              </template>
-              <p
-                v-else
-                class="text-muted-foreground text-sm py-4"
-              >
-                شناسه لاگ را وارد کرده و جستجو را بزنید.
-              </p>
-            </div>
-          </template>
-
-          <template #textSearch>
-            <div class="space-y-4">
-              <div class="flex flex-nowrap items-center gap-3">
-                <div class="min-w-[200px] w-[320px] flex-shrink-0 min-h-[6.5rem]">
-                  <FormField
-                    v-model="searchTerm"
-                    label="عبارت جستجو"
-                    type="text"
-                    placeholder="جستجو در لاگ‌ها..."
-                    :error-message="searchTermError ?? undefined"
-                    required
-                    class="w-full"
-                  />
-                </div>
-                <BaseButton
-                  variant="primary"
-                  :disabled="searchLoading"
-                  class="flex-shrink-0"
-                  @click="runSearch"
-                >
-                  <BaseIcon v-if="searchLoading" name="Loader2" :size="16" class="animate-spin" />
-                  <BaseIcon v-else name="Search" :size="16" />
-                  جستجو
-                </BaseButton>
-              </div>
-              <CustomLoader v-if="searchLoading" size="lg" class="mx-auto my-10" />
-              <p v-else-if="searchError" class="text-muted-foreground text-center py-8 px-4">
-                {{ searchError }}
-              </p>
-              <template v-else-if="searchTerm?.trim()">
-                <TableWithSettings
-                  :columns="tableColumns"
-                  :data="searchItems"
-                  :searchable="false"
-                  :exportable="false"
-                  :filterable="false"
-                  class="w-full"
-                />
-                <div
-                  class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 flex-wrap"
-                >
-                  <div class="flex items-center gap-4 order-2 sm:order-1 flex-wrap">
-                    <p class="text-sm text-muted-foreground">
-                      {{ searchTotalCount }} مورد در مجموع
-                    </p>
-                    <div class="flex items-center gap-2">
-                      <label for="search-page-size" class="text-sm text-muted-foreground whitespace-nowrap">
-                        تعداد در هر صفحه:
-                      </label>
-                      <select
-                        id="search-page-size"
-                        v-model.number="searchPageSize"
-                        class="rounded-lg border border-border-default bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      >
-                        <option
-                          v-for="size in PAGE_SIZE_OPTIONS"
-                          :key="size"
-                          :value="size"
-                        >
-                          {{ size }}
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-                  <Pagination
-                    v-if="searchTotalPages > 1"
-                    :current-page="searchPageNumber"
-                    :total-pages="searchTotalPages"
-                    @update:current-page="onSearchPageChange"
-                    @change="onSearchPageChange"
-                  />
-                </div>
-              </template>
-              <p
-                v-else
-                class="text-muted-foreground text-sm py-4"
-              >
-                عبارت جستجو را وارد کرده و دکمه جستجو را بزنید.
-              </p>
-            </div>
-          </template>
-
-          <template #advancedSearch>
-            <CustomLoader v-if="advancedLoading" size="lg" class="mx-auto my-10" />
-            <p v-else-if="advancedError" class="text-muted-foreground text-center py-8 px-4">
-              {{ advancedError }}
-            </p>
-            <template v-else>
+        <template #header></template>
+        <div
+          v-if="!summaryLoading && (summaryTodayCount !== null || summaryFailedCount !== null)"
+          class="px-4 sm:px-6 py-3 border-b border-border-default bg-muted/30 text-sm text-muted-foreground"
+        >
+          <span v-if="summaryTodayCount !== null"
+            >امروز: {{ summaryTodayCount.toLocaleString('fa-IR') }} رویداد</span
+          >
+          <span v-if="summaryTodayCount !== null && summaryFailedCount !== null">، </span>
+          <span v-if="summaryFailedCount !== null"
+            >ورود ناموفق: {{ summaryFailedCount.toLocaleString('fa-IR') }}</span
+          >
+        </div>
+        <div class="py-4">
+          <Accordion v-model="activeTab" :items="tabItems">
+            <template #searchById>
               <div class="space-y-4">
-                <TableWithSettings
-                  :columns="tableColumns"
-                  :data="advancedItems"
-                  :searchable="true"
-                  :exportable="false"
-                  :filterable="true"
-                  class="w-full"
-                >
-                  <template #filters>
-                    <form @submit.prevent="applyFilters" class="space-y-4">
-                      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
-                        <FormField
-                          v-model="auditFilters.FromDate"
-                          label="از تاریخ"
-                          type="date"
-                        />
-                        <FormField
-                          v-model="auditFilters.ToDate"
-                          label="تا تاریخ"
-                          type="date"
-                        />
-                        <FormField
-                          v-model="auditFilters.EventType"
-                          label="نوع رویداد"
-                          type="text"
-                          placeholder="نوع رویداد"
-                        />
-                        <FormField
-                          v-model="auditFilters.UserName"
-                          label="نام کاربر"
-                          type="text"
-                          placeholder="نام کاربر"
-                        />
-                        <FormField
-                          v-model="auditFilters.IpAddress"
-                          label="آدرس IP"
-                          type="text"
-                          placeholder="آدرس IP"
-                        />
-                        <FormField
-                          v-model="auditFilters.EntityType"
-                          label="نوع موجودیت"
-                          type="text"
-                          placeholder="نوع موجودیت"
-                        />
-                        <div class="flex flex-col gap-1">
-                          <label class="text-sm font-medium text-foreground">وضعیت موفقیت</label>
-                          <select
-                            v-model="auditFilters.IsSuccess"
-                            class="rounded-lg border border-border-default bg-input-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
-                          >
-                            <option value="">همه</option>
-                            <option value="true">موفق</option>
-                            <option value="false">ناموفق</option>
-                          </select>
+                <div class="flex flex-wrap items-end gap-3">
+                  <FormField
+                    v-model="searchByIdInput"
+                    label="شناسه لاگ"
+                    type="text"
+                    placeholder="مثال: ۱۲۳۴۵"
+                    class="max-w-[200px]"
+                  />
+                  <BaseButton variant="primary" :disabled="byIdLoading" @click="fetchById">
+                    <BaseIcon v-if="byIdLoading" name="Loader2" :size="16" class="animate-spin" />
+                    <BaseIcon v-else name="Search" :size="16" />
+                    جستجو
+                  </BaseButton>
+                  <BaseButton variant="outline" @click="clearByIdSearch">
+                    <BaseIcon name="RefreshCw" :size="16" />
+                    پاک کردن
+                  </BaseButton>
+                </div>
+                <CustomLoader v-if="byIdLoading" size="lg" class="mx-auto my-10" />
+                <p v-else-if="byIdError" class="text-muted-foreground text-center py-8 px-4">
+                  {{ byIdError }}
+                </p>
+                <template v-else-if="byIdResult">
+                  <div
+                    class="rounded-xl border-2 border-border-default bg-card-background overflow-hidden"
+                  >
+                    <div class="p-4 sm:p-6 space-y-4">
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                          <p class="text-muted-foreground mb-0.5">شناسه</p>
+                          <p class="font-semibold text-foreground m-0">{{ byIdResult.Id }}</p>
+                        </div>
+                        <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                          <p class="text-muted-foreground mb-0.5">زمان</p>
+                          <p class="font-semibold text-foreground m-0" dir="ltr">
+                            {{ formatAuditDate(byIdResult.EventDateTime) }}
+                          </p>
+                        </div>
+                        <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                          <p class="text-muted-foreground mb-0.5">نوع رویداد</p>
+                          <p class="font-semibold text-foreground m-0">
+                            {{ byIdResult.EventType ?? '-' }}
+                          </p>
+                        </div>
+                        <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                          <p class="text-muted-foreground mb-0.5">نوع موجودیت</p>
+                          <p class="font-semibold text-foreground m-0">
+                            {{ byIdResult.EntityType ?? '-' }}
+                          </p>
+                        </div>
+                        <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                          <p class="text-muted-foreground mb-0.5">وضعیت</p>
+                          <p class="m-0">
+                            <BaseBadge
+                              :variant="byIdResult.IsSuccess ? 'success' : 'danger'"
+                              size="sm"
+                            >
+                              {{ byIdResult.IsSuccess ? 'موفق' : 'ناموفق' }}
+                            </BaseBadge>
+                          </p>
+                        </div>
+                        <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                          <p class="text-muted-foreground mb-0.5">کاربر</p>
+                          <p class="font-semibold text-foreground m-0">
+                            {{ byIdResult.UserName ?? '-' }}
+                          </p>
+                        </div>
+                        <div
+                          class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2"
+                        >
+                          <p class="text-muted-foreground mb-0.5">آدرس IP</p>
+                          <p class="font-mono text-foreground m-0" dir="ltr">
+                            {{ byIdResult.IpAddress ?? '-' }}
+                          </p>
+                        </div>
+                        <div
+                          v-if="byIdResult.ErrorMessage"
+                          class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50/50 dark:bg-danger-900/20 p-3 sm:col-span-2"
+                        >
+                          <p class="text-danger-600 dark:text-danger-400 font-medium mb-0.5">
+                            پیام خطا
+                          </p>
+                          <p class="text-sm text-foreground m-0 break-words">
+                            {{ byIdResult.ErrorMessage }}
+                          </p>
+                        </div>
+                        <div
+                          class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2"
+                        >
+                          <p class="text-muted-foreground mb-0.5">مرورگر / User-Agent</p>
+                          <p class="text-xs text-foreground m-0 break-words font-mono">
+                            {{ byIdResult.UserAgent ?? '-' }}
+                          </p>
+                        </div>
+                        <div
+                          class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2"
+                        >
+                          <p class="text-muted-foreground mb-0.5">سیستم‌عامل</p>
+                          <p class="text-sm text-foreground m-0">
+                            {{ byIdResult.OperatingSystem ?? '-' }}
+                          </p>
+                        </div>
+                        <div
+                          class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2"
+                        >
+                          <p class="text-muted-foreground mb-0.5">توضیحات</p>
+                          <p class="text-sm text-foreground m-0 break-words">
+                            {{ byIdResult.Description ?? '-' }}
+                          </p>
                         </div>
                       </div>
-                      <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-border-default">
-                        <BaseButton
-                          type="submit"
-                          variant="outline"
-                          class="border-2 border-primary-500 text-primary-600"
-                          @click.prevent="applyFilters"
+                    </div>
+                  </div>
+                </template>
+                <p v-else class="text-muted-foreground text-sm py-4">
+                  شناسه لاگ را وارد کرده و جستجو را بزنید.
+                </p>
+              </div>
+            </template>
+
+            <template #textSearch>
+              <div class="space-y-4">
+                <div class="flex flex-nowrap items-center gap-3">
+                  <div class="min-w-[200px] w-[320px] flex-shrink-0 min-h-[6.5rem]">
+                    <FormField
+                      v-model="searchTerm"
+                      label="عبارت جستجو"
+                      type="text"
+                      placeholder="جستجو در لاگ‌ها..."
+                      :error-message="searchTermError ?? undefined"
+                      required
+                      class="w-full"
+                    />
+                  </div>
+                  <BaseButton
+                    variant="primary"
+                    :disabled="searchLoading"
+                    class="flex-shrink-0"
+                    @click="runSearch"
+                  >
+                    <BaseIcon v-if="searchLoading" name="Loader2" :size="16" class="animate-spin" />
+                    <BaseIcon v-else name="Search" :size="16" />
+                    جستجو
+                  </BaseButton>
+                </div>
+                <CustomLoader v-if="searchLoading" size="lg" class="mx-auto my-10" />
+                <p v-else-if="searchError" class="text-muted-foreground text-center py-8 px-4">
+                  {{ searchError }}
+                </p>
+                <template v-else-if="searchTerm?.trim()">
+                  <TableWithSettings
+                    :columns="tableColumns"
+                    :data="searchItems"
+                    :searchable="false"
+                    :exportable="false"
+                    :filterable="false"
+                    class="w-full"
+                  />
+                  <div
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 flex-wrap"
+                  >
+                    <div class="flex items-center gap-4 order-2 sm:order-1 flex-wrap">
+                      <p class="text-sm text-muted-foreground">
+                        {{ searchTotalCount }} مورد در مجموع
+                      </p>
+                      <div class="flex items-center gap-2">
+                        <label
+                          for="search-page-size"
+                          class="text-sm text-muted-foreground whitespace-nowrap"
                         >
-                          <BaseIcon name="Search" :size="16" />
-                          اعمال فیلتر
-                        </BaseButton>
-                        <BaseButton type="button" variant="outline" @click="clearFilters">
-                          <BaseIcon name="RefreshCw" :size="16" />
-                          پاک کردن فیلترها
-                        </BaseButton>
+                          تعداد در هر صفحه:
+                        </label>
+                        <select
+                          id="search-page-size"
+                          v-model.number="searchPageSize"
+                          class="rounded-lg border border-border-default bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="size">
+                            {{ size }}
+                          </option>
+                        </select>
                       </div>
-                    </form>
-                  </template>
-                </TableWithSettings>
-                <div
-                  v-if="advancedTotalPages > 1"
-                  class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
-                >
-                  <p class="text-sm text-muted-foreground order-2 sm:order-1">
-                    {{ advancedTotalCount }} مورد در مجموع
-                  </p>
-                  <Pagination
-                    :current-page="advancedPageNumber"
-                    :total-pages="advancedTotalPages"
-                    @update:current-page="onAdvancedPageChange"
-                    @change="onAdvancedPageChange"
-                  />
-                </div>
+                    </div>
+                    <Pagination
+                      v-if="searchTotalPages > 1"
+                      :current-page="searchPageNumber"
+                      :total-pages="searchTotalPages"
+                      @update:current-page="onSearchPageChange"
+                      @change="onSearchPageChange"
+                    />
+                  </div>
+                </template>
+                <p v-else class="text-muted-foreground text-sm py-4">
+                  عبارت جستجو را وارد کرده و دکمه جستجو را بزنید.
+                </p>
               </div>
             </template>
-          </template>
 
-          <template #todayLogs>
-            <CustomLoader v-if="todayLoading" size="lg" class="mx-auto my-10" />
-            <p v-else-if="todayError" class="text-muted-foreground text-center py-8 px-4">
-              {{ todayError }}
-            </p>
-            <template v-else>
-              <div class="space-y-4">
-                <TableWithSettings
-                  :columns="tableColumns"
-                  :data="todayItems"
-                  :searchable="true"
-                  :exportable="false"
-                  :filterable="false"
-                  class="w-full"
-                />
-                <div
-                  v-if="todayTotalPages > 1"
-                  class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
-                >
-                  <p class="text-sm text-muted-foreground order-2 sm:order-1">
-                    {{ todayTotalCount }} مورد در مجموع
-                  </p>
-                  <Pagination
-                    :current-page="todayPageNumber"
-                    :total-pages="todayTotalPages"
-                    @update:current-page="onTodayPageChange"
-                    @change="onTodayPageChange"
-                  />
+            <template #advancedSearch>
+              <CustomLoader v-if="advancedLoading" size="lg" class="mx-auto my-10" />
+              <p v-else-if="advancedError" class="text-muted-foreground text-center py-8 px-4">
+                {{ advancedError }}
+              </p>
+              <template v-else>
+                <div class="space-y-4">
+                  <TableWithSettings
+                    :columns="tableColumns"
+                    :data="advancedItems"
+                    :searchable="true"
+                    :exportable="true"
+                    :filterable="true"
+                    class="w-full"
+                  >
+                    <template #filters>
+                      <form @submit.prevent="applyFilters" class="space-y-4">
+                        <div
+                          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4"
+                        >
+                          <FormField v-model="auditFilters.FromDate" label="از تاریخ" type="date" />
+                          <FormField v-model="auditFilters.ToDate" label="تا تاریخ" type="date" />
+                          <div class="flex flex-col gap-1">
+                            <label class="text-sm font-medium text-foreground">نوع رویداد</label>
+                            <select
+                              v-model="auditFilters.EventType"
+                              class="rounded-lg border border-border-default bg-input-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 w-full"
+                            >
+                              <option value="">همه</option>
+                              <option v-for="et in eventTypes" :key="et" :value="et">
+                                {{ et }}
+                              </option>
+                            </select>
+                            <p v-if="eventTypesLoading" class="text-xs text-muted-foreground">
+                              در حال بارگذاری...
+                            </p>
+                          </div>
+                          <FormField
+                            v-model="auditFilters.UserName"
+                            label="نام کاربر"
+                            type="text"
+                            placeholder="نام کاربر"
+                          />
+                          <FormField
+                            v-model="auditFilters.IpAddress"
+                            label="آدرس IP"
+                            type="text"
+                            placeholder="آدرس IP"
+                          />
+                          <FormField
+                            v-model="auditFilters.EntityType"
+                            label="نوع موجودیت"
+                            type="text"
+                            placeholder="نوع موجودیت"
+                          />
+                          <div class="flex flex-col gap-1">
+                            <label class="text-sm font-medium text-foreground">وضعیت موفقیت</label>
+                            <select
+                              v-model="auditFilters.IsSuccess"
+                              class="rounded-lg border border-border-default bg-input-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            >
+                              <option value="">همه</option>
+                              <option value="true">موفق</option>
+                              <option value="false">ناموفق</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div
+                          class="flex flex-wrap items-center gap-2 pt-2 border-t border-border-default"
+                        >
+                          <BaseButton
+                            type="submit"
+                            variant="outline"
+                            class="border-2 border-primary-500 text-primary-600"
+                            @click.prevent="applyFilters"
+                          >
+                            <BaseIcon name="Search" :size="16" />
+                            اعمال فیلتر
+                          </BaseButton>
+                          <BaseButton type="button" variant="outline" @click="clearFilters">
+                            <BaseIcon name="RefreshCw" :size="16" />
+                            پاک کردن فیلترها
+                          </BaseButton>
+                        </div>
+                      </form>
+                    </template>
+                  </TableWithSettings>
+                  <div
+                    v-if="advancedTotalPages > 1"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
+                  >
+                    <p class="text-sm text-muted-foreground order-2 sm:order-1">
+                      {{ advancedTotalCount }} مورد در مجموع
+                    </p>
+                    <Pagination
+                      :current-page="advancedPageNumber"
+                      :total-pages="advancedTotalPages"
+                      @update:current-page="onAdvancedPageChange"
+                      @change="onAdvancedPageChange"
+                    />
+                  </div>
                 </div>
-              </div>
+              </template>
             </template>
-          </template>
 
-          <template #failedLogins>
-            <CustomLoader v-if="failedLoading" size="lg" class="mx-auto my-10" />
-            <p v-else-if="failedError" class="text-muted-foreground text-center py-8 px-4">
-              {{ failedError }}
-            </p>
-            <template v-else>
-              <div class="space-y-4">
-                <TableWithSettings
-                  :columns="tableColumns"
-                  :data="failedItems"
-                  :searchable="true"
-                  :exportable="false"
-                  :filterable="false"
-                  class="w-full"
-                />
-                <div
-                  v-if="failedTotalPages > 1"
-                  class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
-                >
-                  <p class="text-sm text-muted-foreground order-2 sm:order-1">
-                    {{ failedTotalCount }} مورد در مجموع
-                  </p>
-                  <Pagination
-                    :current-page="failedPageNumber"
-                    :total-pages="failedTotalPages"
-                    @update:current-page="onFailedPageChange"
-                    @change="onFailedPageChange"
+            <template #todayLogs>
+              <CustomLoader v-if="todayLoading" size="lg" class="mx-auto my-10" />
+              <p v-else-if="todayError" class="text-muted-foreground text-center py-8 px-4">
+                {{ todayError }}
+              </p>
+              <template v-else>
+                <div class="space-y-4">
+                  <TableWithSettings
+                    :columns="tableColumns"
+                    :data="todayItems"
+                    :searchable="true"
+                    :exportable="true"
+                    :filterable="false"
+                    class="w-full"
                   />
+                  <div
+                    v-if="todayTotalPages > 1"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
+                  >
+                    <p class="text-sm text-muted-foreground order-2 sm:order-1">
+                      {{ todayTotalCount }} مورد در مجموع
+                    </p>
+                    <Pagination
+                      :current-page="todayPageNumber"
+                      :total-pages="todayTotalPages"
+                      @update:current-page="onTodayPageChange"
+                      @change="onTodayPageChange"
+                    />
+                  </div>
                 </div>
-              </div>
+              </template>
             </template>
-          </template>
-        </Accordion>
+
+            <template #failedLogins>
+              <CustomLoader v-if="failedLoading" size="lg" class="mx-auto my-10" />
+              <p v-else-if="failedError" class="text-muted-foreground text-center py-8 px-4">
+                {{ failedError }}
+              </p>
+              <template v-else>
+                <div class="space-y-4">
+                  <TableWithSettings
+                    :columns="tableColumns"
+                    :data="failedItems"
+                    :searchable="true"
+                    :exportable="true"
+                    :filterable="false"
+                    class="w-full"
+                  />
+                  <div
+                    v-if="failedTotalPages > 1"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
+                  >
+                    <p class="text-sm text-muted-foreground order-2 sm:order-1">
+                      {{ failedTotalCount }} مورد در مجموع
+                    </p>
+                    <Pagination
+                      :current-page="failedPageNumber"
+                      :total-pages="failedTotalPages"
+                      @update:current-page="onFailedPageChange"
+                      @change="onFailedPageChange"
+                    />
+                  </div>
+                </div>
+              </template>
+            </template>
+          </Accordion>
+        </div>
       </Card>
+
+      <!-- Row detail modal -->
+      <Modal
+        v-model="detailOpen"
+        title="جزئیات لاگ"
+        size="lg"
+        :close-on-backdrop="true"
+        @close="closeDetail"
+      >
+        <template v-if="selectedLog">
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                <p class="text-muted-foreground mb-0.5">شناسه</p>
+                <p class="font-semibold text-foreground m-0">{{ selectedLog.Id }}</p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                <p class="text-muted-foreground mb-0.5">زمان</p>
+                <p class="font-semibold text-foreground m-0" dir="ltr">
+                  {{ formatAuditDate(selectedLog.EventDateTime) }}
+                </p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                <p class="text-muted-foreground mb-0.5">نوع رویداد</p>
+                <p class="font-semibold text-foreground m-0">{{ selectedLog.EventType ?? '-' }}</p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                <p class="text-muted-foreground mb-0.5">نوع موجودیت</p>
+                <p class="font-semibold text-foreground m-0">{{ selectedLog.EntityType ?? '-' }}</p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                <p class="text-muted-foreground mb-0.5">وضعیت</p>
+                <p class="m-0">
+                  <BaseBadge :variant="selectedLog.IsSuccess ? 'success' : 'danger'" size="sm">
+                    {{ selectedLog.IsSuccess ? 'موفق' : 'ناموفق' }}
+                  </BaseBadge>
+                </p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3">
+                <p class="text-muted-foreground mb-0.5">کاربر</p>
+                <p class="font-semibold text-foreground m-0">{{ selectedLog.UserName ?? '-' }}</p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2">
+                <p class="text-muted-foreground mb-0.5">آدرس IP</p>
+                <p class="font-mono text-foreground m-0" dir="ltr">
+                  {{ selectedLog.IpAddress ?? '-' }}
+                </p>
+              </div>
+              <div
+                v-if="selectedLog.ErrorMessage"
+                class="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50/50 dark:bg-danger-900/20 p-3 sm:col-span-2"
+              >
+                <p class="text-danger-600 dark:text-danger-400 font-medium mb-0.5">پیام خطا</p>
+                <p class="text-sm text-foreground m-0 break-words">
+                  {{ selectedLog.ErrorMessage }}
+                </p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2">
+                <p class="text-muted-foreground mb-0.5">مرورگر / User-Agent</p>
+                <p class="text-xs text-foreground m-0 break-words font-mono">
+                  {{ selectedLog.UserAgent ?? '-' }}
+                </p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2">
+                <p class="text-muted-foreground mb-0.5">سیستم‌عامل</p>
+                <p class="text-sm text-foreground m-0">{{ selectedLog.OperatingSystem ?? '-' }}</p>
+              </div>
+              <div class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2">
+                <p class="text-muted-foreground mb-0.5">توضیحات</p>
+                <p class="text-sm text-foreground m-0 break-words">
+                  {{ selectedLog.Description ?? '-' }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template #footer>
+          <BaseButton variant="outline" @click="closeDetail">بستن</BaseButton>
+        </template>
+      </Modal>
     </div>
   </DashboardLayout>
 </template>

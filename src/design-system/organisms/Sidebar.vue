@@ -332,10 +332,10 @@ const getBadgeVariant = (
               class="group level-1-item"
               :class="[
                 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-right',
-                'hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-700 dark:hover:text-primary-300 hover:shadow-md hover:scale-[1.01]',
+                'hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-700 dark:hover:text-white hover:shadow-md hover:scale-[1.01]',
                 'focus:outline-none focus:ring-2 focus:ring-primary-500/30',
                 isActive(item)
-                  ? 'bg-primary-500/15 border-r-4 border-primary-500 text-primary-700 dark:text-primary-300 font-semibold shadow-md'
+                  ? 'bg-primary-500/15 dark:bg-[var(--sidebar-active-background)] dark:text-[var(--sidebar-active-foreground)] border-r-4 border-primary-500 text-primary-700 font-semibold shadow-md'
                   : 'text-muted-foreground',
                 variant === 'sidebar' && isCollapsed ? 'justify-center px-2' : '',
               ]"
@@ -344,7 +344,7 @@ const getBadgeVariant = (
                 :name="getMenuIcon(item)"
                 :size="20"
                 :stroke-width="2"
-                :icon-class="`flex-shrink-0 transition-colors duration-200 ${isActive(item) ? 'text-primary-500' : 'text-muted-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400'}`"
+                :icon-class="`flex-shrink-0 transition-colors duration-200 ${isActive(item) ? 'text-primary-500 dark:text-[var(--sidebar-active-foreground)]' : 'text-muted-foreground group-hover:text-primary-600 dark:group-hover:text-white'}`"
               />
               <template v-if="variant === 'sheet' || !isCollapsed">
                 <span class="flex-1 text-sm font-semibold truncate">{{ item.label }}</span>
@@ -361,7 +361,7 @@ const getBadgeVariant = (
                   :name="expandedMenus.includes(item.id) ? 'ChevronUp' : 'ChevronDown'"
                   :size="16"
                   :stroke-width="2"
-                  icon-class="flex-shrink-0 transition-all text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-gray-100"
+                  icon-class="flex-shrink-0 transition-all text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-white"
                 />
               </template>
             </button>

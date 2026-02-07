@@ -1,6 +1,16 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse, ApiError } from './types';
 import { endpoints } from './endpoints';
+import {
+  isLoginRequest,
+  isRefreshRequest,
+  isLogoutRequest,
+  isMfaResendOrVerifyRequest,
+  isSessionCheckRequest,
+  isUserRequest,
+  isRefreshTokenNotFoundMessage,
+  isAuthPage,
+} from './responsePredicates';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import { useSessionModalStore } from '@/stores/sessionModal';
@@ -74,9 +84,14 @@ apiClient.interceptors.response.use(
       let toastMessage = '';
 
       // Login failed (wrong username/password): show API message and reject (401 or 400)
-      if ((status === 401 || status === 400) && originalRequest?.url?.includes('/Auth/login')) {
+      if ((status === 401 || status === 400) && isLoginRequest(originalRequest?.url)) {
         const loginErrorMessage = data?.message || data?.error || 'خطایی در ورود به سیستم رخ داده است';
         toastStore.showToast(loginErrorMessage, 'error', 5000);
+        return Promise.reject(error);
+      }
+
+      // MFA resend-otp / verify: stay on MFA page, do not redirect on 401 (show error there)
+      if (status === 401 && isMfaResendOrVerifyRequest(originalRequest?.url)) {
         return Promise.reject(error);
       }
 
@@ -94,12 +109,10 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      if (status === 401 && originalRequest && originalRequest.url?.includes('/Auth/refresh')) {
+      if (status === 401 && originalRequest && isRefreshRequest(originalRequest.url)) {
         const errorMessage = data?.message || '';
-        const isRefreshTokenNotFound =
-          errorMessage.includes('یافت نشد') || errorMessage.includes('Refresh Token');
 
-        if (isRefreshTokenNotFound) {
+        if (isRefreshTokenNotFoundMessage(errorMessage)) {
           return Promise.reject(error);
         }
 
@@ -117,10 +130,7 @@ apiClient.interceptors.response.use(
       }
 
       if (status === 401 && originalRequest && !originalRequest._retry) {
-        const isLoginRequest = originalRequest.url?.includes('/Auth/login');
-
-
-        if (isLoginRequest) {
+        if (isLoginRequest(originalRequest.url)) {
           const loginErrorMessage = data?.message || data?.error || 'خطایی در ورود به سیستم رخ داده است';
           toastStore.showToast(loginErrorMessage, 'error', 5000);
           return Promise.reject(error);
@@ -150,10 +160,8 @@ apiClient.interceptors.response.use(
           } catch (refreshErr: unknown) {
             const refreshError = refreshErr as AxiosError<ApiError>;
             const errorMessage = refreshError.response?.data?.message || '';
-            const isRefreshTokenNotFound = errorMessage.includes('یافت نشد') ||
-              errorMessage.includes('Refresh Token');
 
-            if (isRefreshTokenNotFound) {
+            if (isRefreshTokenNotFoundMessage(errorMessage)) {
               processQueue(refreshError);
               return Promise.reject(refreshError);
             }
@@ -183,10 +191,7 @@ apiClient.interceptors.response.use(
       }
 
       if (status === 401) {
-        const isLoginRequest = originalRequest?.url?.includes('/Auth/login');
-        const isRefreshRequest = originalRequest?.url?.includes('/Auth/refresh');
-        const isLogoutRequest = originalRequest?.url?.includes('/Auth/logout');
-        if (!isLoginRequest && !isRefreshRequest && !isLogoutRequest && window.location.pathname !== '/login') {
+        if (!isLoginRequest(originalRequest?.url) && !isRefreshRequest(originalRequest?.url) && !isLogoutRequest(originalRequest?.url) && window.location.pathname !== '/login') {
           const authStore = useAuthStore();
           try {
             await apiClient.post(endpoints.auth.logout);
@@ -204,10 +209,9 @@ apiClient.interceptors.response.use(
       if (status === 403) {
         if (data?.denialCode === 'TooManySessions') {
           const authStore = useAuthStore();
-          const isSessionCheckRequest = originalRequest?.url?.includes('/Session/MySessions');
 
           // If this is a session check request after successful login
-          if (isSessionCheckRequest && authStore.Token) {
+          if (isSessionCheckRequest(originalRequest?.url) && authStore.Token) {
             // DO NOT reject — instead, open the modal
             const sessionModalStore = useSessionModalStore();
 
@@ -224,12 +228,9 @@ apiClient.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        const isUserRequest = originalRequest?.url?.includes('/Users/');
         const currentPath = window.location.pathname;
-        const authPages = ['/login', '/register', '/forgot-password'];
-        const isAuthPage = authPages.some(page => currentPath.startsWith(page));
 
-        if (isUserRequest && !isAuthPage) {
+        if (isUserRequest(originalRequest?.url) && !isAuthPage(currentPath)) {
           // Check if modal is already shown to prevent duplicate modals
           const sessionModalStore = useSessionModalStore();
 
@@ -244,7 +245,7 @@ apiClient.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        if (!isAuthPage) {
+        if (!isAuthPage(currentPath)) {
           const authStore = useAuthStore();
           try {
             await apiClient.post(endpoints.auth.logout);
@@ -261,10 +262,9 @@ apiClient.interceptors.response.use(
           toastMessage = data?.message || data?.error || 'دسترسی غیرمجاز';
         }
       } else {
-        const isRefreshTokenError = status === 401 && originalRequest?.url?.includes('/Auth/refresh');
-        const isLoginRequest = status === 401 && originalRequest?.url?.includes('/Auth/login');
+        const isRefreshTokenError = status === 401 && isRefreshRequest(originalRequest?.url);
 
-        if (!isRefreshTokenError && !isLoginRequest && (data?.message || data?.error)) {
+        if (!isRefreshTokenError && !isLoginRequest(originalRequest?.url) && (data?.message || data?.error)) {
           shouldShowToast = true;
           toastMessage = data?.message || data?.error || 'خطایی رخ داده است';
         }

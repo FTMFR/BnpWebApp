@@ -39,3 +39,13 @@ a,
     place-items: center;
   }
 }
+
+/* Number input without spinner (type="number" kept, arrows hidden) */
+.input-number-no-spinner input[type="number"] {
+  -moz-appearance: textfield;
+}
+.input-number-no-spinner input[type="number"]::-webkit-inner-spin-button,
+.input-number-no-spinner input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

@@ -39,7 +39,7 @@ const cardClasses = computed(() => {
   const variants = {
     default: 'shadow-sm',
     outlined: 'shadow-sm',
-    elevated: 'shadow-lg',
+    elevated: 'shadow-lg hover-lift',
   }
 
   const paddings = {
@@ -55,29 +55,34 @@ const cardClasses = computed(() => {
 
 <template>
   <div class="px-4 sm:px-6 py-4 sm:pb-6" :class="cardClasses">
-    <div class="flex items-center justify-between mb-4" v-if="$slots.header">
-      <div class="flex items-center gap-3">
+    <div
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
+      v-if="props.title || $slots.header"
+    >
+      <div class="flex items-center gap-3 min-w-0 text-end order-2 sm:order-1">
         <BaseButton
           v-if="props.backRoute || props.onBack"
           variant="ghost"
           size="sm"
           @click="handleBack"
-          class="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+          class="flex items-center gap-2 text-blue-600 hover:text-blue-800 shrink-0"
         >
           <BaseIcon name="ArrowRight" :size="16" />
           بازگشت
         </BaseButton>
-        <div class="flex flex-col gap-2">
-          <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+        <div class="flex flex-col gap-2 min-w-0">
+          <h1 class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground break-words">
             <slot name="title">{{ props.title }}</slot>
           </h1>
           <p v-if="description" class="text-sm text-muted-foreground">
-            <slot name="title">{{ props.description }}</slot>
+            <slot name="description">{{ props.description }}</slot>
           </p>
         </div>
       </div>
 
-      <slot name="header" />
+      <div class="shrink-0 order-1 sm:order-2 w-full sm:w-auto">
+        <slot name="header" />
+      </div>
     </div>
     <form @submit.prevent>
       <div>

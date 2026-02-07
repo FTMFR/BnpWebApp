@@ -135,7 +135,6 @@ watch(
             </BaseTreeSelect>
           </div>
         </div>
-        </div>
       </Card>
     </div>
 

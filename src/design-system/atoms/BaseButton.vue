@@ -37,27 +37,27 @@ const emit = defineEmits<{
 
 const buttonClasses = computed(() => {
   const base =
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg:not([class*="size-"])])]:size-4 shrink-0 [&_svg]:shrink-0'
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.33,1,0.68,1)] disabled:pointer-events-none disabled:opacity-50 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg:not([class*="size-"])])]:size-4 shrink-0 [&_svg]:shrink-0'
 
   const variants: Record<string, string> = {
     default:
-      'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md active:scale-[0.98]',
+      'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
     destructive:
-      'bg-destructive text-white hover:bg-destructive/90 hover:shadow-md focus-visible:ring-destructive active:scale-[0.98]',
+      'bg-destructive text-white hover:bg-destructive/90 hover:shadow-md hover:scale-[1.02] focus-visible:ring-destructive active:scale-[0.98]',
     outline:
-      'border-2 border-border text-foreground hover:bg-secondary/50 dark:hover:bg-secondary/20 hover:border-primary/50 shadow-none',
+      'border-2 border-border text-foreground hover:bg-secondary/50 dark:hover:bg-secondary/20 hover:border-primary/50 hover:scale-[1.01] shadow-none',
     secondary:
-      'bg-secondary text-secondary-foreground hover:bg-muted border-2 border-border shadow-none',
-    ghost: 'shadow-none hover:bg-muted hover:text-foreground',
+      'bg-secondary text-secondary-foreground hover:bg-muted hover:scale-[1.01] border-2 border-border shadow-none',
+    ghost: 'shadow-none hover:bg-muted hover:text-foreground hover:scale-[1.01]',
     link: 'text-primary underline-offset-4 hover:underline shadow-none',
     success:
-      'bg-success text-success-foreground hover:bg-success/90 hover:shadow-md active:scale-[0.98]',
+      'bg-success text-success-foreground hover:bg-success/90 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
     accent:
-      'bg-accent text-accent-foreground hover:bg-accent/90 hover:shadow-md active:scale-[0.98]',
-    primary: 'bg-primary text-white hover:bg-primary/90 hover:shadow-md active:scale-[0.98]',
+      'bg-accent text-accent-foreground hover:bg-accent/90 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
+    primary: 'bg-primary text-white hover:bg-primary/90 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
     danger:
-      'bg-destructive text-white hover:bg-destructive/90 hover:shadow-md focus-visible:ring-destructive active:scale-[0.98]',
-    warning: 'bg-warning-500 text-white hover:bg-warning-600 hover:shadow-md active:scale-[0.98]',
+      'bg-destructive text-white hover:bg-destructive/90 hover:shadow-md hover:scale-[1.02] focus-visible:ring-destructive active:scale-[0.98]',
+    warning: 'bg-warning-500 text-white hover:bg-warning-600 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
   }
 
   const sizes: Record<string, string> = {

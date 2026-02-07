@@ -95,14 +95,14 @@ const handleNotificationClick = (notification: Notification) => {
       </BaseButton>
     </div>
 
-    <!-- Notifications List -->
-    <div class="notifications-scroll scrollbar-thin space-y-2 max-h-96 overflow-y-auto">
+    <!-- Notifications List: pt/pb so first and last items are not clipped by the fade mask -->
+    <div class="notifications-scroll scrollbar-thin space-y-2 max-h-96 overflow-y-auto pt-6 pb-6">
       <!-- Unread Notifications -->
       <div v-if="unreadNotifications.length > 0" class="space-y-2">
         <div
           v-for="notification in unreadNotifications"
           :key="notification.id"
-          class="flex items-start gap-3 p-3 bg-primary-50 border border-primary-200 rounded-lg cursor-pointer hover:bg-primary-100 transition-colors"
+          class="flex items-start gap-3 p-3 bg-primary-50 border border-primary-200 rounded-lg cursor-pointer hover:bg-primary-100 transition-smooth hover:scale-[1.01]"
           @click="handleNotificationClick(notification)"
         >
           <BaseIcon
@@ -132,7 +132,7 @@ const handleNotificationClick = (notification: Notification) => {
         <div
           v-for="notification in readNotifications"
           :key="notification.id"
-          class="flex items-start gap-3 p-3 bg-card-background border border-border-default rounded-lg cursor-pointer hover:bg-secondary transition-colors"
+          class="flex items-start gap-3 p-3 bg-card-background border border-border-default rounded-lg cursor-pointer hover:bg-secondary transition-smooth hover:scale-[1.01]"
           @click="handleNotificationClick(notification)"
         >
           <BaseIcon
@@ -173,25 +173,6 @@ const handleNotificationClick = (notification: Notification) => {
   scroll-behavior: smooth;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  /* Fade edges: content fades at top and bottom */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    black 1.5rem,
-    black calc(100% - 1.5rem),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    black 1.5rem,
-    black calc(100% - 1.5rem),
-    transparent 100%
-  );
-  mask-size: 100% 100%;
-  mask-position: 0 0;
-  -webkit-mask-size: 100% 100%;
-  -webkit-mask-position: 0 0;
 }
 </style>
 

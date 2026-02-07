@@ -65,12 +65,12 @@ const indentClass = computed(() => {
     <!-- Item Button -->
     <button
       @click="handleClick"
-      class="group w-full flex items-center gap-2 px-3 py-2 rounded-md transition-all text-right text-sm"
+      class="group w-full flex items-center gap-2 px-3 py-2 rounded-md transition-spring text-right text-sm hover:translate-x-0.5"
       :class="[
-        'hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-gray-100',
+        'hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-white',
         'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
         isActive(item)
-          ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-semibold'
+          ? 'bg-primary-500/10 dark:bg-[var(--sidebar-active-background)] dark:text-[var(--sidebar-active-foreground)] dark:border dark:border-primary-500/50 text-primary-600 font-semibold'
           : 'text-muted-foreground',
       ]"
     >
@@ -78,7 +78,7 @@ const indentClass = computed(() => {
         :name="getMenuIcon(item.icon)"
         :size="16"
         :stroke-width="2"
-        :icon-class="`flex-shrink-0 transition-colors ${isActive(item) ? 'text-primary-500' : 'text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-gray-100'}`"
+        :icon-class="`flex-shrink-0 transition-colors ${isActive(item) ? 'text-primary-500 dark:text-[var(--sidebar-active-foreground)]' : 'text-muted-foreground group-hover:text-primary-700 dark:group-hover:text-white'}`"
       />
       <span class="flex-1 truncate">{{ item.label }}</span>
 

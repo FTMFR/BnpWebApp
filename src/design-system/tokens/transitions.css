@@ -12,6 +12,7 @@
   --transition-ease-out: cubic-bezier(0, 0, 0.2, 1);
   --transition-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --transition-ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --transition-ease-smooth: cubic-bezier(0.33, 1, 0.68, 1);
 
   /* Common transitions */
   --transition-colors:
@@ -26,4 +27,44 @@
   --transition-all: all var(--transition-duration-normal) var(--transition-ease-out);
 
   --transition-shadow: box-shadow var(--transition-duration-normal) var(--transition-ease-out);
+}
+
+/* Hover utilities – use these for consistent, smooth hover feel */
+.hover-lift {
+  transition:
+    transform var(--transition-duration-normal) var(--transition-ease-out),
+    box-shadow var(--transition-duration-normal) var(--transition-ease-out);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.hover-scale {
+  transition: transform var(--transition-duration-normal) var(--transition-ease-spring);
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-scale-sm {
+  transition: transform var(--transition-duration-fast) var(--transition-ease-out);
+}
+.hover-scale-sm:hover {
+  transform: scale(1.01);
+}
+
+.hover-glow {
+  transition: box-shadow var(--transition-duration-normal) var(--transition-ease-out);
+}
+.hover-glow:hover {
+  box-shadow: 0 0 0 1px currentColor, 0 0 20px -5px rgb(0 0 0 / 0.2);
+}
+
+.transition-smooth {
+  transition: all var(--transition-duration-normal) var(--transition-ease-smooth);
+}
+
+.transition-spring {
+  transition: all var(--transition-duration-normal) var(--transition-ease-spring);
 }

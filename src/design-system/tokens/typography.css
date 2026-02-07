@@ -1,7 +1,12 @@
 /* Typography Tokens - Fonts, Sizes, Weights */
 
-/* Import Vazirmatn Font */
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap');
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/Vazirmatn[wght].woff2') format('woff2');
+}
 
 :root {
   /* Font Size – set by media queries below for responsive scaling */

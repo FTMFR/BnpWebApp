@@ -174,22 +174,23 @@ const {
       if (loginResponse?.RequiresMfa && loginResponse.MfaToken) {
         sessionStorage.setItem('mfa_token', loginResponse.MfaToken)
         sessionStorage.setItem('mfa_userName', values.userName)
-        if (loginResponse.CaptchaId != null) {
-          sessionStorage.setItem('mfa_captcha_id', loginResponse.CaptchaId)
-        }
-        if (loginResponse.CaptchaImage != null) {
-          sessionStorage.setItem('mfa_captcha_image', loginResponse.CaptchaImage)
-        }
         if (loginResponse.OtpExpirySeconds != null) {
           sessionStorage.setItem('mfa_otp_expiry_seconds', String(loginResponse.OtpExpirySeconds))
         }
+        // When CaptchaId/CaptchaImage are null, do not show captcha on verify page (OTP-only submit)
+        if (loginResponse.CaptchaId == null || loginResponse.CaptchaImage == null) {
+          sessionStorage.removeItem('mfa_captcha_id')
+          sessionStorage.removeItem('mfa_captcha_image')
+        } else {
+          sessionStorage.setItem('mfa_captcha_id', loginResponse.CaptchaId)
+          const img = loginResponse.CaptchaImage
+          sessionStorage.setItem('mfa_captcha_image', img.startsWith('data:') ? img : `data:image/png;base64,${img}`)
+        }
+        if (loginResponse.MaskedMobileNumber != null && loginResponse.MaskedMobileNumber !== '') {
+          sessionStorage.setItem('mfa_masked_mobile', loginResponse.MaskedMobileNumber)
+        }
 
-        router.push({
-          path: '/mfa/verify',
-          query: {
-            maskedMobile: loginResponse.MaskedMobileNumber || undefined,
-          },
-        })
+        router.push({ path: '/mfa/verify' })
         return
       }
 
@@ -200,21 +201,9 @@ const {
         showSessionsModal.value = true
       }
 
-      // Only show modal if sessions are loaded
       else {
-        // Proceed normally
         await fetchUserAfterLogin()
         const redirectPath = route.query.redirect as string | undefined
-        if (!sessionsData?.isMaxSessionsReached) {
-          router.push(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/')
-        }
-      }
-
-      // Continue normal flow if maxSession is false
-      await fetchUserAfterLogin()
-
-      const redirectPath = route.query.redirect as string | undefined
-      if (!sessionsData?.isMaxSessionsReached) {
         router.push(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/')
       }
     } catch (error) {

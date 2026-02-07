@@ -28,9 +28,11 @@
         ></div>
 
         <div
-          class="max-w-[28rem] mx-auto w-full h-full p-4 sm:p-6 md:p-8 lg:p-12 box-border flex flex-col justify-center overflow-y-auto overflow-x-hidden"
+          class="w-full max-w-[28rem] mx-auto h-full p-4 sm:p-6 md:p-8 lg:p-12 box-border flex flex-col justify-center overflow-y-auto overflow-x-hidden min-w-0"
         >
-          <slot />
+          <div class="w-full max-w-full min-w-0">
+            <slot />
+          </div>
         </div>
       </div>
 

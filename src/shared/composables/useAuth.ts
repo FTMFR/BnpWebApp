@@ -134,11 +134,17 @@ export function useAuth() {
     }
   }
 
+  /** True when user has Admin role (from verify/user API). Use for UI that only admins should see (e.g. Help center "بخش‌های اصلی سیستم"). */
+  const isAdmin = computed(
+    () => authStore.user?.Roles?.some((r) => r.toLowerCase() === 'admin') ?? false
+  )
+
   return {
     user: computed(() => authStore.user),
     publicId: computed(() => authStore.publicId),
     token: computed(() => authStore.Token),
     isAuthenticated: computed(() => authStore.isAuthenticated),
+    isAdmin,
 
     login: loginMutation.mutate,
     loginAsync: loginMutation.mutateAsync,

@@ -1,5 +1,11 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+// Health is at root (e.g. /health). Use VITE_HEALTH_BASE_URL or derive from API base (strip /api).
+const HEALTH_BASE =
+  import.meta.env.VITE_HEALTH_BASE_URL ||
+  (typeof API_BASE_URL === 'string' && API_BASE_URL.replace(/\/api\/?$/, '')) ||
+  '';
+
 export const endpoints = {
   // ============================================
   // Authentication & Authorization
@@ -150,6 +156,12 @@ export const endpoints = {
     terminateSessions: (userId: number) => `${API_BASE_URL}/Security/terminate-sessions/${userId}`,
     healthCheck: `${API_BASE_URL}/Security/health-check`,
     environmentInfo: `${API_BASE_URL}/Security/environment-info`,
+    verifyDataIntegrity: `${API_BASE_URL}/Security/verify-data-integrity`,
+    computeIntegrityHash: `${API_BASE_URL}/Security/compute-integrity-hash`,
+    generateIntegrityKey: `${API_BASE_URL}/Security/generate-integrity-key`,
+    failSecureStatus: `${API_BASE_URL}/Security/fail-secure/status`,
+    contextAccessSettings: `${API_BASE_URL}/Security/context-access/settings`,
+    contextAccessRiskScore: `${API_BASE_URL}/Security/context-access/risk-score`,
   },
 
   // ============================================
@@ -181,7 +193,17 @@ export const endpoints = {
   // ============================================
   shobe: {
     list: `${API_BASE_URL}/Shobe`,
+    create: `${API_BASE_URL}/Shobe`,
     byId: (publicId: string) => `${API_BASE_URL}/Shobe/${publicId}`,
+    update: (publicId: string) => `${API_BASE_URL}/Shobe/${publicId}`,
+    delete: (publicId: string) => `${API_BASE_URL}/Shobe/${publicId}`,
+    settings: {
+      list: `${API_BASE_URL}/Shobe/Settings`,
+      create: `${API_BASE_URL}/Shobe/Settings`,
+      byId: (publicId: string) => `${API_BASE_URL}/Shobe/Settings/${publicId}`,
+      update: (publicId: string) => `${API_BASE_URL}/Shobe/Settings/${publicId}`,
+      delete: (publicId: string) => `${API_BASE_URL}/Shobe/Settings/${publicId}`,
+    },
   },
 
   // ============================================
@@ -223,10 +245,30 @@ export const endpoints = {
   },
 
   // ============================================
+  // Health (root path; may use different base than /api)
+  // ============================================
+  health: HEALTH_BASE ? `${HEALTH_BASE}/health` : '/health',
+
+  // ============================================
   // Version
   // ============================================
   version: {
     info: `${API_BASE_URL}/Version/info`,
+    current: `${API_BASE_URL}/Version/current`,
+    check: (checkVersion: string) =>
+      `${API_BASE_URL}/Version/check?checkVersion=${encodeURIComponent(checkVersion)}`,
+    frontend: {
+      current: `${API_BASE_URL}/Version/frontend/current`,
+      check: (frontendVersion: string) =>
+        `${API_BASE_URL}/Version/frontend/check?frontendVersion=${encodeURIComponent(frontendVersion)}`,
+    },
+    signature: {
+      verify: `${API_BASE_URL}/Version/signature/verify`,
+      verifyMetadata: `${API_BASE_URL}/Version/signature/verify-metadata`,
+      computeHash: `${API_BASE_URL}/Version/signature/compute-hash`,
+      publicKeyInfo: `${API_BASE_URL}/Version/signature/public-key-info`,
+      status: `${API_BASE_URL}/Version/signature/status`,
+    },
   },
 
   // ============================================

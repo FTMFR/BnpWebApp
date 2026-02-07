@@ -33,6 +33,12 @@ export function formatPersianDate(date: Date | string | number, format = 'jYYYY/
   return dayjs(date).calendar('jalali').format(format);
 }
 
+/** Format date and time in Persian (Jalali) for display e.g. in audit log */
+export function formatPersianDateTime(date: Date | string | number): string {
+  // @ts-expect-error - calendar method is added by jalaliday plugin
+  return dayjs(date).calendar('jalali').format('jYYYY/jMM/jDD HH:mm:ss');
+}
+
 export function getCurrentJalaliDate(): string {
   const formatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
     year: 'numeric',

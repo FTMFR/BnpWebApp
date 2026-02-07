@@ -50,7 +50,6 @@ const parentSelectValue = computed(() =>
   formData.ParentPublicId == null ? NO_PARENT_VALUE : formData.ParentPublicId,
 )
 
-// Initialize form with useForm composable
 const {
   values: formData,
   errors,
@@ -63,7 +62,7 @@ const {
   schema: createMenuSchema,
   initialValues: {
     Title: '',
-    Path: '',
+
     ParentPublicId: null,
   },
   onSubmit: async (values) => {
