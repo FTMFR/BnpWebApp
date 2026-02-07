@@ -55,32 +55,36 @@ const showRegeneratedCodesModal = ref(false)
 const regeneratedCodesMessage = ref('')
 const regeneratedCodes = ref<string[]>([])
 
-/** GET /SecuritySettings/mfa response (requires Security.Read permission) */
-interface SecuritySettingsMfaResponse {
+/** GET /api/Auth/mfa/status response */
+interface MfaStatusResponse {
   IsEnabled?: boolean
-  IsRequired?: boolean
-  OtpLength?: number
-  OtpExpirySeconds?: number
-  RecoveryCodesCount?: number
-  MaxFailedOtpAttempts?: number
-  LockoutDurationMinutes?: number
+  EnabledAt?: string
+  LastUsedAt?: string
+  RecoveryCodesRemaining?: number
+  MaskedMobileNumber?: string
 }
 
+/** POST /api/Auth/mfa/enable response */
 interface MfaEnableResponse {
   Success?: boolean
   Message?: string
   RecoveryCodes?: string[]
 }
 
+const mfaStatus = ref<MfaStatusResponse | null>(null)
+
 async function loadMfaStatus() {
   mfaLoading.value = true
   mfaErrorMessage.value = ''
   try {
-    const response = await apiClient.get<SecuritySettingsMfaResponse>(endpoints.securitySettings.mfa)
+    const response = await apiClient.get<MfaStatusResponse>(endpoints.auth.mfa.status)
     const data = response.data
-    mfaEnabled.value = data.IsEnabled ?? false
+    mfaStatus.value = data ?? null
+    mfaEnabled.value = data?.IsEnabled ?? false
   } catch (error) {
     mfaErrorMessage.value = getMfaErrorMessage(error)
+    mfaStatus.value = null
+    mfaEnabled.value = false
   } finally {
     mfaLoading.value = false
   }
@@ -113,14 +117,19 @@ async function submitEnableMfa() {
       CurrentPassword: enableCurrentPassword.value,
     })
     const data = response.data
+    if (data?.Success === false) {
+      enablePasswordError.value = data.Message ?? 'فعال‌سازی انجام نشد.'
+      return
+    }
     showEnablePasswordModal.value = false
     enableCurrentPassword.value = ''
     mfaEnabled.value = true
     recoveryCodesMessage.value =
-      data.Message ?? 'MFA با موفقیت فعال شد. کدهای بازیابی را در جای امن ذخیره کنید.'
-    recoveryCodes.value = data.RecoveryCodes ?? []
+      data?.Message ?? 'تایید دو مرحله‌ای با موفقیت فعال شد. کدهای بازیابی را در جای امن ذخیره کنید.'
+    recoveryCodes.value = data?.RecoveryCodes ?? []
     showRecoveryCodesModal.value = true
     mfaSuccessMessage.value = 'تایید دو مرحله‌ای با موفقیت فعال شد.'
+    await loadMfaStatus()
     setTimeout(() => {
       mfaSuccessMessage.value = ''
     }, 3000)
@@ -152,6 +161,7 @@ async function submitDisableMfa() {
     showDisablePasswordModal.value = false
     disableCurrentPassword.value = ''
     mfaEnabled.value = false
+    mfaStatus.value = null
     mfaSuccessMessage.value = 'تایید دو مرحله‌ای با موفقیت غیرفعال شد.'
     setTimeout(() => {
       mfaSuccessMessage.value = ''
@@ -252,6 +262,16 @@ function copyAllRegeneratedCodes() {
   if (regeneratedCodes.value.length === 0) return
   copyToClipboard(regeneratedCodes.value.join('\n'))
   toastStore.showToast('کدهای بازیابی کپی شدند', 'success', 3000)
+}
+
+function formatMfaDate(value: string | null | undefined): string {
+  if (value == null || value === '') return '—'
+  try {
+    const d = new Date(value)
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleString('fa-IR')
+  } catch {
+    return value
+  }
 }
 
 function getMfaErrorMessage(error: unknown): string {
@@ -399,13 +419,27 @@ onMounted(() => {
                   :stroke-width="2"
                   icon-class="text-blue-600 dark:text-blue-400 mt-0.5"
                 />
-                <div class="flex-1">
-                  <p class="text-sm text-blue-900 dark:text-blue-200 m-0 font-medium mb-1">
+                <div class="flex-1 space-y-1">
+                  <p class="text-sm text-blue-900 dark:text-blue-200 m-0 font-medium">
                     تایید دو مرحله‌ای فعال است
                   </p>
                   <p class="text-sm text-blue-800 dark:text-blue-300 m-0">
                     هنگام ورود به سیستم، کد تایید به شماره موبایل شما ارسال می‌شود.
                   </p>
+                  <dl v-if="mfaStatus" class="text-xs sm:text-sm text-blue-800 dark:text-blue-300 mt-2 space-y-1">
+                    <span v-if="mfaStatus.MaskedMobileNumber" class="block">
+                      شماره موبایل: <span dir="ltr" class="font-mono">{{ mfaStatus.MaskedMobileNumber }}</span>
+                    </span>
+                    <span v-if="mfaStatus.EnabledAt" class="block">
+                      تاریخ فعال‌سازی: {{ formatMfaDate(mfaStatus.EnabledAt) }}
+                    </span>
+                    <span v-if="mfaStatus.LastUsedAt" class="block">
+                      آخرین استفاده: {{ formatMfaDate(mfaStatus.LastUsedAt) }}
+                    </span>
+                    <span v-if="mfaStatus.RecoveryCodesRemaining != null" class="block">
+                      تعداد کدهای بازیابی باقی‌مانده: {{ mfaStatus.RecoveryCodesRemaining }}
+                    </span>
+                  </dl>
                 </div>
               </div>
             </div>

@@ -160,6 +160,12 @@ export interface VersionCurrentResponse {
 /** GET /api/Version/check response. */
 export interface VersionCheckResponse {
   isCurrent?: boolean
+  isUpToDate?: boolean
+  currentVersion?: string
+  checkVersion?: string
+  buildDate?: string | null
+  buildNumber?: string | null
+  environment?: string
   message?: string
   Message?: string
 }

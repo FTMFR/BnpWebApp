@@ -4,11 +4,12 @@ import { endpoints } from '@/shared/api/endpoints'
 import { useToastStore } from '@/stores/toast'
 import type { AuditLogItem, AuditLogResponse } from './auditLogTypes'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 20
 
 export function useAuditLogFailed() {
   const toastStore = useToastStore()
   const failedPageNumber = ref(1)
+  const failedPageSize = ref(DEFAULT_PAGE_SIZE)
   const failedItems = ref<AuditLogItem[]>([])
   const failedTotalCount = ref(0)
   const failedTotalPages = ref(0)
@@ -20,7 +21,7 @@ export function useAuditLogFailed() {
     failedError.value = null
     try {
       const response = await apiClient.get<AuditLogResponse>(endpoints.auditLog.failedLogins, {
-        params: { pageNumber: failedPageNumber.value, pageSize: PAGE_SIZE },
+        params: { pageNumber: failedPageNumber.value, pageSize: failedPageSize.value },
       })
       failedItems.value = response.data.Items ?? []
       failedTotalCount.value = response.data.TotalCount ?? 0
@@ -43,6 +44,7 @@ export function useAuditLogFailed() {
 
   return {
     failedPageNumber,
+    failedPageSize,
     failedItems,
     failedTotalCount,
     failedTotalPages,

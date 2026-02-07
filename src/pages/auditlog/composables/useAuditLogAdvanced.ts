@@ -4,11 +4,12 @@ import { endpoints } from '@/shared/api/endpoints'
 import { useToastStore } from '@/stores/toast'
 import type { AuditLogItem, AuditLogResponse } from './auditLogTypes'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 20
 
 export function useAuditLogAdvanced() {
   const toastStore = useToastStore()
   const advancedPageNumber = ref(1)
+  const advancedPageSize = ref(DEFAULT_PAGE_SIZE)
   const advancedItems = ref<AuditLogItem[]>([])
   const advancedTotalCount = ref(0)
   const advancedTotalPages = ref(0)
@@ -32,7 +33,7 @@ export function useAuditLogAdvanced() {
     try {
       const params: Record<string, string | number | boolean> = {
         PageNumber: advancedPageNumber.value,
-        PageSize: PAGE_SIZE,
+        PageSize: advancedPageSize.value,
       }
       const f = auditFilters.value
       if (f.FromDate) params.FromDate = f.FromDate
@@ -104,6 +105,7 @@ export function useAuditLogAdvanced() {
 
   return {
     advancedPageNumber,
+    advancedPageSize,
     advancedItems,
     advancedTotalCount,
     advancedTotalPages,

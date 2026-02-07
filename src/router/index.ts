@@ -118,17 +118,17 @@ const router = createRouter({
         permissions: ['Menus.Read'],
       },
     },
-    {
-      path: '/menu/create',
-      name: 'menu-create',
-      component: () => import('@/pages/menus/MenuCreatePage.vue'),
-      meta: {
-        requiresAuth: true,
-        layout: 'dashboard',
-        permissions: ['Menus.Create'],
-
-      },
-    },
+    // صفحه ساخت منو فعلاً استفاده نمی‌شود – کامپوننت حذف نشده
+    // {
+    //   path: '/menu/create',
+    //   name: 'menu-create',
+    //   component: () => import('@/pages/menus/MenuCreatePage.vue'),
+    //   meta: {
+    //     requiresAuth: true,
+    //     layout: 'dashboard',
+    //     permissions: ['Menus.Create'],
+    //   },
+    // },
     {
       path: '/menu/:id',
       name: 'menu-update',

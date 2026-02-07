@@ -95,23 +95,26 @@ function validatePostalCode(value: string): boolean {
 }
 
 const handleSubmit = async () => {
-  if (!validatePostalCode(formData.PostalCode)) {
+  if (!isCodeOneShobe.value && !validatePostalCode(formData.PostalCode)) {
     toastStore.showToast('کد پستی باید ۱۰ رقم عددی باشد', 'error')
     return
   }
   isSubmitting.value = true
   try {
-    await apiClient.put(endpoints.shobe.update(shobeId), {
-      Title: formData.Title,
-      ShobeCode: formData.ShobeCode,
-      Address: formData.Address || null,
-      Phone: formData.Phone || null,
-      PostalCode: formData.PostalCode || null,
-      ParentPublicId: formData.ParentPublicId || null,
-      IsActive: formData.IsActive,
-      Description: formData.Description || null,
-      DisplayOrder: formData.DisplayOrder,
-    })
+    const payload = isCodeOneShobe.value
+      ? { Title: formData.Title }
+      : {
+          Title: formData.Title,
+          ShobeCode: formData.ShobeCode,
+          Address: formData.Address || null,
+          Phone: formData.Phone || null,
+          PostalCode: formData.PostalCode || null,
+          ParentPublicId: formData.ParentPublicId || null,
+          IsActive: formData.IsActive,
+          Description: formData.Description || null,
+          DisplayOrder: formData.DisplayOrder,
+        }
+    await apiClient.put(endpoints.shobe.update(shobeId), payload)
     toastStore.showToast('اطلاعات شعبه با موفقیت به‌روزرسانی شد', 'success')
     await fetchShobeDetails()
     isEditable.value = false
@@ -126,6 +129,9 @@ onMounted(() => {
   fetchShobeDetails()
   fetchShobeList()
 })
+
+/** شعبه با کد ۱ فقط عنوانش قابل ویرایش است و حذف ندارد. */
+const isCodeOneShobe = computed(() => shobe.value?.ShobeCode === 1)
 
 const breadcrumbItems = computed(() => [
   { label: 'خانه', href: '/dashboard' },
@@ -194,29 +200,34 @@ const breadcrumbItems = computed(() => [
               label="کد شعبه"
               type="number"
               class="input-number-no-spinner"
-              :disabled="!isEditable"
+              :disabled="!isEditable || isCodeOneShobe"
             />
             <FormField
               v-model="formData.Address"
               label="آدرس"
               type="text"
               class="md:col-span-2"
-              :disabled="!isEditable"
+              :disabled="!isEditable || isCodeOneShobe"
             />
-            <FormField v-model="formData.Phone" label="تلفن" type="text" :disabled="!isEditable" />
+            <FormField
+              v-model="formData.Phone"
+              label="تلفن"
+              type="text"
+              :disabled="!isEditable || isCodeOneShobe"
+            />
             <FormField
               v-model="formData.PostalCode"
               label="کد پستی"
               type="text"
               :maxlength="10"
-              :disabled="!isEditable"
+              :disabled="!isEditable || isCodeOneShobe"
             />
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-foreground">شعبه والد</label>
               <select
                 v-model="formData.ParentPublicId"
                 class="rounded-lg border border-border-default bg-input-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60"
-                :disabled="!isEditable || isLoadingShobe"
+                :disabled="!isEditable || isLoadingShobe || isCodeOneShobe"
               >
                 <option v-for="opt in parentOptions" :key="opt.value" :value="opt.value || null">
                   {{ opt.label }}
@@ -227,7 +238,7 @@ const breadcrumbItems = computed(() => [
               v-model.number="formData.DisplayOrder"
               label="ترتیب نمایش"
               type="number"
-              :disabled="!isEditable"
+              :disabled="!isEditable || isCodeOneShobe"
             />
             <div class="flex items-center gap-2 md:col-span-2">
               <input
@@ -235,7 +246,7 @@ const breadcrumbItems = computed(() => [
                 type="checkbox"
                 id="shobe-is-active-edit"
                 class="rounded border-border-default"
-                :disabled="!isEditable"
+                :disabled="!isEditable || isCodeOneShobe"
               />
               <label for="shobe-is-active-edit" class="text-sm text-foreground">فعال</label>
             </div>
@@ -244,7 +255,7 @@ const breadcrumbItems = computed(() => [
               label="توضیحات"
               type="textarea"
               class="md:col-span-2"
-              :disabled="!isEditable"
+              :disabled="!isEditable || isCodeOneShobe"
             />
           </div>
         </div>

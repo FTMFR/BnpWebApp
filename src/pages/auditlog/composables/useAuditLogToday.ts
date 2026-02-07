@@ -4,11 +4,12 @@ import { endpoints } from '@/shared/api/endpoints'
 import { useToastStore } from '@/stores/toast'
 import type { AuditLogItem, AuditLogResponse } from './auditLogTypes'
 
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 20
 
 export function useAuditLogToday() {
   const toastStore = useToastStore()
   const todayPageNumber = ref(1)
+  const todayPageSize = ref(DEFAULT_PAGE_SIZE)
   const todayItems = ref<AuditLogItem[]>([])
   const todayTotalCount = ref(0)
   const todayTotalPages = ref(0)
@@ -20,7 +21,7 @@ export function useAuditLogToday() {
     todayError.value = null
     try {
       const response = await apiClient.get<AuditLogResponse>(endpoints.auditLog.today, {
-        params: { pageNumber: todayPageNumber.value, pageSize: PAGE_SIZE },
+        params: { pageNumber: todayPageNumber.value, pageSize: todayPageSize.value },
       })
       todayItems.value = response.data.Items ?? []
       todayTotalCount.value = response.data.TotalCount ?? 0
@@ -43,6 +44,7 @@ export function useAuditLogToday() {
 
   return {
     todayPageNumber,
+    todayPageSize,
     todayItems,
     todayTotalCount,
     todayTotalPages,

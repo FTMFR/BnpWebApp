@@ -87,8 +87,8 @@ const currentVersionLoading = ref(false)
 // Version check (optional card)
 const backendCheckVersion = ref('')
 const frontendCheckVersion = ref('')
-const backendCheckResult = ref<string | null>(null)
-const frontendCheckResult = ref<string | null>(null)
+const backendCheckResult = ref<VersionCheckResponse | null>(null)
+const frontendCheckResult = ref<VersionCheckResponse | null>(null)
 const backendCheckLoading = ref(false)
 const frontendCheckLoading = ref(false)
 
@@ -187,15 +187,13 @@ async function checkBackendVersion() {
     const response = await apiClient.get<VersionCheckResponse>(
       endpoints.version.check(backendCheckVersion.value.trim()),
     )
-    const data = response.data
-    const msg = data.Message ?? data.message
-    backendCheckResult.value = msg ?? (response.status === 200 ? 'بررسی انجام شد' : '—')
+    backendCheckResult.value = response.data ?? null
   } catch (err) {
     if (err instanceof AxiosError && err.response?.data) {
-      const data = err.response.data as { message?: string; Message?: string }
-      backendCheckResult.value = data.Message ?? data.message ?? 'خطا در بررسی'
+      const data = err.response.data as VersionCheckResponse & { message?: string; Message?: string }
+      backendCheckResult.value = { ...data, Message: data.Message ?? data.message ?? 'خطا در بررسی' }
     } else {
-      backendCheckResult.value = 'خطا در بررسی'
+      backendCheckResult.value = { Message: 'خطا در بررسی' }
     }
   } finally {
     backendCheckLoading.value = false
@@ -210,19 +208,23 @@ async function checkFrontendVersion() {
     const response = await apiClient.get<VersionCheckResponse>(
       endpoints.version.frontend.check(frontendCheckVersion.value.trim()),
     )
-    const data = response.data
-    const msg = data.Message ?? data.message
-    frontendCheckResult.value = msg ?? (response.status === 200 ? 'بررسی انجام شد' : '—')
+    frontendCheckResult.value = response.data ?? null
   } catch (err) {
     if (err instanceof AxiosError && err.response?.data) {
-      const data = err.response.data as { message?: string; Message?: string }
-      frontendCheckResult.value = data.Message ?? data.message ?? 'خطا در بررسی'
+      const data = err.response.data as VersionCheckResponse & { message?: string; Message?: string }
+      frontendCheckResult.value = { ...data, Message: data.Message ?? data.message ?? 'خطا در بررسی' }
     } else {
-      frontendCheckResult.value = 'خطا در بررسی'
+      frontendCheckResult.value = { Message: 'خطا در بررسی' }
     }
   } finally {
     frontendCheckLoading.value = false
   }
+}
+
+/** آیا نتیجه بررسی نسخه خطا است (از catch) */
+function versionCheckIsError(r: VersionCheckResponse | null): boolean {
+  if (!r) return false
+  return !!(r.Message ?? r.message) && (r.currentVersion == null && r.isUpToDate == null && r.isCurrent == null)
 }
 
 async function submitVerify() {
@@ -628,9 +630,39 @@ onMounted(async () => {
                   {{ backendCheckLoading ? 'در حال بررسی...' : 'بررسی بک‌اند' }}
                 </BaseButton>
               </div>
-              <p v-if="backendCheckResult" class="text-sm text-foreground">
-                {{ backendCheckResult }}
-              </p>
+              <div
+                v-if="backendCheckResult"
+                class="mt-2 p-3 rounded-lg text-sm space-y-1"
+                :class="
+                  versionCheckIsError(backendCheckResult)
+                    ? 'bg-danger-50 dark:bg-danger-900/20 text-danger-700 dark:text-danger-300'
+                    : 'bg-muted/30 text-foreground'
+                "
+              >
+                <template v-if="versionCheckIsError(backendCheckResult)">
+                  <span>{{ backendCheckResult.Message ?? backendCheckResult.message }}</span>
+                </template>
+                <template v-else>
+                  <span class="font-medium block" v-if="backendCheckResult.isUpToDate === true">
+                    نسخه به‌روز است.
+                  </span>
+                  <span class="font-medium block" v-else-if="backendCheckResult.isUpToDate === false">
+                    نسخه به‌روز نیست.
+                  </span>
+                  <span v-if="backendCheckResult.currentVersion" class="block">
+                    نسخه جاری: {{ backendCheckResult.currentVersion }}
+                  </span>
+                  <span v-if="backendCheckResult.checkVersion" class="block">
+                    نسخه بررسی‌شده: {{ backendCheckResult.checkVersion }}
+                  </span>
+                  <span v-if="backendCheckResult.buildDate" class="block">
+                    تاریخ ساخت: {{ formatDate(backendCheckResult.buildDate) }}
+                  </span>
+                  <span v-if="backendCheckResult.environment" class="block">
+                    محیط: {{ backendCheckResult.environment }}
+                  </span>
+                </template>
+              </div>
               <div class="flex flex-col sm:flex-row sm:items-end gap-3">
                 <FormField
                   v-model="frontendCheckVersion"
@@ -647,9 +679,39 @@ onMounted(async () => {
                   {{ frontendCheckLoading ? 'در حال بررسی...' : 'بررسی فرانت‌اند' }}
                 </BaseButton>
               </div>
-              <p v-if="frontendCheckResult" class="text-sm text-foreground">
-                {{ frontendCheckResult }}
-              </p>
+              <div
+                v-if="frontendCheckResult"
+                class="mt-2 p-3 rounded-lg text-sm space-y-1"
+                :class="
+                  versionCheckIsError(frontendCheckResult)
+                    ? 'bg-danger-50 dark:bg-danger-900/20 text-danger-700 dark:text-danger-300'
+                    : 'bg-muted/30 text-foreground'
+                "
+              >
+                <template v-if="versionCheckIsError(frontendCheckResult)">
+                  <span>{{ frontendCheckResult.Message ?? frontendCheckResult.message }}</span>
+                </template>
+                <template v-else>
+                  <span class="font-medium block" v-if="frontendCheckResult.isUpToDate === true">
+                    نسخه به‌روز است.
+                  </span>
+                  <span class="font-medium block" v-else-if="frontendCheckResult.isUpToDate === false">
+                    نسخه به‌روز نیست.
+                  </span>
+                  <span v-if="frontendCheckResult.currentVersion" class="block">
+                    نسخه جاری: {{ frontendCheckResult.currentVersion }}
+                  </span>
+                  <span v-if="frontendCheckResult.checkVersion" class="block">
+                    نسخه بررسی‌شده: {{ frontendCheckResult.checkVersion }}
+                  </span>
+                  <span v-if="frontendCheckResult.buildDate" class="block">
+                    تاریخ ساخت: {{ formatDate(frontendCheckResult.buildDate) }}
+                  </span>
+                  <span v-if="frontendCheckResult.environment" class="block">
+                    محیط: {{ frontendCheckResult.environment }}
+                  </span>
+                </template>
+              </div>
             </div>
           </Card>
 

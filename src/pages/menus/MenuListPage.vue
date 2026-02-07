@@ -34,13 +34,14 @@ onMounted(async () => {
   isLoadingMenus.value = false
 })
 
-const handleCreate = () => {
-  if (!hasAccess('Menus.Create')) {
-    openAccessDeniedModal({ message: 'شما دسترسی لازم برای ایجاد منو جدید را ندارید' })
-    return
-  }
-  router.push('/menu/create')
-}
+// صفحه ساخت منو فعلاً استفاده نمی‌شود
+// const handleCreate = () => {
+//   if (!hasAccess('Menus.Create')) {
+//     openAccessDeniedModal({ message: 'شما دسترسی لازم برای ایجاد منو جدید را ندارید' })
+//     return
+//   }
+//   router.push('/menu/create')
+// }
 
 const handleSelect = (node: BaseTreeNode) => {
   selectedId.value = node.PublicId
@@ -100,7 +101,8 @@ watch(
             <div
               class="flex flex-row flex-wrap items-start min-[931px]:items-center justify-between gap-3 min-[931px]:gap-4"
             >
-              <BaseButton
+              <!-- صفحه ساخت منو فعلاً استفاده نمی‌شود -->
+              <!-- <BaseButton
                 variant="outline"
                 @click="handleCreate"
                 class="border-2 border-success-500 text-success-600"
@@ -108,7 +110,7 @@ watch(
                 <BaseIcon name="Plus" :size="16" />
                 <span class="hidden min-[931px]:inline">ایجاد منو جدید</span>
                 <span class="min-[931px]:hidden">ایجاد</span>
-              </BaseButton>
+              </BaseButton> -->
             </div>
           </div>
         </template>

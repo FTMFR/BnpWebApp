@@ -186,6 +186,10 @@ export const endpoints = {
 
     // Cache
     invalidateCache: `${API_BASE_URL}/SecuritySettings/invalidate-cache`,
+
+    // Audit Log Protection
+    auditLogProtection: `${API_BASE_URL}/SecuritySettings/AuditLogProtection`,
+    updateAuditLogProtection: `${API_BASE_URL}/SecuritySettings/AuditLogProtection`,
   },
 
   // ============================================

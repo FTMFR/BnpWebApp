@@ -127,8 +127,6 @@ const handleSubmit = async () => {
   try {
     await apiClient.put(endpoints.menu.update(menuId), {
       Title: trimmedTitle,
-      Path: formData.Path || undefined,
-      ParentPublicId: formData.ParentPublicId ?? undefined,
     })
     toastStore.showToast('اطلاعات منو با موفقیت بروزرسانی شد', 'success')
     await fetchMenuDetails()
@@ -222,6 +220,7 @@ onMounted(async () => {
               type="text"
               placeholder="مسیر منو را وارد کنید"
               readonly
+              disabled
             />
             <FormSelect
               label="منوی والد"
@@ -229,8 +228,7 @@ onMounted(async () => {
               :model-value="parentSelectValue"
               :options="parentMenuOptions"
               :is-loading="isLoadingParentMenus"
-              :disabled="!isEditable || isSubmitting"
-              @update:model-value="handleParentChange"
+              disabled
             />
           </div>
         </form>

@@ -96,6 +96,7 @@ const handleEditShobe = (node: Shobe) => {
 }
 
 const handleDelete = (node: Shobe) => {
+  if (node.ShobeCode === 1) return
   shobeToDelete.value = node
   showDeleteModal.value = true
 }
@@ -106,7 +107,7 @@ const cancelDelete = () => {
 }
 
 const confirmDelete = async (id?: string) => {
-  if (!id || !shobeToDelete.value) return
+  if (!id || !shobeToDelete.value || shobeToDelete.value.ShobeCode === 1) return
   try {
     await apiClient.delete(endpoints.shobe.delete(id))
     toastStore.showToast('شعبه با موفقیت حذف شد', 'success')
@@ -171,16 +172,17 @@ const TreeNode = ({ node, level = 0 }: { node: Shobe; level?: number }) => {
                 },
                 () => h(BaseIcon, { name: 'Edit', size: 16 }),
               ),
-              h(
-                BaseButton,
-                {
-                  variant: 'ghost',
-                  size: 'sm',
-                  onClick: () => handleDelete(node),
-                },
-                () => h(BaseIcon, { name: 'Trash', class: 'text-danger', size: 16 }),
-              ),
-            ],
+              node.ShobeCode !== 1 &&
+                h(
+                  BaseButton,
+                  {
+                    variant: 'ghost',
+                    size: 'sm',
+                    onClick: () => handleDelete(node),
+                  },
+                  () => h(BaseIcon, { name: 'Trash', class: 'text-danger', size: 16 }),
+                ),
+            ].filter(Boolean),
           ),
         ],
       ),

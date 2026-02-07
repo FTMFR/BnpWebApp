@@ -19,12 +19,10 @@ import type {
   DataExportSettingsApiResponse,
   ExportRule,
   CreateExportRuleRequest,
-  UpdateExportRuleRequest,
-  DataMaskingRule,
   CreateMaskingRuleRequest,
-  UpdateMaskingRuleRequest,
   SensitivityLevel,
   ExportAuditEntry,
+  DataMaskingRule,
   ExportStatistics,
   TestExportRequest,
 } from '@/shared/types/dataExport'
@@ -34,7 +32,15 @@ const route = useRoute()
 const router = useRouter()
 const toastStore = useToastStore()
 
-const TAB_IDS = ['settings', 'rules', 'masking', 'sensitivity', 'audit', 'statistics', 'test'] as const
+const TAB_IDS = [
+  'settings',
+  'rules',
+  'masking',
+  'sensitivity',
+  'audit',
+  'statistics',
+  'test',
+] as const
 
 const tabItems = [
   { id: 'settings', label: 'تنظیمات' },
@@ -43,13 +49,13 @@ const tabItems = [
   { id: 'sensitivity', label: 'سطح حساسیت' },
   { id: 'audit', label: 'لاگ ممیزی' },
   { id: 'statistics', label: 'آمار' },
-  { id: 'test', label: 'تست خروجی' },
 ]
 
 const activeTab = ref<string>(
-  (route.query.tab as string) && TAB_IDS.includes((route.query.tab as string) as (typeof TAB_IDS)[number])
+  (route.query.tab as string) &&
+    TAB_IDS.includes(route.query.tab as string as (typeof TAB_IDS)[number])
     ? (route.query.tab as string)
-    : 'settings'
+    : 'settings',
 )
 
 watch(activeTab, (tab) => {
@@ -62,10 +68,10 @@ watch(
   () => route.query.tab,
   (tab) => {
     if (tab && TAB_IDS.includes(tab as (typeof TAB_IDS)[number]) && activeTab.value !== tab) {
-      activeTab.value = tab
+      activeTab.value = tab as string
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const breadcrumbItems = [
@@ -85,7 +91,7 @@ async function fetchSettings() {
   settingsError.value = null
   try {
     const response = await apiClient.get<DataExportSettingsApiResponse | DataExportSettings>(
-      endpoints.dataExport.settings
+      endpoints.dataExport.settings,
     )
     const payload = response.data as DataExportSettingsApiResponse & DataExportSettings
     const data = payload?.data ?? payload
@@ -131,7 +137,12 @@ const rulesLoading = ref(false)
 const rulesError = ref<string | null>(null)
 const ruleModalOpen = ref(false)
 const ruleEditId = ref<string | null>(null)
-const ruleForm = ref<CreateExportRuleRequest>({ name: '', entityType: '', format: 'JSON', isEnabled: true })
+const ruleForm = ref<CreateExportRuleRequest>({
+  name: '',
+  entityType: '',
+  format: 'JSON',
+  isEnabled: true,
+})
 
 async function fetchRules() {
   rulesLoading.value = true
@@ -311,8 +322,8 @@ async function fetchSensitivityByEntity() {
     const response = await apiClient.get<SensitivityLevel>(
       endpoints.dataExport.sensitivityLevelByEntity(
         entityLookup.value.entityType,
-        entityLookup.value.entityId
-      )
+        entityLookup.value.entityId,
+      ),
     )
     entityResult.value = response.data as SensitivityLevel
   } catch (err) {
@@ -330,7 +341,8 @@ const auditError = ref<string | null>(null)
 const auditPage = ref(1)
 const auditTotalCount = ref(0)
 const auditTotalPages = ref(1)
-const AUDIT_PAGE_SIZE = 20
+const auditPageSize = ref(20)
+const AUDIT_PAGE_SIZE_OPTIONS = [20, 30, 50] as const
 const auditFilters = ref({
   FromDate: '',
   ToDate: '',
@@ -347,22 +359,22 @@ async function fetchAuditLog() {
   try {
     const params: Record<string, string | number | boolean | undefined> = {
       Page: auditPage.value,
-      PageSize: AUDIT_PAGE_SIZE,
+      PageSize: auditPageSize.value,
     }
     if (auditFilters.value.FromDate) params.FromDate = auditFilters.value.FromDate
     if (auditFilters.value.ToDate) params.ToDate = auditFilters.value.ToDate
     if (auditFilters.value.UserId) params.UserId = auditFilters.value.UserId
     if (auditFilters.value.EntityType) params.EntityType = auditFilters.value.EntityType
-    if (auditFilters.value.SensitivityLevel) params.SensitivityLevel = auditFilters.value.SensitivityLevel
+    if (auditFilters.value.SensitivityLevel)
+      params.SensitivityLevel = auditFilters.value.SensitivityLevel
     if (auditFilters.value.WasMasked === 'true') params.WasMasked = true
     if (auditFilters.value.WasMasked === 'false') params.WasMasked = false
     if (auditFilters.value.IsSuccess === 'true') params.IsSuccess = true
     if (auditFilters.value.IsSuccess === 'false') params.IsSuccess = false
 
-    const response = await apiClient.get<ExportAuditEntry[] | { items: ExportAuditEntry[]; totalCount: number; totalPages: number }>(
-      endpoints.dataExport.auditLog,
-      { params }
-    )
+    const response = await apiClient.get<
+      ExportAuditEntry[] | { items: ExportAuditEntry[]; totalCount: number; totalPages: number }
+    >(endpoints.dataExport.auditLog, { params })
     const data = response.data
     if (Array.isArray(data)) {
       auditItems.value = data
@@ -448,32 +460,6 @@ const statisticsSeries = computed(() => {
   return Object.values(byFormat)
 })
 
-// ---------- Test tab ----------
-const testForm = ref<TestExportRequest>({
-  entityType: '',
-  entityId: '',
-  format: 'JSON',
-  recordLimit: 100,
-})
-const testSubmitting = ref(false)
-const testResult = ref<'success' | 'error' | null>(null)
-
-async function submitTest() {
-  testSubmitting.value = true
-  testResult.value = null
-  try {
-    await apiClient.post(endpoints.dataExport.test, testForm.value)
-    testResult.value = 'success'
-    toastStore.showToast('تست خروجی با موفقیت انجام شد.', 'success')
-  } catch (err) {
-    console.error('Test export failed:', err)
-    testResult.value = 'error'
-    toastStore.showToast('تست خروجی ناموفق بود.', 'error')
-  } finally {
-    testSubmitting.value = false
-  }
-}
-
 // ---------- Table columns ----------
 type TableColumn<T = Record<string, unknown>> = {
   id: string
@@ -485,8 +471,20 @@ type TableColumn<T = Record<string, unknown>> = {
 
 const rulesColumns = computed<TableColumn<ExportRule>[]>(() => [
   { id: 'name', title: 'نام', sortable: false, visible: true, render: (row) => row.name ?? '-' },
-  { id: 'entityType', title: 'نوع موجودیت', sortable: false, visible: true, render: (row) => row.entityType ?? '-' },
-  { id: 'format', title: 'فرمت', sortable: false, visible: true, render: (row) => row.format ?? '-' },
+  {
+    id: 'entityType',
+    title: 'نوع موجودیت',
+    sortable: false,
+    visible: true,
+    render: (row) => row.entityType ?? '-',
+  },
+  {
+    id: 'format',
+    title: 'فرمت',
+    sortable: false,
+    visible: true,
+    render: (row) => row.format ?? '-',
+  },
   {
     id: 'isEnabled',
     title: 'فعال',
@@ -504,12 +502,12 @@ const rulesColumns = computed<TableColumn<ExportRule>[]>(() => [
         h(
           BaseButton,
           { size: 'sm', variant: 'ghost', onClick: () => openRuleEdit(row) },
-          () => 'ویرایش'
+          () => 'ویرایش',
         ),
         h(
           BaseButton,
           { size: 'sm', variant: 'ghost', onClick: () => deleteRule(row.id) },
-          () => 'حذف'
+          () => 'حذف',
         ),
       ]),
   },
@@ -517,8 +515,20 @@ const rulesColumns = computed<TableColumn<ExportRule>[]>(() => [
 
 const maskingColumns = computed<TableColumn<DataMaskingRule>[]>(() => [
   { id: 'name', title: 'نام', sortable: false, visible: true, render: (row) => row.name ?? '-' },
-  { id: 'fieldPattern', title: 'الگوی فیلد', sortable: false, visible: true, render: (row) => row.fieldPattern ?? '-' },
-  { id: 'maskingType', title: 'نوع پوشش', sortable: false, visible: true, render: (row) => row.maskingType ?? '-' },
+  {
+    id: 'fieldPattern',
+    title: 'الگوی فیلد',
+    sortable: false,
+    visible: true,
+    render: (row) => row.fieldPattern ?? '-',
+  },
+  {
+    id: 'maskingType',
+    title: 'نوع پوشش',
+    sortable: false,
+    visible: true,
+    render: (row) => row.maskingType ?? '-',
+  },
   {
     id: 'isEnabled',
     title: 'فعال',
@@ -536,22 +546,46 @@ const maskingColumns = computed<TableColumn<DataMaskingRule>[]>(() => [
         h(
           BaseButton,
           { size: 'sm', variant: 'ghost', onClick: () => openMaskingEdit(row) },
-          () => 'ویرایش'
+          () => 'ویرایش',
         ),
         h(
           BaseButton,
           { size: 'sm', variant: 'ghost', onClick: () => deleteMasking(row.id) },
-          () => 'حذف'
+          () => 'حذف',
         ),
       ]),
   },
 ])
 
 const auditColumns = computed<TableColumn<ExportAuditEntry>[]>(() => [
-  { id: 'exportDate', title: 'تاریخ', sortable: false, visible: true, render: (row) => row.exportDate ?? '-' },
-  { id: 'userName', title: 'کاربر', sortable: false, visible: true, render: (row) => row.userName ?? '-' },
-  { id: 'entityType', title: 'نوع موجودیت', sortable: false, visible: true, render: (row) => row.entityType ?? '-' },
-  { id: 'sensitivityLevel', title: 'سطح حساسیت', sortable: false, visible: true, render: (row) => row.sensitivityLevel ?? '-' },
+  {
+    id: 'exportDate',
+    title: 'تاریخ',
+    sortable: false,
+    visible: true,
+    render: (row) => row.exportDate ?? '-',
+  },
+  {
+    id: 'userName',
+    title: 'کاربر',
+    sortable: false,
+    visible: true,
+    render: (row) => row.userName ?? '-',
+  },
+  {
+    id: 'entityType',
+    title: 'نوع موجودیت',
+    sortable: false,
+    visible: true,
+    render: (row) => row.entityType ?? '-',
+  },
+  {
+    id: 'sensitivityLevel',
+    title: 'سطح حساسیت',
+    sortable: false,
+    visible: true,
+    render: (row) => row.sensitivityLevel ?? '-',
+  },
   {
     id: 'isSuccess',
     title: 'وضعیت',
@@ -559,7 +593,7 @@ const auditColumns = computed<TableColumn<ExportAuditEntry>[]>(() => [
     visible: true,
     render: (row) =>
       h(BaseBadge, { variant: row.isSuccess ? 'success' : 'danger', size: 'sm' }, () =>
-        row.isSuccess ? 'موفق' : 'ناموفق'
+        row.isSuccess ? 'موفق' : 'ناموفق',
       ),
   },
 ])
@@ -604,29 +638,66 @@ watch(activeTab, (tab) => {
             </template>
             <template v-else-if="settingsForm">
               <Card title="تنظیمات خروجی" variant="elevated" padding="none" class="min-w-0">
-                <div class="p-4 sm:p-6 space-y-4">
+                <template #header></template>
+                <div class="py-4 sm:py-6 space-y-4">
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField v-model.number="settingsForm.MaxRecordsPerExport" label="حداکثر رکورد در هر خروجی" type="number" />
-                    <FormField v-model.number="settingsForm.MaxExportSizeBytes" label="حداکثر حجم (بایت)" type="number" />
-                    <FormField v-model="settingsForm.DefaultSensitivityLevel" label="سطح حساسیت پیش‌فرض" type="text" />
-                    <FormField v-model.number="settingsForm.AuditLogRetentionDays" label="نگهداری لاگ ممیزی (روز)" type="number" />
-                    <FormField v-model="settingsForm.SignatureAlgorithm" label="الگوریتم امضا" type="text" />
+                    <FormField
+                      v-model.number="settingsForm.MaxRecordsPerExport"
+                      label="حداکثر رکورد در هر خروجی"
+                      type="number"
+                    />
+                    <FormField
+                      v-model.number="settingsForm.MaxExportSizeBytes"
+                      label="حداکثر حجم (بایت)"
+                      type="number"
+                    />
+                    <FormField
+                      v-model="settingsForm.DefaultSensitivityLevel"
+                      label="سطح حساسیت پیش‌فرض"
+                      type="text"
+                    />
+                    <FormField
+                      v-model.number="settingsForm.AuditLogRetentionDays"
+                      label="نگهداری لاگ ممیزی (روز)"
+                      type="number"
+                    />
+                    <FormField
+                      v-model="settingsForm.SignatureAlgorithm"
+                      label="الگوریتم امضا"
+                      type="text"
+                    />
                   </div>
                   <div class="flex flex-wrap gap-4 items-center">
                     <label class="flex items-center gap-2 cursor-pointer">
-                      <input v-model="settingsForm.IsEnabled" type="checkbox" class="rounded border-border-default" />
+                      <input
+                        v-model="settingsForm.IsEnabled"
+                        type="checkbox"
+                        class="rounded border-border-default"
+                      />
                       <span class="text-sm text-muted-foreground">فعال بودن خروجی</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                      <input v-model="settingsForm.EnableDigitalSignature" type="checkbox" class="rounded border-border-default" />
+                      <input
+                        v-model="settingsForm.EnableDigitalSignature"
+                        type="checkbox"
+                        class="rounded border-border-default"
+                      />
                       <span class="text-sm text-muted-foreground">امضای دیجیتال</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                      <input v-model="settingsForm.EnableDataMasking" type="checkbox" class="rounded border-border-default" />
+                      <input
+                        v-model="settingsForm.EnableDataMasking"
+                        type="checkbox"
+                        class="rounded border-border-default"
+                      />
                       <span class="text-sm text-muted-foreground">پوشش داده</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                      <input v-model="settingsForm.EnableExportAudit" type="checkbox" class="rounded border-border-default" />
+                      <input
+                        v-model="settingsForm.EnableExportAudit"
+                        type="checkbox"
+                        class="rounded border-border-default"
+                      />
                       <span class="text-sm text-muted-foreground">ممیزی خروجی</span>
                     </label>
                   </div>
@@ -638,22 +709,32 @@ watch(activeTab, (tab) => {
                 </div>
               </Card>
               <Card title="پیش‌نمایش (فقط نمایش)" variant="elevated" padding="none" class="min-w-0">
-                <div class="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template #header></template>
+
+                <div class="py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div class="rounded-lg border border-border-default bg-muted/30 p-3">
                     <p class="text-xs text-muted-foreground">فعال بودن خروجی</p>
                     <p class="text-sm font-semibold">{{ yesNo(settingsForm.IsEnabled) }}</p>
                   </div>
                   <div class="rounded-lg border border-border-default bg-muted/30 p-3">
                     <p class="text-xs text-muted-foreground">حداکثر رکورد</p>
-                    <p class="text-sm font-semibold">{{ settingsForm.MaxRecordsPerExport?.toLocaleString('fa-IR') }}</p>
+                    <p class="text-sm font-semibold">
+                      {{ settingsForm.MaxRecordsPerExport?.toLocaleString('fa-IR') }}
+                    </p>
                   </div>
                   <div class="rounded-lg border border-border-default bg-muted/30 p-3">
                     <p class="text-xs text-muted-foreground">حداکثر حجم</p>
-                    <p class="text-sm font-semibold">{{ formatBytes(settingsForm.MaxExportSizeBytes ?? 0) }}</p>
+                    <p class="text-sm font-semibold">
+                      {{ formatBytes(settingsForm.MaxExportSizeBytes ?? 0) }}
+                    </p>
                   </div>
-                  <div class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2">
+                  <div
+                    class="rounded-lg border border-border-default bg-muted/30 p-3 sm:col-span-2"
+                  >
                     <p class="text-xs text-muted-foreground">فرمت‌های مجاز</p>
-                    <p class="text-sm">{{ (settingsForm.AllowedFormats ?? []).join(', ') || '-' }}</p>
+                    <p class="text-sm">
+                      {{ (settingsForm.AllowedFormats ?? []).join(', ') || '-' }}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -662,17 +743,20 @@ watch(activeTab, (tab) => {
 
           <!-- Rules tab -->
           <div v-if="currentTab === 'rules'" class="min-w-0 space-y-4">
-            <Card variant="elevated" padding="none" class="min-w-0">
-              <div class="p-4 sm:p-6 flex justify-end">
-                <BaseButton class="text-white" @click="openRuleCreate">افزودن قانون</BaseButton>
-              </div>
+            <Card title="قوانین خروجی" variant="elevated" padding="none" class="min-w-0">
+              <template #header>
+                <div class="flex justify-end">
+                  <BaseButton class="text-white" @click="openRuleCreate">افزودن قانون</BaseButton>
+                </div>
+              </template>
+
               <div v-if="rulesLoading" class="flex items-center justify-center min-h-[200px]">
                 <CustomLoader size="lg" />
               </div>
               <template v-else-if="rulesError">
                 <p class="text-muted-foreground text-center py-8 px-4">{{ rulesError }}</p>
               </template>
-              <div v-else class="p-4 sm:p-6 pt-0 overflow-x-auto">
+              <div v-else class="overflow-x-auto">
                 <TableWithSettings
                   :columns="rulesColumns"
                   :data="rules"
@@ -689,7 +773,11 @@ watch(activeTab, (tab) => {
                 <FormField v-model="ruleForm.entityType" label="نوع موجودیت" type="text" />
                 <FormField v-model="ruleForm.format" label="فرمت" type="text" />
                 <div class="flex items-center gap-2">
-                  <input v-model="ruleForm.isEnabled" type="checkbox" class="rounded border-border-default" />
+                  <input
+                    v-model="ruleForm.isEnabled"
+                    type="checkbox"
+                    class="rounded border-border-default"
+                  />
                   <span class="text-sm">فعال</span>
                 </div>
                 <div class="flex gap-2 justify-end pt-2">
@@ -702,17 +790,22 @@ watch(activeTab, (tab) => {
 
           <!-- Masking tab -->
           <div v-if="currentTab === 'masking'" class="min-w-0 space-y-4">
-            <Card variant="elevated" padding="none" class="min-w-0">
-              <div class="p-4 sm:p-6 flex justify-end">
-                <BaseButton class="text-white" @click="openMaskingCreate">افزودن قانون پوشش</BaseButton>
-              </div>
+            <Card title="قوانین پوشش" variant="elevated" padding="none" class="min-w-0">
+              <template #header>
+                <div class="py-4 sm:py-6 flex justify-end">
+                  <BaseButton class="text-white" @click="openMaskingCreate"
+                    >افزودن قانون پوشش</BaseButton
+                  >
+                </div>
+              </template>
+
               <div v-if="maskingLoading" class="flex items-center justify-center min-h-[200px]">
                 <CustomLoader size="lg" />
               </div>
               <template v-else-if="maskingError">
                 <p class="text-muted-foreground text-center py-8 px-4">{{ maskingError }}</p>
               </template>
-              <div v-else class="p-4 sm:p-6 pt-0 overflow-x-auto">
+              <div v-else class="py-4 sm:py-6 pt-0 overflow-x-auto">
                 <TableWithSettings
                   :columns="maskingColumns"
                   :data="maskingRules"
@@ -729,7 +822,11 @@ watch(activeTab, (tab) => {
                 <FormField v-model="maskingForm.maskingType" label="نوع پوشش" type="text" />
                 <FormField v-model="maskingForm.replacement" label="جایگزین" type="text" />
                 <div class="flex items-center gap-2">
-                  <input v-model="maskingForm.isEnabled" type="checkbox" class="rounded border-border-default" />
+                  <input
+                    v-model="maskingForm.isEnabled"
+                    type="checkbox"
+                    class="rounded border-border-default"
+                  />
                   <span class="text-sm">فعال</span>
                 </div>
                 <div class="flex gap-2 justify-end pt-2">
@@ -743,15 +840,36 @@ watch(activeTab, (tab) => {
           <!-- Sensitivity tab -->
           <div v-if="currentTab === 'sensitivity'" class="min-w-0 space-y-4">
             <Card title="جستجو بر اساس موجودیت" variant="elevated" padding="md" class="min-w-0">
-              <div class="flex flex-wrap gap-4 items-end">
-                <FormField v-model="entityLookup.entityType" label="نوع موجودیت" type="text" class="min-w-[120px]" />
-                <FormField v-model="entityLookup.entityId" label="شناسه موجودیت" type="text" class="min-w-[120px]" />
-                <BaseButton class="text-white" :disabled="entityLookupLoading" @click="fetchSensitivityByEntity">
+              <div class="flex flex-col sm:flex-row gap-4 items-end">
+                <div class="flex flex-col sm:flex-row gap-4 sm:flex-1 sm:min-w-0 items-center">
+                  <FormField
+                    v-model="entityLookup.entityType"
+                    label="نوع موجودیت"
+                    type="text"
+                    class="w-full sm:flex-1 sm:min-w-0"
+                  />
+                  <FormField
+                    v-model="entityLookup.entityId"
+                    label="شناسه موجودیت"
+                    type="text"
+                    class="w-full sm:flex-1 sm:min-w-0"
+                  />
+                </div>
+                <BaseButton
+                  class="text-white shrink-0 w-full sm:w-auto"
+                  :disabled="entityLookupLoading"
+                  @click="fetchSensitivityByEntity"
+                >
                   {{ entityLookupLoading ? 'در حال جستجو...' : 'جستجو' }}
                 </BaseButton>
               </div>
-              <div v-if="entityResult" class="mt-4 p-4 rounded-lg border border-border-default bg-muted/30">
-                <p class="text-sm font-semibold">سطح حساسیت: {{ entityResult.level ?? entityResult.name ?? '-' }}</p>
+              <div
+                v-if="entityResult"
+                class="mt-4 p-4 rounded-lg border border-border-default bg-muted/30"
+              >
+                <p class="text-sm font-semibold">
+                  سطح حساسیت: {{ entityResult.level ?? entityResult.name ?? '-' }}
+                </p>
               </div>
             </Card>
             <Card title="لیست سطوح حساسیت" variant="elevated" padding="none" class="min-w-0">
@@ -772,15 +890,20 @@ watch(activeTab, (tab) => {
                     <p class="text-xs text-muted-foreground">{{ level.description ?? '' }}</p>
                   </div>
                 </div>
-                <p v-if="sensitivityLevels.length === 0" class="text-muted-foreground text-center py-4">موردی یافت نشد.</p>
+                <p
+                  v-if="sensitivityLevels.length === 0"
+                  class="text-muted-foreground text-center py-4"
+                >
+                  موردی یافت نشد.
+                </p>
               </div>
             </Card>
           </div>
 
           <!-- Audit log tab -->
           <div v-if="currentTab === 'audit'" class="min-w-0 space-y-4">
-            <Card variant="elevated" padding="none" class="min-w-0">
-              <div class="p-4 sm:p-6">
+            <Card title="لاگ ممیزی" variant="elevated" padding="none" class="min-w-0">
+              <div class="py-4 sm:py-6">
                 <div v-if="auditLoading" class="flex items-center justify-center min-h-[200px]">
                   <CustomLoader size="lg" />
                 </div>
@@ -798,12 +921,26 @@ watch(activeTab, (tab) => {
                       class="w-full"
                     >
                       <template #filters>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
+                        <div
+                          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4"
+                        >
                           <FormField v-model="auditFilters.FromDate" label="از تاریخ" type="date" />
                           <FormField v-model="auditFilters.ToDate" label="تا تاریخ" type="date" />
-                          <FormField v-model="auditFilters.EntityType" label="نوع موجودیت" type="text" />
-                          <FormField v-model="auditFilters.SensitivityLevel" label="سطح حساسیت" type="text" />
-                          <FormField v-model="auditFilters.UserId" label="شناسه کاربر" type="number" />
+                          <FormField
+                            v-model="auditFilters.EntityType"
+                            label="نوع موجودیت"
+                            type="text"
+                          />
+                          <FormField
+                            v-model="auditFilters.SensitivityLevel"
+                            label="سطح حساسیت"
+                            type="text"
+                          />
+                          <FormField
+                            v-model="auditFilters.UserId"
+                            label="شناسه کاربر"
+                            type="number"
+                          />
                           <div class="flex flex-col gap-1">
                             <label class="text-sm font-medium text-foreground">وضعیت موفقیت</label>
                             <select
@@ -816,15 +953,18 @@ watch(activeTab, (tab) => {
                             </select>
                           </div>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-border-default">
-                          <BaseButton variant="outline" class="border-2 border-primary-500 text-primary-600" @click="fetchAuditLog">
+                        <div
+                          class="flex flex-wrap items-center gap-2 pt-2 border-t border-border-default"
+                        >
+                          <BaseButton
+                            variant="outline"
+                            class="border-2 border-primary-500 text-primary-600"
+                            @click="fetchAuditLog"
+                          >
                             <BaseIcon name="Search" :size="16" />
                             اعمال فیلتر
                           </BaseButton>
-                          <BaseButton
-                            variant="outline"
-                            @click="clearAuditFilters"
-                          >
+                          <BaseButton variant="outline" @click="clearAuditFilters">
                             <BaseIcon name="RefreshCw" :size="16" />
                             پاک کردن فیلترها
                           </BaseButton>
@@ -833,11 +973,31 @@ watch(activeTab, (tab) => {
                     </TableWithSettings>
                   </div>
                   <div
-                    v-if="auditTotalPages > 1"
-                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 flex-wrap"
                   >
-                    <p class="text-sm text-muted-foreground">{{ auditTotalCount }} مورد</p>
+                    <div class="flex flex-wrap items-center gap-3">
+                      <p class="text-sm text-muted-foreground">{{ auditTotalCount }} مورد</p>
+                      <div class="flex items-center gap-2">
+                        <label class="text-sm text-muted-foreground whitespace-nowrap"
+                          >تعداد در هر صفحه:</label
+                        >
+                        <select
+                          v-model.number="auditPageSize"
+                          class="rounded-lg border border-border-default bg-input-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          @change="auditPage = 1; fetchAuditLog()"
+                        >
+                          <option
+                            v-for="n in AUDIT_PAGE_SIZE_OPTIONS"
+                            :key="n"
+                            :value="n"
+                          >
+                            {{ n }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
                     <Pagination
+                      v-if="auditTotalPages > 1"
                       :current-page="auditPage"
                       :total-pages="auditTotalPages"
                       @update:current-page="onAuditPageChange"
@@ -852,8 +1012,11 @@ watch(activeTab, (tab) => {
           <!-- Statistics tab -->
           <div v-if="currentTab === 'statistics'" class="min-w-0 space-y-4">
             <Card title="آمار" variant="elevated" padding="none" class="min-w-0">
-              <div class="p-4 sm:p-6">
-                <div v-if="statisticsLoading" class="flex items-center justify-center min-h-[320px]">
+              <div class="py-4 sm:py-6">
+                <div
+                  v-if="statisticsLoading"
+                  class="flex items-center justify-center min-h-[320px]"
+                >
                   <CustomLoader size="lg" />
                 </div>
                 <template v-else-if="statisticsError">
@@ -863,54 +1026,43 @@ watch(activeTab, (tab) => {
                   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="rounded-lg border border-border-default bg-muted/30 p-3">
                       <p class="text-xs text-muted-foreground">کل خروجی‌ها</p>
-                      <p class="text-2xl font-semibold">{{ (statistics.totalExports ?? 0).toLocaleString('fa-IR') }}</p>
+                      <p class="text-2xl font-semibold">
+                        {{ (statistics.totalExports ?? 0).toLocaleString('fa-IR') }}
+                      </p>
                     </div>
                     <div class="rounded-lg border border-border-default bg-muted/30 p-3">
                       <p class="text-xs text-muted-foreground">موفق</p>
-                      <p class="text-2xl font-semibold text-green-600">{{ (statistics.successCount ?? 0).toLocaleString('fa-IR') }}</p>
+                      <p class="text-2xl font-semibold text-green-600">
+                        {{ (statistics.successCount ?? 0).toLocaleString('fa-IR') }}
+                      </p>
                     </div>
                     <div class="rounded-lg border border-border-default bg-muted/30 p-3">
                       <p class="text-xs text-muted-foreground">ناموفق</p>
-                      <p class="text-2xl font-semibold text-red-600">{{ (statistics.failureCount ?? 0).toLocaleString('fa-IR') }}</p>
+                      <p class="text-2xl font-semibold text-red-600">
+                        {{ (statistics.failureCount ?? 0).toLocaleString('fa-IR') }}
+                      </p>
                     </div>
                     <div class="rounded-lg border border-border-default bg-muted/30 p-3">
                       <p class="text-xs text-muted-foreground">رکوردهای خروجی شده</p>
-                      <p class="text-2xl font-semibold">{{ (statistics.totalRecordsExported ?? 0).toLocaleString('fa-IR') }}</p>
+                      <p class="text-2xl font-semibold">
+                        {{ (statistics.totalRecordsExported ?? 0).toLocaleString('fa-IR') }}
+                      </p>
                     </div>
                   </div>
                   <div v-if="statisticsSeries.length > 0" class="mt-6">
                     <p class="text-sm font-semibold mb-4">خروجی به تفکیک فرمت</p>
                     <VueApexCharts
                       type="donut"
-                      :options="{ chart: { type: 'donut' }, labels: Object.keys(statistics.exportsByFormat ?? {}), legend: { position: 'bottom' } }"
+                      :options="{
+                        chart: { type: 'donut' },
+                        labels: Object.keys(statistics.exportsByFormat ?? {}),
+                        legend: { position: 'bottom' },
+                      }"
                       :series="statisticsSeries"
                       height="280"
                     />
                   </div>
                 </template>
-              </div>
-            </Card>
-          </div>
-
-          <!-- Test tab -->
-          <div v-if="currentTab === 'test'" class="min-w-0">
-            <Card title="تست خروجی" variant="elevated" padding="md" class="min-w-0">
-              <div class="space-y-4 max-w-2xl">
-                <div class="flex flex-col gap-4">
-                  <div class="flex gap-4">
-                    <FormField v-model="testForm.entityType" label="نوع موجودیت" type="text" class="flex-1 min-w-0" />
-                    <FormField v-model="testForm.entityId" label="شناسه موجودیت" type="text" class="flex-1 min-w-0" />
-                  </div>
-                  <div class="flex gap-4">
-                    <FormField v-model="testForm.format" label="فرمت" type="text" class="flex-1 min-w-0" />
-                    <FormField v-model.number="testForm.recordLimit" label="حداکثر رکورد" type="number" class="flex-1 min-w-0" />
-                  </div>
-                </div>
-                <BaseButton class="text-white" :disabled="testSubmitting" @click="submitTest">
-                  {{ testSubmitting ? 'در حال اجرا...' : 'اجرای تست' }}
-                </BaseButton>
-                <p v-if="testResult === 'success'" class="text-sm text-green-600">تست با موفقیت انجام شد.</p>
-                <p v-if="testResult === 'error'" class="text-sm text-red-600">تست ناموفق بود.</p>
               </div>
             </Card>
           </div>

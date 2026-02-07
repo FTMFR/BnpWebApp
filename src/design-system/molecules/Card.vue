@@ -59,7 +59,7 @@ const cardClasses = computed(() => {
       class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
       v-if="props.title || $slots.header"
     >
-      <div class="flex items-center gap-3 min-w-0 text-end order-2 sm:order-1">
+      <div class="flex items-center gap-3 min-w-0 text-end order-1">
         <BaseButton
           v-if="props.backRoute || props.onBack"
           variant="ghost"
@@ -80,7 +80,7 @@ const cardClasses = computed(() => {
         </div>
       </div>
 
-      <div class="shrink-0 order-1 sm:order-2 w-full sm:w-auto">
+      <div class="shrink-0 order-2 w-full sm:w-auto">
         <slot name="header" />
       </div>
     </div>

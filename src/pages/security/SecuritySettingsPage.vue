@@ -1,12 +1,42 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { CustomLoader, BaseIcon } from '@/design-system/atoms'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { CustomLoader, BaseIcon, BaseButton } from '@/design-system/atoms'
 import Breadcrumb from '@/design-system/molecules/Breadcrumb.vue'
 import Card from '@/design-system/molecules/Card.vue'
+import BaseTabs from '@/design-system/molecules/BaseTabs.vue'
+import FormField from '@/design-system/molecules/FormField.vue'
 import DashboardLayout from '@/design-system/templates/DashboardLayout.vue'
 import apiClient from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { useToastStore } from '@/stores/toast'
+
+const route = useRoute()
+const router = useRouter()
+const TAB_IDS = ['overview', 'settings'] as const
+const tabItems = [
+  { id: 'overview', label: 'نمای کلی' },
+  { id: 'settings', label: 'تنظیمات امنیتی' },
+]
+const activeTab = ref<string>(
+  (route.query.tab as string) && TAB_IDS.includes(route.query.tab as (typeof TAB_IDS)[number])
+    ? (route.query.tab as string)
+    : 'overview',
+)
+watch(activeTab, (tab) => {
+  if (route.query.tab !== tab) {
+    router.replace({ query: { ...route.query, tab: tab || undefined } })
+  }
+})
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (tab && TAB_IDS.includes(tab as (typeof TAB_IDS)[number]) && activeTab.value !== tab) {
+      activeTab.value = tab as string
+    }
+  },
+  { immediate: true },
+)
 
 // API response types
 // Matches SecuritySettingsDto from GET /api/Security/settings
@@ -90,8 +120,210 @@ function yesNo(value: boolean): string {
   return value ? 'بله' : 'خیر'
 }
 
+// ---------- Tab 2: SecuritySettings APIs ----------
+type AccountLockoutSettings = AccountLockout
+type PasswordPolicySettings = PasswordPolicy
+interface CaptchaSettings {
+  Enabled?: boolean
+  [key: string]: unknown
+}
+interface MfaSettings {
+  IsEnabled?: boolean
+  OtpLength?: number
+  OtpExpirySeconds?: number
+  RecoveryCodesCount?: number
+  [key: string]: unknown
+}
+interface AuditLogProtectionSettings {
+  [key: string]: unknown
+}
+
+const accountLockoutData = ref<AccountLockoutSettings | null>(null)
+const accountLockoutLoading = ref(false)
+const accountLockoutSaving = ref(false)
+const passwordPolicyData = ref<PasswordPolicySettings | null>(null)
+const passwordPolicyLoading = ref(false)
+const passwordPolicySaving = ref(false)
+const captchaData = ref<CaptchaSettings | null>(null)
+const captchaLoading = ref(false)
+const captchaSaving = ref(false)
+const mfaData = ref<MfaSettings | null>(null)
+const mfaLoading = ref(false)
+const mfaSaving = ref(false)
+const auditLogProtectionData = ref<AuditLogProtectionSettings | null>(null)
+const auditLogProtectionLoading = ref(false)
+const auditLogProtectionSaving = ref(false)
+const invalidateCacheLoading = ref(false)
+
+async function fetchAccountLockout() {
+  accountLockoutLoading.value = true
+  try {
+    const res = await apiClient.get<AccountLockoutSettings>(endpoints.securitySettings.accountLockout)
+    accountLockoutData.value = res.data ?? null
+  } catch (err) {
+    console.error('Failed to fetch account lockout', err)
+    toastStore.showToast('بارگذاری قفل حساب ناموفق بود.', 'error')
+    accountLockoutData.value = null
+  } finally {
+    accountLockoutLoading.value = false
+  }
+}
+
+async function saveAccountLockout() {
+  if (!accountLockoutData.value) return
+  accountLockoutSaving.value = true
+  try {
+    await apiClient.put(endpoints.securitySettings.updateAccountLockout, accountLockoutData.value)
+    toastStore.showToast('قفل حساب با موفقیت ذخیره شد.', 'success')
+  } catch (err) {
+    console.error('Failed to save account lockout', err)
+    toastStore.showToast('ذخیره قفل حساب ناموفق بود.', 'error')
+  } finally {
+    accountLockoutSaving.value = false
+  }
+}
+
+async function fetchPasswordPolicy() {
+  passwordPolicyLoading.value = true
+  try {
+    const res = await apiClient.get<PasswordPolicySettings>(endpoints.securitySettings.passwordPolicy)
+    passwordPolicyData.value = res.data ?? null
+  } catch (err) {
+    console.error('Failed to fetch password policy', err)
+    toastStore.showToast('بارگذاری سیاست رمز عبور ناموفق بود.', 'error')
+    passwordPolicyData.value = null
+  } finally {
+    passwordPolicyLoading.value = false
+  }
+}
+
+async function savePasswordPolicy() {
+  if (!passwordPolicyData.value) return
+  passwordPolicySaving.value = true
+  try {
+    await apiClient.put(endpoints.securitySettings.updatePasswordPolicy, passwordPolicyData.value)
+    toastStore.showToast('سیاست رمز عبور با موفقیت ذخیره شد.', 'success')
+  } catch (err) {
+    console.error('Failed to save password policy', err)
+    toastStore.showToast('ذخیره سیاست رمز عبور ناموفق بود.', 'error')
+  } finally {
+    passwordPolicySaving.value = false
+  }
+}
+
+async function fetchCaptcha() {
+  captchaLoading.value = true
+  try {
+    const res = await apiClient.get<CaptchaSettings>(endpoints.securitySettings.captcha)
+    captchaData.value = res.data ?? null
+  } catch (err) {
+    console.error('Failed to fetch captcha settings', err)
+    toastStore.showToast('بارگذاری تنظیمات کپچا ناموفق بود.', 'error')
+    captchaData.value = null
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+async function saveCaptcha() {
+  if (!captchaData.value) return
+  captchaSaving.value = true
+  try {
+    await apiClient.put(endpoints.securitySettings.updateCaptcha, captchaData.value)
+    toastStore.showToast('تنظیمات کپچا با موفقیت ذخیره شد.', 'success')
+  } catch (err) {
+    console.error('Failed to save captcha', err)
+    toastStore.showToast('ذخیره تنظیمات کپچا ناموفق بود.', 'error')
+  } finally {
+    captchaSaving.value = false
+  }
+}
+
+async function fetchMfa() {
+  mfaLoading.value = true
+  try {
+    const res = await apiClient.get<MfaSettings>(endpoints.securitySettings.mfa)
+    mfaData.value = res.data ?? null
+  } catch (err) {
+    console.error('Failed to fetch MFA settings', err)
+    toastStore.showToast('بارگذاری تنظیمات MFA ناموفق بود.', 'error')
+    mfaData.value = null
+  } finally {
+    mfaLoading.value = false
+  }
+}
+
+async function saveMfa() {
+  if (!mfaData.value) return
+  mfaSaving.value = true
+  try {
+    await apiClient.put(endpoints.securitySettings.updateMfa, mfaData.value)
+    toastStore.showToast('تنظیمات MFA با موفقیت ذخیره شد.', 'success')
+  } catch (err) {
+    console.error('Failed to save MFA', err)
+    toastStore.showToast('ذخیره تنظیمات MFA ناموفق بود.', 'error')
+  } finally {
+    mfaSaving.value = false
+  }
+}
+
+async function fetchAuditLogProtection() {
+  auditLogProtectionLoading.value = true
+  try {
+    const res = await apiClient.get<AuditLogProtectionSettings>(endpoints.securitySettings.auditLogProtection)
+    auditLogProtectionData.value = res.data ?? null
+  } catch (err) {
+    console.error('Failed to fetch audit log protection', err)
+    toastStore.showToast('بارگذاری تنظیمات حفاظت لاگ ناموفق بود.', 'error')
+    auditLogProtectionData.value = null
+  } finally {
+    auditLogProtectionLoading.value = false
+  }
+}
+
+async function saveAuditLogProtection() {
+  if (!auditLogProtectionData.value) return
+  auditLogProtectionSaving.value = true
+  try {
+    await apiClient.put(endpoints.securitySettings.updateAuditLogProtection, auditLogProtectionData.value)
+    toastStore.showToast('تنظیمات حفاظت لاگ با موفقیت ذخیره شد.', 'success')
+  } catch (err) {
+    console.error('Failed to save audit log protection', err)
+    toastStore.showToast('ذخیره تنظیمات حفاظت لاگ ناموفق بود.', 'error')
+  } finally {
+    auditLogProtectionSaving.value = false
+  }
+}
+
+async function invalidateCache() {
+  invalidateCacheLoading.value = true
+  try {
+    await apiClient.post(endpoints.securitySettings.invalidateCache)
+    toastStore.showToast('کش با موفقیت پاکسازی شد.', 'success')
+  } catch (err) {
+    console.error('Failed to invalidate cache', err)
+    toastStore.showToast('پاکسازی کش ناموفق بود.', 'error')
+  } finally {
+    invalidateCacheLoading.value = false
+  }
+}
+
+function loadSettingsTab() {
+  if (activeTab.value !== 'settings') return
+  fetchAccountLockout()
+  fetchPasswordPolicy()
+  fetchCaptcha()
+  fetchMfa()
+  fetchAuditLogProtection()
+}
+
+watch(activeTab, (tab) => {
+  if (tab === 'settings') loadSettingsTab()
+})
+
 onMounted(() => {
   fetchSettings()
+  if (activeTab.value === 'settings') loadSettingsTab()
 })
 </script>
 

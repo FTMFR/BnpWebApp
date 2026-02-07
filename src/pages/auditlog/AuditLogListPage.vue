@@ -54,6 +54,7 @@ const {
 
 const {
   advancedPageNumber,
+  advancedPageSize,
   advancedItems,
   advancedTotalCount,
   advancedTotalPages,
@@ -71,6 +72,7 @@ const {
 
 const {
   todayPageNumber,
+  todayPageSize,
   todayItems,
   todayTotalCount,
   todayTotalPages,
@@ -82,6 +84,7 @@ const {
 
 const {
   failedPageNumber,
+  failedPageSize,
   failedItems,
   failedTotalCount,
   failedTotalPages,
@@ -118,12 +121,30 @@ watch(todayPageNumber, () => {
   if (activeTab.value === 'todayLogs') fetchToday()
 })
 
+watch(todayPageSize, () => {
+  if (activeTab.value !== 'todayLogs') return
+  todayPageNumber.value = 1
+  fetchToday()
+})
+
 watch(failedPageNumber, () => {
   if (activeTab.value === 'failedLogins') fetchFailedLogins()
 })
 
+watch(failedPageSize, () => {
+  if (activeTab.value !== 'failedLogins') return
+  failedPageNumber.value = 1
+  fetchFailedLogins()
+})
+
 watch(advancedPageNumber, () => {
   if (activeTab.value === 'advancedSearch') fetchAdvanced()
+})
+
+watch(advancedPageSize, () => {
+  if (activeTab.value !== 'advancedSearch') return
+  advancedPageNumber.value = 1
+  fetchAdvanced()
 })
 
 watch(searchTerm, () => {
@@ -571,13 +592,28 @@ function closeDetail() {
                     </template>
                   </TableWithSettings>
                   <div
-                    v-if="advancedTotalPages > 1"
-                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 flex-wrap"
                   >
-                    <p class="text-sm text-muted-foreground order-2 sm:order-1">
-                      {{ advancedTotalCount }} مورد در مجموع
-                    </p>
+                    <div class="flex flex-wrap items-center gap-3 order-2 sm:order-1">
+                      <p class="text-sm text-muted-foreground">
+                        {{ advancedTotalCount }} مورد در مجموع
+                      </p>
+                      <div class="flex items-center gap-2">
+                        <label class="text-sm text-muted-foreground whitespace-nowrap"
+                          >تعداد در هر صفحه:</label
+                        >
+                        <select
+                          v-model.number="advancedPageSize"
+                          class="rounded-lg border border-border-default bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="size">
+                            {{ size }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
                     <Pagination
+                      v-if="advancedTotalPages > 1"
                       :current-page="advancedPageNumber"
                       :total-pages="advancedTotalPages"
                       @update:current-page="onAdvancedPageChange"
@@ -604,13 +640,28 @@ function closeDetail() {
                     class="w-full"
                   />
                   <div
-                    v-if="todayTotalPages > 1"
-                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 flex-wrap"
                   >
-                    <p class="text-sm text-muted-foreground order-2 sm:order-1">
-                      {{ todayTotalCount }} مورد در مجموع
-                    </p>
+                    <div class="flex flex-wrap items-center gap-3 order-2 sm:order-1">
+                      <p class="text-sm text-muted-foreground">
+                        {{ todayTotalCount }} مورد در مجموع
+                      </p>
+                      <div class="flex items-center gap-2">
+                        <label class="text-sm text-muted-foreground whitespace-nowrap"
+                          >تعداد در هر صفحه:</label
+                        >
+                        <select
+                          v-model.number="todayPageSize"
+                          class="rounded-lg border border-border-default bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="size">
+                            {{ size }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
                     <Pagination
+                      v-if="todayTotalPages > 1"
                       :current-page="todayPageNumber"
                       :total-pages="todayTotalPages"
                       @update:current-page="onTodayPageChange"
@@ -637,13 +688,28 @@ function closeDetail() {
                     class="w-full"
                   />
                   <div
-                    v-if="failedTotalPages > 1"
-                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 flex-wrap"
                   >
-                    <p class="text-sm text-muted-foreground order-2 sm:order-1">
-                      {{ failedTotalCount }} مورد در مجموع
-                    </p>
+                    <div class="flex flex-wrap items-center gap-3 order-2 sm:order-1">
+                      <p class="text-sm text-muted-foreground">
+                        {{ failedTotalCount }} مورد در مجموع
+                      </p>
+                      <div class="flex items-center gap-2">
+                        <label class="text-sm text-muted-foreground whitespace-nowrap"
+                          >تعداد در هر صفحه:</label
+                        >
+                        <select
+                          v-model.number="failedPageSize"
+                          class="rounded-lg border border-border-default bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="size">
+                            {{ size }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
                     <Pagination
+                      v-if="failedTotalPages > 1"
                       :current-page="failedPageNumber"
                       :total-pages="failedTotalPages"
                       @update:current-page="onFailedPageChange"
