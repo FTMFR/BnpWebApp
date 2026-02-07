@@ -334,17 +334,21 @@ onMounted(() => {
         <Breadcrumb :items="breadcrumbItems" />
       </div>
 
-      <div v-if="isLoading" class="flex items-center justify-center min-h-[320px]">
-        <CustomLoader size="lg" />
-      </div>
+      <BaseTabs v-model="activeTab" :items="tabItems" variant="default">
+        <template #default="{ activeTab: currentTab }">
+          <!-- Tab 1: نمای کلی (همان محتوای فعلی) -->
+          <template v-if="currentTab === 'overview'">
+            <div v-if="isLoading" class="flex items-center justify-center min-h-[320px]">
+              <CustomLoader size="lg" />
+            </div>
 
-      <template v-else-if="loadError">
-        <Card variant="elevated" padding="md" class="min-w-0">
-          <p class="text-muted-foreground text-center py-8">{{ loadError }}</p>
-        </Card>
-      </template>
+            <template v-else-if="loadError">
+              <Card variant="elevated" padding="md" class="min-w-0">
+                <p class="text-muted-foreground text-center py-8">{{ loadError }}</p>
+              </Card>
+            </template>
 
-      <template v-else-if="settings">
+            <template v-else-if="settings">
         <!-- Password Policy -->
         <Card
           title="سیاست رمز عبور"
@@ -595,7 +599,127 @@ onMounted(() => {
             </div>
           </div>
         </Card>
-      </template>
+            </template>
+          </template>
+
+          <!-- Tab 2: تنظیمات امنیتی (SecuritySettings APIs) -->
+          <div v-if="currentTab === 'settings'" class="min-w-0 space-y-4">
+            <!-- Account Lockout -->
+            <Card title="قفل حساب" description="GET/PUT account-lockout" variant="elevated" padding="none" class="min-w-0">
+              <div class="p-4 sm:p-6">
+                <CustomLoader v-if="accountLockoutLoading" size="md" class="mx-auto my-4" />
+                <template v-else-if="accountLockoutData">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <FormField v-model.number="accountLockoutData.MaxFailedAttempts" label="حداکثر تلاش ناموفق" type="number" />
+                    <FormField v-model.number="accountLockoutData.LockoutDurationMinutes" label="مدت قفل (دقیقه)" type="number" />
+                    <FormField v-model.number="accountLockoutData.FailedAttemptResetMinutes" label="بازنشانی تلاش (دقیقه)" type="number" />
+                    <FormField v-model.number="accountLockoutData.PermanentLockoutThreshold" label="آستانه قفل دائمی" type="number" />
+                    <div class="flex items-center gap-2">
+                      <input v-model="accountLockoutData.EnablePermanentLockout" type="checkbox" id="al-permanent" class="rounded border-border-default" />
+                      <label for="al-permanent" class="text-sm text-foreground">قفل دائمی</label>
+                    </div>
+                  </div>
+                  <BaseButton :disabled="accountLockoutSaving" class="text-white" @click="saveAccountLockout">
+                    {{ accountLockoutSaving ? 'در حال ذخیره...' : 'ذخیره قفل حساب' }}
+                  </BaseButton>
+                </template>
+                <p v-else class="text-muted-foreground text-sm">داده‌ای بارگذاری نشد.</p>
+              </div>
+            </Card>
+
+            <!-- Password Policy -->
+            <Card title="سیاست رمز عبور" description="GET/PUT password-policy" variant="elevated" padding="none" class="min-w-0">
+              <div class="p-4 sm:p-6">
+                <CustomLoader v-if="passwordPolicyLoading" size="md" class="mx-auto my-4" />
+                <template v-else-if="passwordPolicyData">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <FormField v-model.number="passwordPolicyData.MinimumLength" label="حداقل طول" type="number" />
+                    <FormField v-model.number="passwordPolicyData.MaximumLength" label="حداکثر طول" type="number" />
+                    <FormField v-model.number="passwordPolicyData.PasswordHistoryCount" label="تاریخچه رمز" type="number" />
+                    <FormField v-model.number="passwordPolicyData.PasswordExpirationDays" label="انقضای رمز (روز)" type="number" />
+                    <FormField v-model="passwordPolicyData.SpecialCharacters" label="کاراکترهای خاص مجاز" type="text" class="sm:col-span-2" />
+                    <div class="flex flex-wrap gap-4 items-center sm:col-span-2">
+                      <label class="flex items-center gap-2"><input v-model="passwordPolicyData.RequireUppercase" type="checkbox" class="rounded border-border-default" /><span class="text-sm">حروف بزرگ</span></label>
+                      <label class="flex items-center gap-2"><input v-model="passwordPolicyData.RequireLowercase" type="checkbox" class="rounded border-border-default" /><span class="text-sm">حروف کوچک</span></label>
+                      <label class="flex items-center gap-2"><input v-model="passwordPolicyData.RequireDigit" type="checkbox" class="rounded border-border-default" /><span class="text-sm">عدد</span></label>
+                      <label class="flex items-center gap-2"><input v-model="passwordPolicyData.RequireSpecialCharacter" type="checkbox" class="rounded border-border-default" /><span class="text-sm">کاراکتر خاص</span></label>
+                      <label class="flex items-center gap-2"><input v-model="passwordPolicyData.DisallowUsername" type="checkbox" class="rounded border-border-default" /><span class="text-sm">ممنوعیت نام کاربری در رمز</span></label>
+                    </div>
+                  </div>
+                  <BaseButton :disabled="passwordPolicySaving" class="text-white" @click="savePasswordPolicy">
+                    {{ passwordPolicySaving ? 'در حال ذخیره...' : 'ذخیره سیاست رمز عبور' }}
+                  </BaseButton>
+                </template>
+                <p v-else class="text-muted-foreground text-sm">داده‌ای بارگذاری نشد.</p>
+              </div>
+            </Card>
+
+            <!-- Captcha -->
+            <Card title="تنظیمات کپچا" description="GET/PUT captcha" variant="elevated" padding="none" class="min-w-0">
+              <div class="p-4 sm:p-6">
+                <CustomLoader v-if="captchaLoading" size="md" class="mx-auto my-4" />
+                <template v-else-if="captchaData">
+                  <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <label class="flex items-center gap-2">
+                      <input v-model="captchaData.Enabled" type="checkbox" class="rounded border-border-default" />
+                      <span class="text-sm text-foreground">فعال</span>
+                    </label>
+                  </div>
+                  <BaseButton :disabled="captchaSaving" class="text-white" @click="saveCaptcha">
+                    {{ captchaSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات کپچا' }}
+                  </BaseButton>
+                </template>
+                <p v-else class="text-muted-foreground text-sm">داده‌ای بارگذاری نشد.</p>
+              </div>
+            </Card>
+
+            <!-- MFA -->
+            <Card title="تنظیمات MFA" description="GET/PUT mfa" variant="elevated" padding="none" class="min-w-0">
+              <div class="p-4 sm:p-6">
+                <CustomLoader v-if="mfaLoading" size="md" class="mx-auto my-4" />
+                <template v-else-if="mfaData">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <label class="flex items-center gap-2">
+                      <input v-model="mfaData.IsEnabled" type="checkbox" class="rounded border-border-default" />
+                      <span class="text-sm text-foreground">فعال</span>
+                    </label>
+                    <FormField v-model.number="mfaData.OtpLength" label="طول کد OTP" type="number" />
+                    <FormField v-model.number="mfaData.OtpExpirySeconds" label="انقضای OTP (ثانیه)" type="number" />
+                    <FormField v-model.number="mfaData.RecoveryCodesCount" label="تعداد کدهای بازیابی" type="number" />
+                  </div>
+                  <BaseButton :disabled="mfaSaving" class="text-white" @click="saveMfa">
+                    {{ mfaSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات MFA' }}
+                  </BaseButton>
+                </template>
+                <p v-else class="text-muted-foreground text-sm">داده‌ای بارگذاری نشد.</p>
+              </div>
+            </Card>
+
+            <!-- Audit Log Protection -->
+            <Card title="حفاظت لاگ ممیزی" description="GET/PUT AuditLogProtection" variant="elevated" padding="none" class="min-w-0">
+              <div class="p-4 sm:p-6">
+                <CustomLoader v-if="auditLogProtectionLoading" size="md" class="mx-auto my-4" />
+                <template v-else-if="auditLogProtectionData && Object.keys(auditLogProtectionData).length">
+                  <pre class="text-xs bg-muted/30 p-3 rounded-lg overflow-x-auto mb-4">{{ JSON.stringify(auditLogProtectionData, null, 2) }}</pre>
+                  <BaseButton :disabled="auditLogProtectionSaving" class="text-white" @click="saveAuditLogProtection">
+                    {{ auditLogProtectionSaving ? 'در حال ذخیره...' : 'ذخیره' }}
+                  </BaseButton>
+                </template>
+                <p v-else class="text-muted-foreground text-sm">داده‌ای بارگذاری نشد یا خالی است.</p>
+              </div>
+            </Card>
+
+            <!-- Invalidate Cache -->
+            <Card title="پاکسازی کش" description="POST invalidate-cache" variant="elevated" padding="none" class="min-w-0">
+              <div class="p-4 sm:p-6">
+                <BaseButton :disabled="invalidateCacheLoading" variant="outline" @click="invalidateCache">
+                  {{ invalidateCacheLoading ? 'در حال اجرا...' : 'پاکسازی کش' }}
+                </BaseButton>
+              </div>
+            </Card>
+          </div>
+        </template>
+      </BaseTabs>
     </div>
   </DashboardLayout>
 </template>

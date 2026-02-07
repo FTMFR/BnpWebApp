@@ -246,6 +246,7 @@ export const endpoints = {
     lockoutStatus: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/lockout-status`,
     resetPassword: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/reset-password`,
     forcePasswordChange: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/force-password-change`,
+    profilePicture: (publicId: string) => `${API_BASE_URL}/Users/${publicId}/profile-picture`,
   },
 
   // ============================================

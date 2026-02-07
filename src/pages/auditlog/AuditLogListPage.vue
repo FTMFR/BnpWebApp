@@ -515,7 +515,7 @@ function closeDetail() {
                     :columns="tableColumns"
                     :data="advancedItems"
                     :searchable="true"
-                    :exportable="true"
+                    :exportable="false"
                     :filterable="true"
                     class="w-full"
                   >
@@ -635,7 +635,7 @@ function closeDetail() {
                     :columns="tableColumns"
                     :data="todayItems"
                     :searchable="true"
-                    :exportable="true"
+                    :exportable="false"
                     :filterable="false"
                     class="w-full"
                   />
@@ -683,7 +683,7 @@ function closeDetail() {
                     :columns="tableColumns"
                     :data="failedItems"
                     :searchable="true"
-                    :exportable="true"
+                    :exportable="false"
                     :filterable="false"
                     class="w-full"
                   />
